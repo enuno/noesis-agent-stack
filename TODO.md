@@ -1,0 +1,304 @@
+# Development TODO
+
+> Derived from DEVELOPMENT_PLAN.md assessment on 2026-05-05.
+> Current branch: main
+> Status: Phase 0 partially scaffolded; contracts and agent SOULs exist.
+
+---
+
+## Phase 0: Repo Scaffold (IN PROGRESS)
+
+### Exit criteria
+- [ ] Repo tree matches platform spec
+- [ ] Shared policy and schema directories exist and are versioned
+- [ ] Workspace boundaries documented before code execution begins
+
+### Current state
+| Item | Status | Path |
+|---|---|---|
+| README | done | ./README.md |
+| SPEC (platform spec) | done | ./SPEC.md |
+| Agent SOULs | done | agents/*/SOUL.md |
+| Agent systemprompts | done | agents/main-hermes/systemprompt.md |
+| Stack config | done | config/stack.yaml |
+| Contract schemas (broker, handoffs, ledgers) | partial | contracts/ — several schemas exist but broker-api/ and mempalace/ dirs missing |
+| Shared models/tools | partial | shared/models.yaml, shared/tools.yaml exist; policy/guardrails/memory missing |
+| Workspace surfaces | partial | workspace/research-vault/config/ exists; subconscious-room/, coder-jobs/, qa-reports/ missing |
+
+### Outstanding tasks
+
+- [ ] 0.1 — Create `shared/policy/` with global policy and guardrails
+  - `shared/policy/global.yaml` — forbidden actions, write-scope rules, approval gates
+  - `shared/policy/guardrails.yaml` — safety limits for all agents
+- [ ] 0.2 — Create `shared/schemas/` with canonical shared schemas
+  - `shared/schemas/job.schema.json` — canonical job definition
+  - `shared/schemas/event.schema.json` — canonical event envelope
+  - `shared/schemas/artifact.schema.json` — canonical artifact reference
+- [ ] 0.3 — Create `shared/memory/` with memory layer contracts
+  - `shared/memory/palace-readme.md` — how agents read/write palace
+  - `shared/memory/taxonomy.yaml` — wing/room/hall definitions
+- [ ] 0.4 — Create `contracts/broker-api/` with broker surface schemas
+  - `contracts/broker-api/openapi.yaml` — OpenAPI spec for broker
+  - `contracts/broker-api/job.schema.json` — broker job request/response
+  - `contracts/broker-api/events.schema.json` — broker event stream schema
+  - `contracts/broker-api/artifact.schema.json` — broker artifact reference schema
+- [ ] 0.5 — Create `contracts/mempalace/` with palace contracts
+  - `contracts/mempalace/taxonomy.yaml` — wing/hall/room ownership
+  - `contracts/mempalace/kg-schema.yaml` — entity types, predicates, validity rules
+- [ ] 0.6 — Create missing workspace directories
+  - `workspace/subconscious-room/`
+  - `workspace/coder-jobs/`
+  - `workspace/qa-reports/`
+- [ ] 0.7 — Create platform-level docs
+  - `HEARTBEAT.platform.md` — platform-wide save cadence and trigger protocol
+  - `WORKFLOWS.md` — workflow state transition definitions
+  - `EVALS.platform.yaml` — platform evaluation criteria and test matrix
+- [ ] 0.8 — Commit Phase 0 scaffold
+
+---
+
+## Phase 1: Broker Control Plane (NOT STARTED)
+
+### Exit criteria
+- Broker accepts and validates typed requests against schemas
+- Job IDs, correlation IDs, read scopes, and write scopes enforced
+- Worker registry and health endpoints operational
+
+### Tasks
+
+- [ ] 1.1 — Create `orchestration/broker/` directory structure
+  - `orchestration/broker/README.md`
+  - `orchestration/broker/SPEC.md`
+  - `orchestration/broker/config.yaml`
+  - `orchestration/broker/app/` — broker service skeleton
+  - `orchestration/broker/tests/` — broker tests
+- [ ] 1.2 — Implement broker service skeleton
+  - Worker registry
+  - Job submission endpoint (`POST /v1/jobs`)
+  - Job status endpoint (`GET /v1/jobs/{job_id}`)
+  - Job cancel endpoint (`POST /v1/jobs/{job_id}/cancel`)
+  - Events endpoint (`GET /v1/jobs/{job_id}/events`)
+  - Artifacts endpoint (`GET /v1/jobs/{job_id}/artifacts`)
+  - Workers list endpoint (`GET /v1/workers`)
+  - Health endpoint (`GET /v1/health`)
+- [ ] 1.3 — Schema validation layer
+  - Validate incoming jobs against `contracts/broker-api/job.schema.json`
+  - Validate events against `contracts/broker-api/events.schema.json`
+  - Validate artifacts against `contracts/broker-api/artifact.schema.json`
+- [ ] 1.4 — Scope enforcement
+  - Enforce read scopes and write scopes per worker profile
+  - Enforce correlation IDs on job chains
+- [ ] 1.5 — Commit broker skeleton
+
+---
+
+## Phase 1.5: MemPalace Memory Layer (NOT STARTED)
+
+### Exit criteria
+- Every broker job completion writes a retrievable receipt to the palace
+- Hermes can query palace context before approving or delegating
+- Research and Subconscious write surfaces map 1:1 to palace wings/rooms
+- Knowledge graph contains project, agent, and job entities with basic temporal facts
+
+### Tasks
+
+- [ ] 1.5.1 — Stand up `workspace/mempalace/` scaffold and init scripts
+- [ ] 1.5.2 — Define wing/room taxonomy in `contracts/mempalace/taxonomy.yaml`
+  - `hermes` wing
+  - `broker` wing
+  - `research-vault` wing
+  - `subconscious-room` wing
+  - `coder-jobs` wing
+  - `qa-reports` wing
+- [ ] 1.5.3 — Define KG schema in `contracts/mempalace/kg-schema.yaml`
+- [ ] 1.5.4 — Implement broker receipt hook
+  - `orchestration/broker/hooks/mempalace_receipt_hook.py`
+  - Writes job receipt drawer to `broker/jobs` room on every completion
+- [ ] 1.5.5 — Implement Hermes palace query tool
+  - `agents/main-hermes/tools/palace_query.py`
+  - Search, KG lookup, diary read
+- [ ] 1.5.6 — Initialize diary systems per agent
+- [ ] 1.5.7 — Commit memory layer
+
+---
+
+## Phase 2: Hermes Supervisor Profile (NOT STARTED)
+
+### Exit criteria
+- Hermes can submit broker jobs with typed payloads
+- Hermes can consume worker artifacts without directly mutating worker state
+- Routing and approval rules reflect contract boundaries in spec
+
+### Tasks
+
+- [ ] 2.1 — Create `agents/main-hermes/` contract files
+  - `README.md`
+  - `SPEC.md`
+  - `systemprompt.md` (exists; review/update)
+  - `agent.yaml`
+  - `POLICY.md`
+  - `GUARDRAILS.yaml`
+  - `RUNBOOK.md`
+- [ ] 2.2 — Create platform orchestration configs
+  - `platform/orchestrator.yaml`
+  - `platform/routing.yaml`
+- [ ] 2.3 — Create first-pass workflow definitions
+  - `platform/workflows/` — approval, delegation, escalation workflows
+- [ ] 2.4 — Commit Hermes profile
+
+---
+
+## Phase 3: Research Worker Slice (NOT STARTED)
+
+### Exit criteria
+- Research writes only within `workspace/research-vault/`
+- Findings, claims, and sources are machine-readable and replayable
+- Run receipts support audit and failure recovery
+
+### Tasks
+
+- [ ] 3.1 — Create `agents/research-openclaw/` contract files
+  - `README.md`
+  - `SPEC.md`
+  - `agent.yaml`
+- [ ] 3.2 — Create `agents/research-openclaw/config/`
+  - `collectors.yaml` (exists; review/update)
+  - `thresholds.yaml`
+- [ ] 3.3 — Create `agents/research-openclaw/scripts/`
+  - `bootstrap.py`
+  - `refresh.py`
+  - `validate.py`
+  - `daily_summary.py`
+  - `midday_focus.py`
+  - `backup.py`
+  - `restore.py`
+  - `recover.py`
+- [ ] 3.4 — Finalize `workspace/research-vault/` substructure
+- [ ] 3.5 — Commit Research vertical slice
+
+---
+
+## Phase 4: Subconscious Worker Slice (NOT STARTED)
+
+### Exit criteria
+- Subconscious cannot code, self-approve, or alter its own thresholds to force promotion
+- Signal events and board states persisted distinctly from approved jobs
+- Research and Subconscious remain isolated by write surface
+
+### Tasks
+
+- [ ] 4.1 — Create `agents/subconscious-openclaw/` contract files
+  - `README.md`
+  - `SPEC.md`
+  - `agent.yaml`
+- [ ] 4.2 — Create `agents/subconscious-openclaw/config/`
+  - `jobs.yaml`
+  - `thresholds.yaml`
+  - `delivery.yaml`
+- [ ] 4.3 — Create `agents/subconscious-openclaw/scripts/`
+  - `walk.py`
+  - `digest.py`
+  - `signal_filter.py`
+  - `board_rebuild.py`
+  - `feedback_sync.py`
+- [ ] 4.4 — Finalize `workspace/subconscious-room/`
+- [ ] 4.5 — Commit Subconscious vertical slice
+
+---
+
+## Phase 5: Builder and QA Lanes (NOT STARTED)
+
+### Exit criteria
+- Raw research output and raw subconscious signal cannot directly trigger builds
+- Coder only receives approved handoffs from Hermes
+- QA can block release progression based on evidence and validation status
+
+### Tasks
+
+- [ ] 5.1 — Create `agents/coder/` contract set
+- [ ] 5.2 — Create `agents/qa/` contract set
+- [ ] 5.3 — Finalize handoff schemas
+  - `contracts/handoffs/build-intent.schema.json`
+  - `contracts/handoffs/build-plan.schema.json`
+  - `contracts/handoffs/verify-handoff.schema.json`
+- [ ] 5.4 — Create workspace directories
+  - `workspace/coder-jobs/`
+  - `workspace/qa-reports/`
+- [ ] 5.5 — Create workflow definitions
+  - `platform/workflows/build-promotion.yaml`
+  - `platform/workflows/release-validation.yaml`
+- [ ] 5.6 — Commit builder and QA lanes
+
+---
+
+## Phase 6: Observability and Hardening (NOT STARTED)
+
+### Exit criteria
+- Every job has an event trail and artifact index
+- Failed runs can be replayed or diagnosed from receipts and logs
+- Operators can stop, retry, quarantine, or downgrade workflows safely
+
+### Tasks
+
+- [ ] 6.1 — Create `orchestration/observability/` assets
+  - Logs, metrics, dashboards, traces
+- [ ] 6.2 — Create `orchestration/health/` probes and summaries
+- [ ] 6.3 — Replay tooling for broker events and receipts
+- [ ] 6.4 — Alert rules
+  - Stuck jobs
+  - Stale workers
+  - Failed validations
+  - Broken schedules
+- [ ] 6.5 — Security docs under `docs/security/`
+- [ ] 6.6 — Operational runbooks under `docs/operations/`
+- [ ] 6.7 — MemPalace-specific health checks
+  - Drawer counts per wing/room
+  - KG stats monitoring
+  - Tunnel integrity checks
+  - Diary staleness alerts
+  - Storage growth rate alerts
+  - `mempalace repair` runbook
+- [ ] 6.8 — Commit observability and hardening
+
+---
+
+## Phase 7: Expansion Lanes (NOT STARTED)
+
+### Tasks
+
+- [ ] 7.1 — `agents/content/` contract set
+- [ ] 7.2 — `agents/ops/` contract set
+- [ ] 7.3 — `agents/treasury/` contract set
+- [ ] 7.4 — Handoff schemas for content, ops, treasury
+- [ ] 7.5 — Schedule definitions for recurring workflows
+- [ ] 7.6 — Docs and ADRs for each new lane
+
+---
+
+## First Sprint Recommendation
+
+Target the narrow end-to-end path from DEVELOPMENT_PLAN.md §First sprint recommendation:
+
+1. Hermes submits a `research-openclaw` refresh job through the broker.
+2. The worker writes findings and run receipts to the research vault.
+3. Hermes receives the resulting artifacts.
+4. System exposes job status through the broker API.
+
+This validates control plane, workspace isolation, schema discipline, and supervisor-to-worker pattern before adding reflective or build workflows.
+
+### Sprint task list (derived from above)
+
+- Phase 0 completion (tasks 0.1–0.8)
+- Phase 1 broker skeleton (tasks 1.1–1.5)
+- Phase 1.5 broker receipt hook + basic palace query (tasks 1.5.1–1.5.7)
+- Phase 2 Hermes routing basics (tasks 2.1–2.4)
+- Phase 3 Research refresh script + vault integration (tasks 3.1–3.5)
+
+---
+
+## How to update this file
+
+1. Mark tasks `[x]` when completed.
+2. Add dates to completed tasks inline: `[x] 2026-05-05 — task description`.
+3. Add blockers or notes under any task using `> Note:`.
+4. Reassess at the end of each milestone.
