@@ -1,0 +1,488 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/handoffs/release-gate.schema.json",
+  "title": "ReleaseGate",
+  "description": "Schema for the QA agent release gate result written to workspace/qa-reports. Consumed by Hermes supervisor to make build promotion decisions. A passing gate is required before any artifact can be promoted externally or trigger downstream lanes (content, ops, treasury).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "gate_id",
+    "job_id",
+    "correlation_id",
+    "created_at",
+    "source_agent",
+    "target_agent",
+    "build_ref",
+    "verdict",
+    "test_summary",
+    "artifact_audit",
+    "contract_checks",
+    "guardrail_attestation"
+  ],
+  "additionalProperties": false,
+  "properties": {
+
+    "schema_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version. Must be '1.0'."
+    },
+
+    "gate_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this release gate document. UUIDv4."
+    },
+
+    "job_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Broker job ID of the QA job that produced this gate result."
+    },
+
+    "correlation_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Correlation ID linking this gate to the coder job and originating build intent."
+    },
+
+    "build_intent_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Optional. The intent_id from the build-intent document that originated this build sprint."
+    },
+
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp when this gate result was written."
+    },
+
+    "source_agent": {
+      "type": "string",
+      "const": "qa",
+      "description": "Must be 'qa'. Broker enforces this."
+    },
+
+    "target_agent": {
+      "type": "string",
+      "const": "main-hermes",
+      "description": "Must be 'main-hermes'. Only the supervisor reads and acts on gate results."
+    },
+
+    "build_ref": {
+      "type": "object",
+      "description": "Reference to the build artifact being evaluated.",
+      "required": ["artifact_path", "artifact_type"],
+      "additionalProperties": false,
+      "properties": {
+        "artifact_path": {
+          "type": "string",
+          "description": "Path to the primary build artifact or job directory being evaluated."
+        },
+        "artifact_type": {
+          "type": "string",
+          "enum": ["code", "config", "schema", "prompt", "data", "mixed"],
+          "description": "Type of artifact produced by the coder job."
+        },
+        "git_commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,40}$",
+          "description": "Git commit SHA of the build if applicable."
+        },
+        "git_branch": {
+          "type": "string",
+          "description": "Git branch the build was committed to."
+        },
+        "coder_job_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Broker job ID of the coder job that produced this artifact."
+        }
+      }
+    },
+
+    "verdict": {
+      "type": "object",
+      "description": "Top-level gate verdict. Hermes reads verdict.decision to determine routing.",
+      "required": ["decision", "confidence", "summary"],
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "type": "string",
+          "enum": ["pass", "fail", "conditional", "deferred"],
+          "description": "Gate decision. 'pass' = promote. 'fail' = block and escalate. 'conditional' = pass with required follow-ups. 'deferred' = QA could not fully evaluate; requires human review."
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["high", "medium", "low"],
+          "description": "QA confidence in the verdict. Low confidence triggers human review regardless of decision."
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 1000,
+          "description": "One-paragraph human-readable summary of the gate result for Hermes review."
+        },
+        "blocking_issues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["issue_id", "severity", "description"],
+            "additionalProperties": false,
+            "properties": {
+              "issue_id": {
+                "type": "string",
+                "description": "Short stable identifier for this issue (e.g. QA-001)."
+              },
+              "severity": {
+                "type": "string",
+                "enum": ["critical", "high", "medium", "low"],
+                "description": "Issue severity. 'critical' or 'high' force verdict.decision to 'fail'."
+              },
+              "category": {
+                "type": "string",
+                "enum": ["test_failure", "schema_violation", "contract_break", "security", "performance", "coverage", "artifact_integrity", "other"],
+                "description": "Issue category for triage and routing."
+              },
+              "description": {
+                "type": "string",
+                "minLength": 5,
+                "maxLength": 1000,
+                "description": "Human-readable description of the issue."
+              },
+              "affected_path": {
+                "type": "string",
+                "description": "File or workspace path associated with the issue."
+              },
+              "remediation_hint": {
+                "type": "string",
+                "maxLength": 500,
+                "description": "Optional suggested remediation for the coder agent."
+              }
+            }
+          },
+          "description": "Blocking issues found during QA evaluation. Must be empty for decision 'pass'."
+        },
+        "conditional_followups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["followup_id", "description", "required_before"],
+            "additionalProperties": false,
+            "properties": {
+              "followup_id": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 5,
+                "maxLength": 500
+              },
+              "required_before": {
+                "type": "string",
+                "enum": ["external_publish", "ops_handoff", "treasury_handoff", "content_handoff", "next_sprint"],
+                "description": "Which downstream gate this followup must be resolved before."
+              },
+              "owner": {
+                "type": "string",
+                "enum": ["coder", "main-hermes", "human"],
+                "description": "Who is responsible for resolving this followup."
+              }
+            }
+          },
+          "description": "Required follow-up actions for 'conditional' verdicts. Hermes tracks these through to resolution."
+        }
+      }
+    },
+
+    "test_summary": {
+      "type": "object",
+      "description": "Structured summary of test execution results.",
+      "required": ["tests_run", "passed", "failed", "skipped", "coverage_pct"],
+      "additionalProperties": false,
+      "properties": {
+        "tests_run": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "coverage_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Code coverage percentage. 0 if not applicable."
+        },
+        "coverage_delta_pct": {
+          "type": "number",
+          "description": "Change in coverage percentage vs previous passing gate. Negative values flag regressions."
+        },
+        "test_suites": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["suite_name", "passed", "failed"],
+            "additionalProperties": false,
+            "properties": {
+              "suite_name": { "type": "string" },
+              "passed": { "type": "integer", "minimum": 0 },
+              "failed": { "type": "integer", "minimum": 0 },
+              "skipped": { "type": "integer", "minimum": 0 },
+              "duration_ms": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total test run duration in milliseconds."
+        }
+      }
+    },
+
+    "artifact_audit": {
+      "type": "object",
+      "description": "Results of artifact integrity and dependency audit.",
+      "required": ["hash_verified", "schema_conformant", "dependency_audit_clean"],
+      "additionalProperties": false,
+      "properties": {
+        "hash_verified": {
+          "type": "boolean",
+          "description": "Whether artifact file hashes match declared values."
+        },
+        "schema_conformant": {
+          "type": "boolean",
+          "description": "Whether all output artifacts conform to their declared schemas."
+        },
+        "dependency_audit_clean": {
+          "type": "boolean",
+          "description": "Whether dependency audit found no known vulnerabilities."
+        },
+        "dependency_audit_tool": {
+          "type": "string",
+          "description": "Tool used for dependency audit (e.g. 'pip-audit', 'npm audit', 'trivy')."
+        },
+        "vulnerability_count": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "critical": { "type": "integer", "minimum": 0 },
+            "high": { "type": "integer", "minimum": 0 },
+            "medium": { "type": "integer", "minimum": 0 },
+            "low": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total size of audited artifacts in bytes."
+        }
+      }
+    },
+
+    "contract_checks": {
+      "type": "object",
+      "description": "Results of contract schema conformance and breaking-change detection.",
+      "required": ["all_schemas_valid", "breaking_changes_detected"],
+      "additionalProperties": false,
+      "properties": {
+        "all_schemas_valid": {
+          "type": "boolean",
+          "description": "Whether all output artifacts validated against their declared contract schemas."
+        },
+        "breaking_changes_detected": {
+          "type": "boolean",
+          "description": "Whether any breaking schema changes were detected vs the previous version."
+        },
+        "schemas_checked": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["schema_path", "valid"],
+            "additionalProperties": false,
+            "properties": {
+              "schema_path": { "type": "string" },
+              "valid": { "type": "boolean" },
+              "breaking": { "type": "boolean" },
+              "errors": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "acceptance_criteria_results": {
+      "type": "array",
+      "description": "Per-criterion evaluation results mapped from the originating build-intent acceptance_criteria.",
+      "items": {
+        "type": "object",
+        "required": ["criterion", "result"],
+        "additionalProperties": false,
+        "properties": {
+          "criterion": {
+            "type": "string",
+            "description": "The acceptance criterion text from the build-intent."
+          },
+          "result": {
+            "type": "string",
+            "enum": ["pass", "fail", "skip", "not_verifiable"],
+            "description": "Evaluation result for this criterion."
+          },
+          "evidence": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Short description of how this criterion was verified or why it failed."
+          }
+        }
+      }
+    },
+
+    "guardrail_attestation": {
+      "type": "object",
+      "description": "Attestation that QA agent guardrails were respected.",
+      "required": [
+        "did_not_modify_artifacts",
+        "did_not_approve_own_work",
+        "verdict_based_on_evidence"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "did_not_modify_artifacts": {
+          "type": "boolean",
+          "const": true,
+          "description": "QA agent only read and evaluated artifacts; it did not modify them."
+        },
+        "did_not_approve_own_work": {
+          "type": "boolean",
+          "const": true,
+          "description": "QA agent did not evaluate artifacts it produced itself."
+        },
+        "verdict_based_on_evidence": {
+          "type": "boolean",
+          "const": true,
+          "description": "Verdict is grounded in test results, audit output, and contract checks — not assumption."
+        }
+      }
+    },
+
+    "hermes_action": {
+      "type": "object",
+      "description": "Populated by Hermes supervisor after reading this gate result. Not set by QA.",
+      "additionalProperties": false,
+      "properties": {
+        "actioned_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "action_taken": {
+          "type": "string",
+          "enum": ["promoted", "blocked", "escalated_to_human", "deferred", "cancelled"],
+          "description": "What Hermes did with this gate result."
+        },
+        "downstream_lanes_triggered": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["content", "ops", "treasury"]
+          },
+          "description": "Downstream lanes Hermes triggered after a passing gate."
+        },
+        "sprint_lock_released": {
+          "type": "boolean",
+          "description": "Whether Hermes released the subconscious sprint lock after gate resolution."
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000
+        }
+      }
+    }
+
+  },
+
+  "examples": [
+    {
+      "schema_version": "1.0",
+      "gate_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+      "job_id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+      "correlation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "build_intent_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "created_at": "2026-05-05T13:30:00Z",
+      "source_agent": "qa",
+      "target_agent": "main-hermes",
+      "build_ref": {
+        "artifact_path": "workspace/coder-jobs/job-b2c3d4e5",
+        "artifact_type": "code",
+        "git_commit_sha": "07b8523af5f70c5ec08ba79221b29e811e3e818f",
+        "git_branch": "main",
+        "coder_job_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+      },
+      "verdict": {
+        "decision": "pass",
+        "confidence": "high",
+        "summary": "All 42 tests passed with 87% coverage. No schema violations, no breaking contract changes, no dependency vulnerabilities. Build is ready for promotion.",
+        "blocking_issues": [],
+        "conditional_followups": []
+      },
+      "test_summary": {
+        "tests_run": 42,
+        "passed": 42,
+        "failed": 0,
+        "skipped": 2,
+        "coverage_pct": 87.4,
+        "coverage_delta_pct": 2.1,
+        "test_suites": [
+          { "suite_name": "unit", "passed": 38, "failed": 0, "skipped": 1, "duration_ms": 1240 },
+          { "suite_name": "integration", "passed": 4, "failed": 0, "skipped": 1, "duration_ms": 8700 }
+        ],
+        "duration_ms": 9940
+      },
+      "artifact_audit": {
+        "hash_verified": true,
+        "schema_conformant": true,
+        "dependency_audit_clean": true,
+        "dependency_audit_tool": "pip-audit",
+        "vulnerability_count": { "critical": 0, "high": 0, "medium": 0, "low": 0 },
+        "size_bytes": 48200
+      },
+      "contract_checks": {
+        "all_schemas_valid": true,
+        "breaking_changes_detected": false,
+        "schemas_checked": [
+          { "schema_path": "contracts/broker/job-submit.schema.json", "valid": true, "breaking": false }
+        ]
+      },
+      "acceptance_criteria_results": [
+        {
+          "criterion": "broker_submit_job includes valid W3C traceparent in payload",
+          "result": "pass",
+          "evidence": "Unit test otel_test.py::test_traceparent_format passed successfully."
+        },
+        {
+          "criterion": "OpenClaw session spans appear as children of Hermes supervisor span in OTEL backend",
+          "result": "pass",
+          "evidence": "Integration test with OTEL collector in test mode confirmed parent-child span relationship."
+        }
+      ],
+      "guardrail_attestation": {
+        "did_not_modify_artifacts": true,
+        "did_not_approve_own_work": true,
+        "verdict_based_on_evidence": true
+      }
+    }
+  ]
+}
