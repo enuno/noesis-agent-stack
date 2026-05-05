@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/handoffs/broker-job.schema.json",
+  "title": "BrokerJob",
+  "description": "Structured job payload emitted by Hermes and consumed by the broker to spawn or route an OpenClaw worker session. This is the sole interface between the Hermes supervisor layer and the OpenClaw execution layer. The broker validates this schema before creating any worker container. Workers never receive raw Hermes context — only the normalized fields present here.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "job_id",
+    "correlation_id",
+    "issued_at",
+    "issued_by",
+    "target_agent",
+    "mode",
+    "objective",
+    "allowed_capabilities",
+    "workspace",
+    "constraints",
+    "callback"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "job_id": { "type": "string", "format": "uuid", "description": "Unique broker job ID. Referenced in run receipts and health reports." },
+    "correlation_id": { "type": "string", "format": "uuid", "description": "Hermes-assigned correlation ID for tracing this job across the full supervisor→broker→worker→callback chain." },
+    "traceparent": {
+      "type": "string",
+      "pattern": "^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+      "description": "W3C traceparent header value for distributed trace propagation into the worker span. Required for production deployments."
+    },
+    "issued_at": { "type": "string", "format": "date-time" },
+    "issued_by": { "type": "string", "const": "main-hermes", "description": "Only Hermes may issue broker jobs." },
+    "target_agent": {
+      "type": "string",
+      "enum": ["research-openclaw", "subconscious-openclaw"],
+      "description": "Which OpenClaw worker profile to instantiate for this job."
+    },
+    "mode": {
+      "type": "string",
+      "description": "Execution mode passed to the worker. Each agent profile defines its valid modes in its SOUL.md.",
+      "examples": ["refresh", "bootstrap", "drift-from-research", "digest", "targeted-query"]
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 2000,
+      "description": "Plain-language objective for the worker. This is injected into the worker's context as the primary task statement. Must be specific and actionable."
+    },
+    "context": {
+      "type": "object",
+      "description": "Optional structured context Hermes passes to the worker to orient the run without exposing full supervisor state.",
+      "additionalProperties": false,
+      "properties": {
+        "topic": { "type": "string", "maxLength": 120, "description": "Primary research topic or dossier key for this job." },
+        "prior_finding_ids": {
+          "type": "array",
+          "items": { "type": "string", "format": "uuid" },
+          "description": "finding_ids the worker should be aware of to avoid duplication or to build upon."
+        },
+        "signal_event_id": { "type": "string", "format": "uuid", "description": "signal_event_id that triggered this job, if applicable." },
+        "build_intent_id": { "type": "string", "format": "uuid", "description": "build_intent_id this job is servicing, if applicable." },
+        "focus_urls": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" },
+          "description": "Specific URLs the worker should prioritize fetching."
+        },
+        "supplemental": {
+          "type": "object",
+          "description": "Arbitrary key-value pairs for mode-specific context. Kept shallow to avoid bloating the job payload."
+        }
+      }
+    },
+    "allowed_capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Explicit whitelist of tool capability groups the worker is authorized to use. The broker enforces this list — capabilities not listed here are denied at runtime, regardless of what the worker requests.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "read_vault",
+          "write_vault",
+          "fetch_url",
+          "search_web",
+          "rss_fetch",
+          "github_read",
+          "emit_signal",
+          "write_build_intent",
+          "write_health_report",
+          "write_run_receipt",
+          "llm_call",
+          "bash_readonly"
+        ]
+      }
+    },
+    "denied_capabilities": {
+      "type": "array",
+      "description": "Explicit deny list. Takes precedence over allowed_capabilities if a capability appears in both.",
+      "items": { "type": "string" }
+    },
+    "workspace": {
+      "type": "object",
+      "required": ["root", "read_paths", "write_paths"],
+      "additionalProperties": false,
+      "description": "Filesystem scope for the worker session. The broker mounts only these paths into the worker container.",
+      "properties": {
+        "root": { "type": "string", "description": "Absolute container path to the workspace root (e.g. '/workspace')." },
+        "read_paths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Paths (relative to root) the worker may read."
+        },
+        "write_paths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Paths (relative to root) the worker may write. Must be a strict subset of read_paths."
+        },
+        "ephemeral_scratch": { "type": "string", "description": "Optional path to an ephemeral scratch directory, destroyed after job completion." }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "required": ["timeout_s", "max_cost_usd", "max_llm_calls", "max_tool_calls", "require_human_approval"],
+      "additionalProperties": false,
+      "description": "Hard operational limits enforced by the broker and monitored by Hermes.",
+      "properties": {
+        "timeout_s": { "type": "integer", "minimum": 60, "maximum": 7200, "description": "Maximum wall-clock seconds before the broker kills the worker session." },
+        "max_cost_usd": { "type": "number", "minimum": 0.01, "maximum": 50.0, "description": "Maximum USD spend permitted across all LLM calls in this job." },
+        "max_llm_calls": { "type": "integer", "minimum": 1, "maximum": 500 },
+        "max_tool_calls": { "type": "integer", "minimum": 1, "maximum": 2000 },
+        "max_network_calls": { "type": "integer", "minimum": 0, "maximum": 500 },
+        "require_human_approval": {
+          "type": "boolean",
+          "description": "If true, Hermes must receive human confirmation before the broker routes this job to a worker."
+        },
+        "sandbox_mode": {
+          "type": "boolean",
+          "default": true,
+          "description": "If true, worker runs in full container sandbox with no host network or host filesystem access beyond workspace mounts."
+        },
+        "allow_write_build_intent": {
+          "type": "boolean",
+          "default": false,
+          "description": "Explicitly gates build intent creation. Must be true for research-openclaw jobs that are authorized to promote findings to build intents."
+        },
+        "model_profile": {
+          "type": "string",
+          "enum": ["extraction_fast", "extraction_quality", "reasoning_standard", "reasoning_deep"],
+          "description": "Model cost/quality profile the worker should use for LLM calls. Defined in profiles/model-profiles.yaml."
+        }
+      }
+    },
+    "callback": {
+      "type": "object",
+      "required": ["type", "target"],
+      "additionalProperties": false,
+      "description": "How the broker delivers results back to Hermes after the worker completes.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["webhook", "file", "mcp_tool", "acp_message"],
+          "description": "Delivery mechanism for the job result."
+        },
+        "target": { "type": "string", "description": "Callback destination: URL for webhook, file path for file, tool name for mcp_tool, agent address for acp_message." },
+        "include_run_receipt": { "type": "boolean", "default": true },
+        "include_health_report": { "type": "boolean", "default": true },
+        "include_artifact_list": { "type": "boolean", "default": true }
+      }
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["critical", "high", "normal", "low", "background"],
+      "default": "normal",
+      "description": "Broker queue priority. 'critical' preempts in-progress low/background jobs."
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Optional. If provided, the broker will deduplicate jobs with the same key within a 1-hour window, preventing duplicate runs from retried Hermes submissions."
+    },
+    "hermes_notes": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Optional plain-language notes from Hermes to the broker operator (not injected into the worker)."
+    }
+  },
+  "examples": [{
+    "schema_version": "1.0",
+    "job_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+    "correlation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+    "issued_at": "2026-05-05T08:00:00Z",
+    "issued_by": "main-hermes",
+    "target_agent": "research-openclaw",
+    "mode": "refresh",
+    "objective": "Refresh the otel-tracing dossier. Fetch the top 5 most recent sources from the otel and w3c collectors. Extract new claims. Promote high-confidence claims to findings. Emit a signal if any finding indicates a breaking change to the trace propagation spec.",
+    "context": {
+      "topic": "otel-tracing",
+      "prior_finding_ids": ["f1a2b3c4-d5e6-7890-abcd-ef1234567890"]
+    },
+    "allowed_capabilities": ["read_vault", "write_vault", "fetch_url", "search_web", "rss_fetch", "github_read", "emit_signal", "write_health_report", "write_run_receipt", "llm_call"],
+    "workspace": {
+      "root": "/workspace",
+      "read_paths": ["research-vault/", "contracts/"],
+      "write_paths": ["research-vault/knowledge/", "research-vault/runs/", "research-vault/health/"],
+      "ephemeral_scratch": "/scratch/job-b2c3d4e5"
+    },
+    "constraints": {
+      "timeout_s": 3600,
+      "max_cost_usd": 1.50,
+      "max_llm_calls": 50,
+      "max_tool_calls": 200,
+      "max_network_calls": 80,
+      "require_human_approval": false,
+      "sandbox_mode": true,
+      "allow_write_build_intent": false,
+      "model_profile": "extraction_fast"
+    },
+    "callback": {
+      "type": "file",
+      "target": "research-vault/runs/run-receipts.jsonl",
+      "include_run_receipt": true,
+      "include_health_report": true,
+      "include_artifact_list": true
+    },
+    "priority": "normal",
+    "idempotency_key": "research-openclaw:refresh:otel-tracing:2026-05-05"
+  }]
+}
