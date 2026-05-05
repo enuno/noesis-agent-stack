@@ -21,6 +21,7 @@ This development plan turns the platform specification into a build sequence for
 |---|---|---|
 | 0 | Repo scaffold and contracts | Base tree, top-level specs, shared policies, initial schemas |
 | 1 | Broker control plane | Broker service skeleton, worker registry, job API, health endpoints |
+| 1.5 | MemPalace memory layer | Palace scaffold, wing/room taxonomy, KG, diary system, broker event hooks |
 | 2 | Hermes supervisor profile | `main-hermes` contract, routing rules, approval logic, workflow bindings |
 | 3 | Research worker slice | `research-openclaw` profile, vault, refresh scripts, ledgers |
 | 4 | Subconscious worker slice | `subconscious-openclaw` profile, room, walk and signal pipeline |
@@ -82,6 +83,44 @@ Implement the broker before worker logic so Hermes never talks to OpenClaw runti
 - Broker accepts and validates typed requests against schemas.[cite:126]
 - Job IDs, correlation IDs, read scopes, and write scopes are enforced.[cite:126]
 - Worker registry and health endpoints are operational.[cite:126]
+
+## Phase 1.5: MemPalace memory layer
+
+Stand up the declarative memory layer after the broker so that every job completion, artifact, and decision leaves a durable, queryable trace before Hermes routing depends on it. MemPalace provides semantic search, a temporal knowledge graph, and a palace architecture (wings, halls, rooms, drawers) that maps naturally to the platform’s agent and workspace boundaries.[cite:126]
+
+### Deliverables
+
+- `workspace/mempalace/` palace scaffold and initialization scripts
+- Wing/room taxonomy: `hermes`, `broker`, `research-vault`, `subconscious-room`, `coder-jobs`, `qa-reports`
+- `contracts/mempalace/taxonomy.yaml` — wing/hall/room definitions and ownership
+- `contracts/mempalace/kg-schema.yaml` — entity types, predicates, and validity rules for the temporal knowledge graph
+- `orchestration/broker/hooks/mempalace_receipt_hook.py` — broker event hook that writes job receipts and normalized events to the palace
+- `agents/main-hermes/tools/palace_query.py` — Main query interface for palace search, KG lookup, and diary read
+- Diary system initialization with `mcp_mempalace_diary_write` / `mcp_mempalace_diary_read` per agent
+
+### Integration points
+
+| Direction | Actor | Action | Palace target |
+|---|---|---|---|
+| Write | Research | Files findings, claims, sources, and run receipts | `research-vault` wing, topic rooms |
+| Write | Subconscious | Writes walk notes, signal events, board state, intent drafts | `subconscious-room` wing, `walks` / `signals` rooms |
+| Write | Broker hook | Persists job receipts, correlation IDs, and artifact references on every job completion | `broker` wing, `jobs` room |
+| Read | Subconscious | Reads/walks research inbox snapshots and prior room memory before generating signals | `research-vault` and `subconscious-room` via tunnels |
+| Read/Query | Main (Hermes) | Searches palace for context, queries KG for entity timelines, reads diaries before approving or delegating | Cross-wing search and KG queries |
+
+### First working loop
+
+1. Broker completes a typed job and emits a structured completion event.[cite:126]
+2. The broker MemPalace hook normalizes the event and saves a job receipt drawer to the `broker/jobs` room.[cite:126]
+3. Hermes (Main) queries the palace with `mcp_mempalace_search` or `mcp_mempalace_kg_query` before making its next routing decision.[cite:126]
+4. Hermes receives relevant job history, artifact references, and prior decisions as structured palace context rather than ad hoc logs.[cite:126]
+
+### Exit criteria
+
+- Every broker job completion writes a retrievable receipt to the palace.[cite:126]
+- Hermes can query palace context before approving or delegating.[cite:126]
+- Research and Subconscious write surfaces map 1:1 to palace wings/rooms.[cite:126]
+- Knowledge graph contains at least project, agent, and job entities with basic temporal facts.[cite:126]
 
 ## Phase 2: Hermes supervisor profile
 
@@ -207,6 +246,13 @@ Add platform-wide telemetry and operational controls after the first end-to-end 
 - Circuit breakers and manual stop controls
 - Secret scoping and credential isolation
 - Artifact indexing and retention policy
+- **MemPalace-specific health checks**
+  - Drawer counts per wing/room with drift alerts against expected taxonomy
+  - KG stats (entity count, triple count, relationship type coverage) with anomaly thresholds
+  - Tunnel integrity checks — verify cross-wing room connections are traversable and not orphaned
+  - Diary staleness alerts per agent — flag agents that have not written a diary entry within a configured window
+  - Palace storage growth rate alerts to catch runaway mining or write amplification early
+  - `mempalace repair` runbook and automated corruption detection (HNSW segfault/deadlock patterns)
 
 ### Exit criteria
 
@@ -231,11 +277,12 @@ After the core loop is stable, expand into content, ops, and treasury profiles u
 
 1. Scaffold repo and shared schemas.
 2. Implement broker contracts and service skeleton.
-3. Stand up Hermes profile and routing.
-4. Deliver the Research vertical slice.
-5. Deliver the Subconscious vertical slice.
-6. Add Coder and QA gating.
-7. Add observability, hardening, and additional lanes.
+3. Stand up MemPalace memory layer, taxonomy, and broker receipt hooks.
+4. Stand up Hermes profile and routing.
+5. Deliver the Research vertical slice.
+6. Deliver the Subconscious vertical slice.
+7. Add Coder and QA gating.
+8. Add observability, hardening, and additional lanes.
 
 This ordering keeps authority, evidence, and worker lifecycle constraints in place before more autonomous behavior is introduced.[cite:126]
 
@@ -245,6 +292,7 @@ This ordering keeps authority, evidence, and worker lifecycle constraints in pla
 |---|---|---|
 | M1 | Repo and contracts scaffolded | Tree, schemas, and workspace boundaries committed |
 | M2 | Broker operational | Hermes can submit and inspect typed jobs |
+| M2.5 | MemPalace operational | Palace scaffold, taxonomy, KG, and broker receipt hook active; Hermes queries palace for context |
 | M3 | Hermes routing live | Supervisor can approve and delegate through workflows |
 | M4 | Research vertical slice complete | Refresh run produces vault artifacts and receipts |
 | M5 | Subconscious vertical slice complete | Walk run produces board state and intent drafts |
@@ -260,6 +308,9 @@ This ordering keeps authority, evidence, and worker lifecycle constraints in pla
 | Weak evidence promotion | Claims reach implementation without enough validation | Typed ledgers, QA gates, and Main approval only.[cite:126] |
 | State contamination | Agents overwrite one another’s memory or artifacts | Isolated workspaces and handoff-only downstream flow.[cite:126] |
 | Poor replayability | Failures cannot be debugged or audited | Run receipts, structured events, and artifact indexing.[cite:126] |
+| Stale memory | Palace context is outdated, causing Hermes to route on old facts | Diary staleness alerts, KG fact invalidation protocol, and session-start palace query mandate.[cite:126] |
+| KG inconsistency | Temporal facts contradict or orphan entities after invalidation | Schema validation on KG writes, entity existence checks, and periodic `mempalace repair` with integrity probes.[cite:126] |
+| Write amplification | Broker hooks or auto-save miners bloat the palace with duplicates or junk drawers | Deduplication checks before writes (`mcp_mempalace_check_duplicate`), staged mining only, and storage growth rate alerts.[cite:126] |
 
 ## First sprint recommendation
 

@@ -128,7 +128,8 @@ agents/<agent-name>/
 ├── memory/
 ├── evals/
 ├── logs/
-└── state/
+├── state/
+└── palace/
 ```
 
 ### Hermes-managed agents
@@ -171,7 +172,8 @@ agents/research-openclaw/
 │   └── recover.py
 ├── workspace/
 │   └── research-vault/
-└── state/
+├── state/
+└── palace/
 ```
 
 ```text
@@ -252,6 +254,10 @@ workspace/
 │   ├── content/
 │   ├── ops/
 │   └── treasury/
+├── memory-palace/
+│   ├── wings/
+│   ├── kg/
+│   └── diary/
 ├── coder-jobs/
 ├── qa-reports/
 └── main-state/
@@ -652,6 +658,51 @@ edges:
   - from: qa
     to: main-hermes
     when: gate_result_ready
+```
+
+## Memory Layer (MemPalace)
+
+MemPalace is the platform's persistent semantic memory system, providing cross-session continuity and high-recall retrieval across all agent operations. It stores verbatim conversation history, structured knowledge, and temporal facts locally — zero cloud dependency.
+
+### Palace structure
+
+| Level | Description | Example |
+|-------|-------------|---------|
+| **Wings** | People or projects | `wing_platform`, `wing_research`, `wing_hermes` |
+| **Rooms** | Specific topics within a wing | `auth-migration`, `redis-decision`, `broker-policy` |
+| **Drawers** | Individual memory chunks | Verbatim text, findings, session transcripts |
+| **Tunnels** | Cross-wing connections via shared room names | Same room bridging `wing_research` and `wing_main` |
+| **Knowledge Graph** | Entity-relationship facts with time validity | `ProjectX` → `uses` → `PostgreSQL` |
+
+### Agent interactions
+
+| Agent | Interaction | Purpose |
+|-------|-------------|---------|
+| `main-hermes` | Queries on wake-up and before decisions | Retrieve prior decisions, operator preferences, project state |
+| `research-openclaw` | Saves findings and dossiers | File evidence into wing/room taxonomy; link sources to KG |
+| `subconscious-openclaw` | Saves signals and walk notes | Record pattern observations, fascinations, lessons |
+| `coder` | Reads context | Pull relevant implementation decisions and constraints |
+| `qa` | Reads context | Retrieve prior audit results, claim verification history |
+
+### Write-back rules
+
+- **Checkpoint saves:** Triggered at 15-minute intervals during long sessions to preserve incremental progress.
+- **Pre-compact saves:** Emergency save before compaction or resource-constrained operations.
+- **End-of-session saves:** Every agent calls a palace diary write on session end, recording what happened, what was learned, and what matters.
+- **Knowledge graph updates:** When facts change, old triples are invalidated and new ones are added with timestamps.
+
+### Broker integration
+
+Jobs submitted through the broker may reference palace artifacts by drawer ID. The `artifact.schema.json` supports `palace_drawer_id` as a first-class artifact type, enabling workers to pass memory references instead of duplicating large verbatim content.
+
+```json
+{
+  "artifact_type": "palace_drawer_ref",
+  "palace_drawer_id": "drawer-uuid",
+  "wing": "platform",
+  "room": "routing-decisions",
+  "retrieval_hint": "semantic search: 'broker timeout policy'"
+}
 ```
 
 ## First files to write
