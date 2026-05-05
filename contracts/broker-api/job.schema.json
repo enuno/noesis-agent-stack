@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/broker-api/job.schema.json",
+  "title": "BrokerJobRequestResponse",
+  "description": "Request and response schema for broker job lifecycle. Aligned with the handoff broker-job schema and the canonical job definition.",
+  "type": "object",
+  "required": [
+    "job_id",
+    "worker",
+    "requested_by",
+    "correlation_id",
+    "priority",
+    "timeout_s",
+    "write_scope",
+    "read_scope"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique broker job ID."
+    },
+    "worker": {
+      "type": "string",
+      "description": "Target worker profile.",
+      "enum": ["research-openclaw", "subconscious-openclaw", "coder", "qa", "content", "ops", "treasury"]
+    },
+    "mode": {
+      "type": "string",
+      "description": "Execution mode passed to the worker.",
+      "examples": ["refresh", "bootstrap", "drift-from-research", "digest", "targeted-query", "build", "audit"]
+    },
+    "requested_by": {
+      "type": "string",
+      "description": "Agent or service that submitted the job.",
+      "examples": ["main-hermes", "scheduler", "operator"]
+    },
+    "correlation_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Tracing correlation ID across the full request chain."
+    },
+    "traceparent": {
+      "type": "string",
+      "pattern": "^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+      "description": "W3C traceparent for distributed tracing."
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["critical", "high", "normal", "low", "background"],
+      "default": "normal"
+    },
+    "timeout_s": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 7200,
+      "description": "Maximum wall-clock seconds before the broker kills the worker session."
+    },
+    "write_scope": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Paths the worker may write. Must be a subset of read_scope."
+    },
+    "read_scope": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Paths the worker may read."
+    },
+    "input_artifacts": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Artifact paths or drawer IDs supplied as input to the job."
+    },
+    "approval": {
+      "type": "object",
+      "required": ["required"],
+      "additionalProperties": false,
+      "properties": {
+        "required": { "type": "boolean" },
+        "approved_by": { "type": ["string", "null"] },
+        "approved_at": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Opaque mode-specific parameters.",
+      "additionalProperties": true
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Optional deduplication key. Broker rejects duplicates within a 1-hour window."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "queued", "running", "completed", "failed", "cancelled", "timeout"],
+      "description": "Current job status. Present in responses."
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Present in responses."
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Present in responses."
+    },
+    "exit_code": {
+      "type": "integer",
+      "description": "Present in responses."
+    },
+    "health": {
+      "type": "string",
+      "enum": ["ok", "degraded", "failed"],
+      "description": "Present in responses."
+    },
+    "artifact_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Present in responses."
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Present in responses."
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Worker-provided summary metrics. Present in responses."
+    }
+  }
+}

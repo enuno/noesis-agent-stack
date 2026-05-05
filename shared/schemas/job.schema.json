@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/shared/schemas/job.schema.json",
+  "title": "CanonicalJob",
+  "description": "Canonical job definition used across the platform for broker submissions, worker dispatch, and audit trails.",
+  "type": "object",
+  "required": [
+    "job_id",
+    "worker_id",
+    "payload",
+    "read_scopes",
+    "write_scopes",
+    "correlation_id",
+    "timeout",
+    "priority"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this job. Immutable after creation."
+    },
+    "worker_id": {
+      "type": "string",
+      "description": "Target worker or agent responsible for executing this job.",
+      "examples": ["research-openclaw", "subconscious-openclaw", "coder", "qa"]
+    },
+    "payload": {
+      "type": "object",
+      "description": "Opaque job payload. Schema is validated by the worker's accepted payload contract.",
+      "additionalProperties": true
+    },
+    "read_scopes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Paths or logical scopes the worker may read."
+    },
+    "write_scopes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Paths or logical scopes the worker may write. Must be a subset of read_scopes and assigned workspace."
+    },
+    "correlation_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Tracing identifier linking this job to a parent workflow or operator request."
+    },
+    "traceparent": {
+      "type": "string",
+      "pattern": "^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+      "description": "W3C traceparent for distributed tracing."
+    },
+    "timeout": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 7200,
+      "description": "Maximum wall-clock seconds before the broker may cancel the job."
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["critical", "high", "normal", "low", "background"],
+      "default": "normal",
+      "description": "Queue priority. 'critical' may preempt lower-priority jobs."
+    },
+    "issued_by": {
+      "type": "string",
+      "description": "Agent or service that submitted this job.",
+      "examples": ["main-hermes", "scheduler", "operator"]
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of job creation."
+    },
+    "approval": {
+      "type": "object",
+      "required": ["required"],
+      "additionalProperties": false,
+      "properties": {
+        "required": { "type": "boolean" },
+        "approved_by": { "type": ["string", "null"] },
+        "approved_at": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional classification tags for routing and filtering."
+    }
+  }
+}

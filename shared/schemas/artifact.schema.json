@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/shared/schemas/artifact.schema.json",
+  "title": "CanonicalArtifact",
+  "description": "Canonical artifact reference produced by a worker and tracked by the broker. Supports filesystem artifacts and MemPalace drawer references.",
+  "type": "object",
+  "required": [
+    "artifact_id",
+    "job_id",
+    "path",
+    "mime_type",
+    "checksum",
+    "size"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "artifact_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this artifact."
+    },
+    "job_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Broker job ID that produced this artifact."
+    },
+    "run_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Worker run ID that produced this artifact."
+    },
+    "path": {
+      "type": "string",
+      "description": "Filesystem path or logical URI to the artifact."
+    },
+    "mime_type": {
+      "type": "string",
+      "description": "MIME type of the artifact.",
+      "examples": ["application/json", "text/markdown", "text/plain", "application/x-palace-drawer"]
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "SHA-256 checksum of the artifact content, prefixed with 'sha256:'."
+    },
+    "size": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Size in bytes."
+    },
+    "schema": {
+      "type": "string",
+      "description": "Schema key or URI used to validate this artifact, if applicable."
+    },
+    "artifact_type": {
+      "type": "string",
+      "enum": ["finding", "claim", "source", "note", "signal_event", "walk", "dossier", "health_report", "build_intent", "digest", "run_receipt", "palace_drawer_ref", "other"],
+      "description": "Semantic type of the artifact."
+    },
+    "palace_drawer_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "MemPalace drawer ID when the artifact is stored in the palace rather than on disk."
+    },
+    "wing": {
+      "type": "string",
+      "description": "MemPalace wing when artifact_type is palace_drawer_ref."
+    },
+    "room": {
+      "type": "string",
+      "description": "MemPalace room when artifact_type is palace_drawer_ref."
+    },
+    "retrieval_hint": {
+      "type": "string",
+      "description": "Optional search hint for retrieving the artifact from MemPalace."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of artifact creation."
+    },
+    "expires_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Optional expiration timestamp. Null means no expiration."
+    }
+  }
+}

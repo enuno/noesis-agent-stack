@@ -1,0 +1,76 @@
+policy_version: "1.0"
+description: Global policy governing cross-agent authority, write isolation, and approval gates.
+
+forbidden_actions:
+  global:
+    - Direct filesystem or memory mutation outside assigned write_scopes.
+    - Self-approval of destructive, financial, or release-gated operations.
+    - Bypassing the broker to invoke OpenClaw workers via ad hoc shell or MCP calls.
+    - Promoting claims to findings or build intents without evidence review.
+    - Waiving QA gates based solely on agent confidence scores.
+    - Touching secrets, wallets, or auth credentials outside the treasury scope.
+    - Altering another agent’s policy, guardrails, or thresholds.
+  by_role:
+    main-hermes:
+      - Promoting weak claims without evidence review.
+      - Bypassing QA on gated workflows.
+      - Allowing Subconscious or Research to self-approve execution.
+    research-openclaw:
+      - Public publishing or external communication.
+      - Purchases, commitments, or financial transactions.
+      - Touching secrets or wallets.
+      - Creating build tickets from weak or unresolved claims.
+    subconscious-openclaw:
+      - Coding or direct implementation.
+      - Changing its own thresholds to force signal promotion.
+      - Touching secrets or auth surfaces.
+      - Directly approving or executing builds.
+      - Producing public content as if it were Main or Content.
+    coder:
+      - Self-starting from raw research or subconscious signals without Main approval.
+    qa:
+      - Waiving evidence or release checks based only on agent confidence.
+
+write_scope_rules:
+  principle: "Agents may write only to their assigned workspace directories."
+  enforcement: broker_mount
+  scopes:
+    main-hermes: [workspace/main-state, workspace/shared-handoffs]
+    research-openclaw: [workspace/research-vault]
+    subconscious-openclaw: [workspace/subconscious-room]
+    coder: [workspace/coder-jobs]
+    qa: [workspace/qa-reports]
+    content: [workspace/content-out]
+    ops: [workspace/ops-state]
+    treasury: [workspace/treasury-vault]
+  handoff_surface: workspace/shared-handoffs
+  notes: >
+    Downstream agents consume approved handoffs rather than mutating
+    upstream evidence directly. Read scopes may cross boundaries;
+    write scopes never do.
+
+approval_gates:
+  main-hermes:
+    description: Final routing and approval authority for all cross-agent work.
+    required_for:
+      - Destructive operations (delete, overwrite production state).
+      - Build promotion from intent to plan.
+      - Release validation waivers.
+      - Financial or credential transactions.
+      - Policy or guardrail changes.
+  broker:
+    description: Enforces schema validation and scope checks before routing.
+    required_for:
+      - Jobs with require_human_approval: true.
+      - Jobs targeting scopes outside the worker’s assigned write_paths.
+  qa:
+    description: Release gate; can block progression based on evidence.
+    required_for:
+      - Promotion of build artifacts to production.
+      - Override of failed or partial validation results.
+
+escalation:
+  stuck_job_threshold_s: 3600
+  stale_worker_threshold_s: 7200
+  schema_violation_threshold: 1
+  action: "Alert main-hermes and emit platform.health.stalled event."

@@ -1,0 +1,363 @@
+# EVALS.platform.yaml
+# Platform evaluation criteria for the noesis-agent-stack.
+# This matrix defines acceptance tests for critical platform behaviors:
+# broker job submission, schema validation, worker isolation, palace receipt writes,
+# Hermes routing, and handoff integrity.
+#
+# Each entry specifies: id, category, description, success criteria, and severity.
+
+platform_evals:
+  schema_version: "1.0.0"
+  eval_date: null  # populated at test run time
+  runner: "platform-qa"
+
+  categories:
+    - broker_job_submission
+    - schema_validation
+    - worker_isolation
+    - palace_receipt_writes
+    - hermes_routing
+    - handoff_integrity
+
+  tests:
+    # ───────────────────────────────────────────────────────────────────────────
+    # BROKER JOB SUBMISSION
+    # ───────────────────────────────────────────────────────────────────────────
+    - id: BROKER-001
+      category: broker_job_submission
+      description: "Broker accepts a valid typed job via POST /v1/jobs"
+      steps:
+        - "Construct a job payload conforming to contracts/broker-api/job.schema.json"
+        - "Submit to POST /v1/jobs with valid worker_type, scopes, and payload"
+      success_criteria:
+        - "HTTP 202 Accepted"
+        - "Response body contains job_id, correlation_id, and state: queued"
+        - "Job appears in GET /v1/jobs/{job_id} within 2 seconds"
+      severity: critical
+
+    - id: BROKER-002
+      category: broker_job_submission
+      description: "Broker rejects a job with missing required fields"
+      steps:
+        - "Submit a job payload missing worker_type"
+      success_criteria:
+        - "HTTP 400 Bad Request"
+        - "Error response lists missing fields"
+        - "No job record created in broker state"
+      severity: critical
+
+    - id: BROKER-003
+      category: broker_job_submission
+      description: "Broker rejects a job for an unregistered worker"
+      steps:
+        - "Submit a job with worker_type: unknown-worker"
+      success_criteria:
+        - "HTTP 422 Unprocessable Entity"
+        - "Error indicates worker is not registered"
+        - "No job record created"
+      severity: high
+
+    - id: BROKER-004
+      category: broker_job_submission
+      description: "Broker cancels a running job and emits terminal event"
+      steps:
+        - "Submit a long-running job"
+        - "Wait until state is collecting or implementing"
+        - "POST /v1/jobs/{job_id}/cancel"
+      success_criteria:
+        - "HTTP 200 OK"
+        - "Job state transitions to cancelled within timeout"
+        - "Terminal event appears in job event stream"
+      severity: high
+
+    # ───────────────────────────────────────────────────────────────────────────
+    # SCHEMA VALIDATION
+    # ───────────────────────────────────────────────────────────────────────────
+    - id: SCHEMA-001
+      category: schema_validation
+      description: "Job payload validates against job.schema.json"
+      steps:
+        - "Generate 50 valid job payloads covering all worker types"
+        - "Validate each against contracts/broker-api/job.schema.json"
+      success_criteria:
+        - "All 50 payloads pass validation"
+        - "Validation errors are empty for every payload"
+      severity: critical
+
+    - id: SCHEMA-002
+      category: schema_validation
+      description: "Invalid payloads are rejected with specific schema errors"
+      steps:
+        - "Generate 20 intentionally malformed payloads (wrong types, extra required fields missing, out-of-enum values)"
+        - "Validate each against job.schema.json"
+      success_criteria:
+        - "All 20 payloads fail validation"
+        - "Each failure message points to the violating field and constraint"
+      severity: critical
+
+    - id: SCHEMA-003
+      category: schema_validation
+      description: "Handoff artifacts validate against build-plan.schema.json before QA ingestion"
+      steps:
+        - "Create a completed build-promotion handoff"
+        - "Validate artifact manifest against contracts/handoffs/build-plan.schema.json"
+      success_criteria:
+        - "Manifest passes schema validation"
+        - "Checksum array is present and non-empty"
+        - "Evidence_linkage field references valid research vault artifacts"
+      severity: high
+
+    - id: SCHEMA-004
+      category: schema_validation
+      description: "Event stream entries validate against events.schema.json"
+      steps:
+        - "Run a full research-refresh workflow"
+        - "Fetch event stream from GET /v1/jobs/{job_id}/events"
+      success_criteria:
+        - "Every event object passes contracts/broker-api/events.schema.json"
+        - "Timestamps are ISO 8601"
+        - "Event types are from the allowed enum"
+      severity: high
+
+    # ───────────────────────────────────────────────────────────────────────────
+    # WORKER ISOLATION
+    # ───────────────────────────────────────────────────────────────────────────
+    - id: ISOLATE-001
+      category: worker_isolation
+      description: "Research worker can only write within workspace/research-vault/"
+      steps:
+        - "Submit a research-refresh job"
+        - "Attempt to inject a write path outside research-vault via payload"
+      success_criteria:
+        - "Broker rejects or rewrites the out-of-scope path"
+        - "No files appear outside workspace/research-vault/"
+        - "Job either fails safely or succeeds with scope-enforced paths"
+      severity: critical
+
+    - id: ISOLATE-002
+      category: worker_isolation
+      description: "Subconscious worker can only write within workspace/subconscious-room/"
+      steps:
+        - "Submit a subconscious-walk job"
+        - "Inspect all filesystem writes during the job"
+      success_criteria:
+        - "All writes are under workspace/subconscious-room/"
+        - "Attempts to write to coder-jobs/, qa-reports/, or research-vault/ are blocked"
+      severity: critical
+
+    - id: ISOLATE-003
+      category: worker_isolation
+      description: "Coder worker can only write within workspace/coder-jobs/ and declared temp paths"
+      steps:
+        - "Submit a build-promotion job"
+        - "Inspect all filesystem writes"
+      success_criteria:
+        - "All durable writes are under workspace/coder-jobs/"
+        - "Temp writes are within broker-assigned sandbox"
+        - "No writes to subconscious-room/, research-vault/, or qa-reports/"
+      severity: critical
+
+    - id: ISOLATE-004
+      category: worker_isolation
+      description: "QA worker has read-only access to build artifacts and read-write only to qa-reports/"
+      steps:
+        - "Submit a release-validation job"
+        - "Attempt to mutate a build artifact from the referenced handoff"
+      success_criteria:
+        - "Mutations are rejected at the filesystem or broker scope level"
+        - "QA report writes succeed only under workspace/qa-reports/"
+      severity: critical
+
+    - id: ISOLATE-005
+      category: worker_isolation
+      description: "Workers cannot read each other's in-flight job state directly"
+      steps:
+        - "Run a research-refresh and a subconscious-walk concurrently"
+        - "Attempt from one worker to query the other's in-memory or ephemeral state"
+      success_criteria:
+        - "Direct state access is blocked by process or sandbox boundary"
+        - "Workers may only exchange data through broker artifacts and MemPalace receipts"
+      severity: high
+
+    # ───────────────────────────────────────────────────────────────────────────
+    # PALACE RECEIPT WRITES
+    # ───────────────────────────────────────────────────────────────────────────
+    - id: PALACE-001
+      category: palace_receipt_writes
+      description: "Every broker job completion writes a retrievable receipt to MemPalace"
+      steps:
+        - "Submit and complete a job for each worker type"
+        - "Query MemPalace for receipts in broker/jobs/{job_id}/"
+      success_criteria:
+        - "Receipt drawer exists for every completed job"
+        - "Receipt contains job_id, correlation_id, terminal_state, and artifact_inventory"
+        - "Receipt is retrievable via mcp_mempalace_search within 5 seconds of completion"
+      severity: critical
+
+    - id: PALACE-002
+      category: palace_receipt_writes
+      description: "Broker checkpoint events write drawers to broker/jobs/{job_id}/checkpoints/"
+      steps:
+        - "Submit a job that runs long enough to trigger at least one checkpoint"
+        - "Inspect palace drawers after each checkpoint"
+      success_criteria:
+        - "Checkpoint drawer exists with matching exchange_count"
+        - "Drawer contains artifact_checksums and agent_state_hash"
+        - "Checkpoint ID is referenced in the job event stream"
+      severity: high
+
+    - id: PALACE-003
+      category: palace_receipt_writes
+      description: "Terminal receipts include handoff_verdict when applicable"
+      steps:
+        - "Complete a build-promotion job that reaches awaiting_qa"
+        - "Inspect terminal receipt in palace"
+      success_criteria:
+        - "handoff_verdict field is present and non-null"
+        - "Verdict matches the workflow state transition logic in WORKFLOWS.md"
+      severity: high
+
+    - id: PALACE-004
+      category: palace_receipt_writes
+      description: "MemPalace diary entries are written by each agent during its session"
+      steps:
+        - "Run research-refresh, subconscious-walk, and a Hermes routing session"
+        - "Query palace diaries for each agent"
+      success_criteria:
+        - "Each agent has at least one diary entry for the session"
+        - "Diary entries reference checkpoint IDs where applicable"
+        - "Entries are timestamped and searchable by agent_id and session_id"
+      severity: medium
+
+    # ───────────────────────────────────────────────────────────────────────────
+    # HERMES ROUTING
+    # ───────────────────────────────────────────────────────────────────────────
+    - id: HERMES-001
+      category: hermes_routing
+      description: "Hermes Main can submit broker jobs with typed payloads"
+      steps:
+        - "Invoke Hermes Main routing logic with a typed intent"
+        - "Observe broker API call"
+      success_criteria:
+        - "Broker receives a valid POST /v1/jobs request"
+        - "Payload includes correct worker_type and scopes"
+        - "Hermes receives job_id and confirmation within timeout"
+      severity: critical
+
+    - id: HERMES-002
+      category: hermes_routing
+      description: "Hermes Main consumes worker artifacts without mutating worker state"
+      steps:
+        - "Complete a research-refresh job"
+        - "Hermes Main reads resulting artifacts"
+        - "Attempt to modify artifact via Hermes tool call"
+      success_criteria:
+        - "Hermes read operations succeed"
+        - "Mutations are rejected or Hermes tools enforce read-only mode on foreign workspaces"
+      severity: critical
+
+    - id: HERMES-003
+      category: hermes_routing
+      description: "Hermes Main approves or rejects workflow transitions at defined gates"
+      steps:
+        - "Trigger a subconscious-walk and let it reach pending_approval"
+        - "Hermes Main issues approve and reject decisions"
+      success_criteria:
+        - "Approved job transitions to queued"
+        - "Rejected job transitions to rejected with reason recorded"
+        - "No job bypasses pending_approval without Hermes decision"
+      severity: critical
+
+    - id: HERMES-004
+      category: hermes_routing
+      description: "Hermes Main queries MemPalace before making routing decisions"
+      steps:
+        - "Seed palace with prior job receipts and diary entries"
+        - "Trigger a routing decision that depends on history"
+      success_criteria:
+        - "Hermes issues at least one palace query (search, kg_query, or diary_read)"
+        - "Routing decision references retrieved palace context in its reasoning trace"
+      severity: high
+
+    - id: HERMES-005
+      category: hermes_routing
+      description: "Hermes Main enforces that subconscious signals cannot directly trigger builds"
+      steps:
+        - "Create a subconscious intent draft in workspace/subconscious-room/intents/"
+        - "Attempt to route that intent directly to Coder without explicit promotion"
+      success_criteria:
+        - "Hermes blocks direct routing"
+        - "Intent must pass through build-promotion pending_approval gate"
+        - "Event log records the block with reason: 'subconscious_intent_requires_explicit_promotion'"
+      severity: critical
+
+    # ───────────────────────────────────────────────────────────────────────────
+    # HANDOFF INTEGRITY
+    # ───────────────────────────────────────────────────────────────────────────
+    - id: HANDOFF-001
+      category: handoff_integrity
+      description: "Build handoff contains valid evidence linkage to research vault"
+      steps:
+        - "Complete a full loop: research-refresh → subconscious-walk → build-promotion"
+        - "Inspect the build handoff artifact"
+      success_criteria:
+        - "handoff.evidence_linkage array is non-empty"
+        - "Each linkage references a research vault artifact by id and checksum"
+        - "Referenced artifacts exist and checksums match"
+      severity: critical
+
+    - id: HANDOFF-002
+      category: handoff_integrity
+      description: "Handoff schema validates at every transition between workflows"
+      steps:
+        - "Produce handoff from build-promotion"
+        - "Ingest handoff in release-validation"
+      success_criteria:
+        - "Handoff passes contracts/handoffs/build-plan.schema.json on exit from build-promotion"
+        - "Handoff passes contracts/handoffs/verify-handoff.schema.json on entry to release-validation"
+        - "Validation errors are empty at both boundaries"
+      severity: critical
+
+    - id: HANDOFF-003
+      category: handoff_integrity
+      description: "Checksums of handoff artifacts match between producer and consumer"
+      steps:
+        - "Coder produces artifacts with sha256 checksums"
+        - "QA ingests same artifacts and re-computes checksums"
+      success_criteria:
+        - "All checksums match between producer manifest and consumer verification"
+        - "Mismatch results in automatic schema_check failure in release-validation"
+      severity: critical
+
+    - id: HANDOFF-004
+      category: handoff_integrity
+      description: "Rejected handoffs preserve full state for retry or audit"
+      steps:
+        - "Run release-validation that results in rejected verdict"
+        - "Inspect archived state"
+      success_criteria:
+        - "EOS save is complete with terminal state: rejected"
+        - "QA report contains blocking issues and referenced evidence"
+        - "Build artifacts remain addressable by job_id for retry or inspection"
+      severity: high
+
+    - id: HANDOFF-005
+      category: handoff_integrity
+      description: "No workflow can consume a handoff that skipped an upstream approval gate"
+      steps:
+        - "Attempt to inject a handoff artifact into release-validation that never passed build-promotion awaiting_qa"
+      success_criteria:
+        - "QA ingestion rejects the handoff"
+        - "Rejection reason indicates missing upstream gate: build-promotion incomplete"
+        - "Event logged for audit"
+      severity: critical
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Test execution config
+  # ─────────────────────────────────────────────────────────────────────────────
+  execution:
+    parallel: false  # platform evals are sequential to avoid side-effect collisions
+    timeout_seconds: 300
+    retries: 1
+    required_severity_for_pass: high  # all critical and high tests must pass
+    report_path: "workspace/qa-reports/platform-eval-{{eval_date}}.yaml"

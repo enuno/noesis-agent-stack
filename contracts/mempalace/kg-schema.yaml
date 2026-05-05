@@ -1,0 +1,215 @@
+kg_schema_version: "1.0"
+description: Knowledge graph schema for MemPalace. Defines entity types, predicates, and temporal validity rules.
+
+entity_types:
+  project:
+    description: A software project, initiative, or tracked effort.
+    required_properties:
+      - name
+      - slug
+      - created_at
+    optional_properties:
+      - status
+      - owner_agent
+      - repository_url
+      - risk_level
+
+  agent:
+    description: A platform agent or worker profile.
+    required_properties:
+      - agent_id
+      - name
+      - role
+    optional_properties:
+      - runtime
+      - modes
+      - healthy
+
+  job:
+    description: A broker-submitted unit of work.
+    required_properties:
+      - job_id
+      - worker
+      - status
+      - started_at
+    optional_properties:
+      - ended_at
+      - correlation_id
+      - exit_code
+
+  finding:
+    description: A validated research finding.
+    required_properties:
+      - finding_id
+      - run_id
+      - summary
+      - timestamp
+    optional_properties:
+      - novelty
+      - relevance
+      - topic_tags
+
+  signal:
+    description: A subconscious pattern observation or event.
+    required_properties:
+      - signal_id
+      - walk_id
+      - signal_type
+      - score_delta
+    optional_properties:
+      - project_slug
+      - evidence_refs
+      - created_at
+
+  claim:
+    description: An extracted or inferred claim.
+    required_properties:
+      - claim_id
+      - statement
+      - status
+      - confidence
+    optional_properties:
+      - derived_from
+      - contradiction_links
+      - promotion_blocked
+
+  source:
+    description: An external information source.
+    required_properties:
+      - source_id
+      - url
+      - retrieved_at
+      - trust_tier
+      - freshness_status
+    optional_properties:
+      - collector
+      - weight
+
+  artifact:
+    description: A produced artifact reference.
+    required_properties:
+      - artifact_id
+      - artifact_type
+      - path
+    optional_properties:
+      - job_id
+      - run_id
+      - checksum
+
+  intent:
+    description: A build intent drafted from signals or findings.
+    required_properties:
+      - intent_id
+      - origin
+      - project_slug
+      - status
+    optional_properties:
+      - intent_summary
+      - why_alive
+      - non_goals
+      - constraints
+
+predicates:
+  owns:
+    domain: [agent, project]
+    range: [project, wing, room, artifact]
+    description: "Entity has primary ownership or write authority over the target."
+    inverse: owned_by
+
+  delegated_to:
+    domain: [agent, project]
+    range: [agent, job]
+    description: "Authority or responsibility was delegated from one agent to another."
+    inverse: delegated_from
+
+  produced:
+    domain: [agent, job, run]
+    range: [artifact, finding, claim, signal, intent]
+    description: "Entity created or generated the target artifact or record."
+    inverse: produced_by
+
+  depends_on:
+    domain: [project, job, intent, artifact]
+    range: [project, job, finding, claim, source, artifact]
+    description: "Target must exist or be valid for the source to proceed."
+    inverse: dependency_of
+
+  invalidates:
+    domain: [finding, claim, agent]
+    range: [finding, claim, source]
+    description: "Entity supersedes or invalidates the target. Triggers KG archival."
+    inverse: invalidated_by
+
+  relates_to:
+    domain: [finding, claim, signal, project]
+    range: [finding, claim, signal, project]
+    description: "Generic semantic relationship with no strict dependency."
+    inverse: relates_to
+
+validity_rules:
+  temporal:
+    description: "All triples carry a validity interval."
+    required_fields:
+      - valid_from
+      - valid_until
+    defaults:
+      valid_from: "timestamp of insertion"
+      valid_until: "null (open-ended)"
+    invalidation_protocol: |
+      When a fact changes:
+      1. Set valid_until on the existing triple.
+      2. Insert a new triple with updated valid_from.
+      3. Retain invalidated triples for audit; do not delete.
+
+  uniqueness:
+    description: "Entity IDs must be unique within the graph."
+    constraint: "No two nodes may share the same entity_type + id combination."
+
+  referential_integrity:
+    description: "Predicates that reference entities must point to existing nodes."
+    enforcement: "KG write validator rejects triples with dangling references."
+    exceptions:
+      - "External URLs (source.url) are exempt from entity ID validation."
+
+  predicate_cardinality:
+    owns:
+      max_outgoing_per_source: 1
+      note: "An agent may own multiple rooms, but a room has one primary owner."
+    delegated_to:
+      max_outgoing_per_source: null
+      note: "One agent may delegate many jobs."
+    depends_on:
+      max_outgoing_per_source: null
+      note: "Projects and jobs may have many dependencies."
+    invalidates:
+      max_outgoing_per_source: null
+      note: "A new finding may invalidate multiple prior claims."
+
+  lifecycle:
+    job_status_transitions:
+      - [pending, queued]
+      - [queued, running]
+      - [running, completed]
+      - [running, failed]
+      - [running, cancelled]
+      - [running, timeout]
+      - [queued, cancelled]
+    invalid_transitions:
+      - [completed, running]
+      - [failed, running]
+      - [cancelled, running]
+      - [timeout, running]
+    note: "Invalid transitions are rejected by the broker and flagged in events."
+
+indexing:
+  required_indexes:
+    - "entity_type + id"
+    - "predicate + valid_from"
+    - "agent_id + produced"
+    - "project_slug + depends_on"
+    - "signal_type + created_at"
+  full_text:
+    - "finding.summary"
+    - "claim.statement"
+    - "intent.intent_summary"
+    - "source.url"

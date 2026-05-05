@@ -1,0 +1,114 @@
+taxonomy_version: "1.0"
+description: Shared wing/hall/room taxonomy for MemPalace.
+
+taxonomy:
+  - wing: hermes
+    description: Conscious operator decisions, routing, approvals, and operator preferences.
+    halls:
+      - hall: decisions
+        rooms:
+          - room: routing-decisions
+          - room: approvals
+          - room: rejections
+      - hall: state
+        rooms:
+          - room: operator-preferences
+          - room: workflow-state
+      - hall: diary
+        rooms:
+          - room: main-hermes-diary
+
+  - wing: broker
+    description: Control plane jobs, receipts, worker registry, and platform events.
+    halls:
+      - hall: jobs
+        rooms:
+          - room: job-receipts
+          - room: job-events
+          - room: cancelled-jobs
+      - hall: workers
+        rooms:
+          - room: worker-registry
+          - room: worker-health
+      - hall: diary
+        rooms:
+          - room: broker-diary
+
+  - wing: research-vault
+    description: Evidence collection, findings, claims, sources, and dossiers.
+    halls:
+      - hall: knowledge
+        rooms:
+          - room: findings
+          - room: claims
+          - room: sources
+      - hall: output
+        rooms:
+          - room: dossiers
+          - room: operator-briefs
+          - room: handoff-candidates
+      - hall: state
+        rooms:
+          - room: queue
+          - room: config
+          - room: health
+          - room: runs
+      - hall: diary
+        rooms:
+          - room: research-openclaw-diary
+
+  - wing: subconscious-room
+    description: Pattern noticing, walk notes, signals, intent drafts, and retrospectives.
+    halls:
+      - hall: walks
+        rooms:
+          - room: walk-notes
+          - room: drift-from-research
+          - room: pure-tangent
+      - hall: signals
+        rooms:
+          - room: signal-events
+          - room: signal-board
+          - room: intent-drafts
+      - hall: state
+        rooms:
+          - room: projects
+          - room: feedback
+          - room: inbox-from-research
+          - room: lessons
+          - room: fascinations
+      - hall: diary
+        rooms:
+          - room: subconscious-openclaw-diary
+
+  - wing: coder-jobs
+    description: Build artifacts, implementation notes, migration logs, and code context.
+    halls:
+      - hall: builds
+        rooms:
+          - room: active-builds
+          - room: build-artifacts
+          - room: migration-notes
+      - hall: context
+        rooms:
+          - room: implementation-decisions
+          - room: tech-constraints
+      - hall: diary
+        rooms:
+          - room: coder-diary
+
+  - wing: qa-reports
+    description: Audit results, validation reports, release gates, and contradiction reviews.
+    halls:
+      - hall: audits
+        rooms:
+          - room: test-results
+          - room: audit-reports
+          - room: release-gates
+      - hall: evidence
+        rooms:
+          - room: claim-verification-history
+          - room: contradiction-flags
+      - hall: diary
+        rooms:
+          - room: qa-diary

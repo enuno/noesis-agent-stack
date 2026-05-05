@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/shared/schemas/event.schema.json",
+  "title": "CanonicalEvent",
+  "description": "Canonical event envelope emitted by agents, workers, the broker, and platform services for observability, replay, and palace indexing.",
+  "type": "object",
+  "required": [
+    "event_id",
+    "job_id",
+    "timestamp",
+    "type",
+    "payload",
+    "severity"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this event."
+    },
+    "job_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Broker job ID this event belongs to. May be a synthetic job ID for platform-level events."
+    },
+    "correlation_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Correlation ID linking this event to a broader workflow."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the event occurred."
+    },
+    "type": {
+      "type": "string",
+      "description": "Event type in dot notation: domain.entity.action.",
+      "examples": [
+        "broker.job.submitted",
+        "broker.job.started",
+        "broker.job.completed",
+        "broker.job.cancelled",
+        "broker.job.failed",
+        "worker.tool.called",
+        "worker.signal.emitted",
+        "platform.health.stalled",
+        "palace.diary.written"
+      ]
+    },
+    "source": {
+      "type": "string",
+      "description": "Component that emitted the event.",
+      "examples": ["broker", "research-openclaw", "subconscious-openclaw", "main-hermes"]
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event-specific payload. Schema depends on the event type.",
+      "additionalProperties": true
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["debug", "info", "warning", "error", "critical"],
+      "description": "Severity level of the event."
+    },
+    "traceparent": {
+      "type": "string",
+      "pattern": "^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+      "description": "W3C traceparent for distributed tracing."
+    }
+  }
+}

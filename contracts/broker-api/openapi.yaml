@@ -1,0 +1,240 @@
+openapi: 3.0.3
+info:
+  title: Hermes-OpenClaw Broker API
+  description: |
+    Minimal REST API for the broker control plane. Hermes submits typed jobs,
+    inspects status, cancels runs, and retrieves events and artifacts.
+    All payloads are schema-validated before routing.
+  version: "1.0.0"
+
+servers:
+  - url: http://127.0.0.1:8787/v1
+    description: Local broker control plane
+
+paths:
+  /jobs:
+    post:
+      summary: Submit a job to a worker
+      operationId: submitJob
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "./job.schema.json"
+      responses:
+        "202":
+          description: Job accepted and queued
+          content:
+            application/json:
+              schema:
+                $ref: "./job.schema.json"
+        "400":
+          description: Schema validation failure
+        "409":
+          description: Idempotency key conflict
+        "422":
+          description: Worker unknown or scope violation
+
+  /jobs/{job_id}:
+    get:
+      summary: Fetch current job status
+      operationId: getJob
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Job status
+          content:
+            application/json:
+              schema:
+                $ref: "./job.schema.json"
+        "404":
+          description: Job not found
+
+  /jobs/{job_id}/cancel:
+    post:
+      summary: Cancel a running or queued job
+      operationId: cancelJob
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+      responses:
+        "200":
+          description: Cancellation accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [cancelling, cancelled]
+        "404":
+          description: Job not found
+        "409":
+          description: Job already terminal
+
+  /jobs/{job_id}/events:
+    get:
+      summary: Fetch job event stream
+      operationId: getJobEvents
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: after
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Return events after this timestamp
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [debug, info, warning, error, critical]
+          description: Minimum severity to include
+      responses:
+        "200":
+          description: Event list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                    format: uuid
+                  events:
+                    type: array
+                    items:
+                      $ref: "./events.schema.json"
+        "404":
+          description: Job not found
+
+  /jobs/{job_id}/artifacts:
+    get:
+      summary: List artifacts produced by a job
+      operationId: getJobArtifacts
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Artifact list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                    format: uuid
+                  artifacts:
+                    type: array
+                    items:
+                      $ref: "./artifact.schema.json"
+        "404":
+          description: Job not found
+
+  /workers:
+    get:
+      summary: List registered workers and capabilities
+      operationId: listWorkers
+      responses:
+        "200":
+          description: Worker registry
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        runtime:
+                          type: string
+                        modes:
+                          type: array
+                          items:
+                            type: string
+                        read_scopes:
+                          type: array
+                          items:
+                            type: string
+                        write_scopes:
+                          type: array
+                          items:
+                            type: string
+                        emits:
+                          type: array
+                          items:
+                            type: string
+                        approval_required_for:
+                          type: array
+                          items:
+                            type: string
+                        healthy:
+                          type: boolean
+
+  /health:
+    get:
+      summary: Control-plane health
+      operationId: getHealth
+      responses:
+        "200":
+          description: Broker is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok, degraded, down]
+                  version:
+                    type: string
+                  uptime_s:
+                    type: integer
+                  queued_jobs:
+                    type: integer
+                  active_jobs:
+                    type: integer
+                  workers_healthy:
+                    type: integer
+                  workers_total:
+                    type: integer

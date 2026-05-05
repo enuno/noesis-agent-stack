@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/broker-api/artifact.schema.json",
+  "title": "BrokerArtifactReference",
+  "description": "Schema for artifact references returned by GET /v1/jobs/{job_id}/artifacts. Supports filesystem artifacts and MemPalace drawer references.",
+  "type": "object",
+  "required": [
+    "artifact_id",
+    "job_id",
+    "path",
+    "mime_type",
+    "checksum",
+    "size"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "artifact_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "job_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "path": {
+      "type": "string",
+      "description": "Filesystem path or logical URI to the artifact."
+    },
+    "mime_type": {
+      "type": "string",
+      "examples": ["application/json", "text/markdown", "text/plain", "application/x-palace-drawer"]
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "SHA-256 checksum prefixed with 'sha256:'."
+    },
+    "size": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Size in bytes."
+    },
+    "schema": {
+      "type": "string",
+      "description": "Schema key or URI used to validate this artifact."
+    },
+    "artifact_type": {
+      "type": "string",
+      "enum": ["finding", "claim", "source", "note", "signal_event", "walk", "dossier", "health_report", "build_intent", "digest", "run_receipt", "palace_drawer_ref", "other"]
+    },
+    "palace_drawer_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "MemPalace drawer ID when artifact is stored in the palace."
+    },
+    "wing": {
+      "type": "string",
+      "description": "MemPalace wing when artifact_type is palace_drawer_ref."
+    },
+    "room": {
+      "type": "string",
+      "description": "MemPalace room when artifact_type is palace_drawer_ref."
+    },
+    "retrieval_hint": {
+      "type": "string",
+      "description": "Optional search hint for palace retrieval."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    }
+  }
+}

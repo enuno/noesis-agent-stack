@@ -1,0 +1,88 @@
+guardrails_version: "1.0"
+description: Safety limits enforced by the broker and monitored by Hermes.
+
+token_budgets:
+  default_input_limit: 131072
+  default_output_limit: 32768
+  per_role:
+    main-hermes:        { input: 131072, output: 32768 }
+    research-openclaw:  { input: 262144, output: 65536 }
+    subconscious-openclaw: { input: 131072, output: 32768 }
+    coder:              { input: 131072, output: 65536 }
+    qa:                 { input: 65536,  output: 32768 }
+    content:            { input: 65536,  output: 32768 }
+    ops:                { input: 65536,  output: 16384 }
+    treasury:           { input: 65536,  output: 16384 }
+
+timeout_ceilings:
+  default_s: 1800
+  per_role:
+    main-hermes:        600
+    research-openclaw:  3600
+    subconscious-openclaw: 1800
+    coder:              3600
+    qa:                 1800
+    content:            1200
+    ops:                600
+    treasury:           300
+  absolute_max_s: 7200
+  note: "Broker hard-kills any session exceeding absolute_max_s regardless of role."
+
+max_retries:
+  broker_job_submit: 3
+  worker_tool_call: 2
+  network_request: 3
+  llm_call: 2
+  palace_write: 3
+  callback_delivery: 5
+
+retry_backoff:
+  strategy: exponential
+  base_s: 2
+  max_s: 60
+
+forbidden_tools_per_role:
+  main-hermes:
+    - bash_exec          # Hermes plans; it does not execute shells directly.
+    - filesystem_write   # Uses broker delegation or handoffs.
+  research-openclaw:
+    - bash_exec
+    - filesystem_delete
+    - filesystem_move
+    - git_push           # Research does not publish.
+    - send_email
+    - sms_send
+  subconscious-openclaw:
+    - bash_exec
+    - filesystem_delete
+    - filesystem_move
+    - git_push
+    - send_email
+    - code_editor        # Subconscious does not code.
+    - deploy_trigger
+  coder:
+    - filesystem_delete  # Except within workspace/coder-jobs; broker-enforced.
+    - send_email
+    - sms_send
+    - treasury_transfer
+  qa:
+    - filesystem_write   # Except within workspace/qa-reports.
+    - deploy_trigger
+    - treasury_transfer
+  content:
+    - bash_exec
+    - filesystem_delete
+    - deploy_trigger
+  ops:
+    - treasury_transfer
+    - secrets_read       # Except ops-owned secrets.
+  treasury:
+    - bash_exec          # Except via audited runbooks.
+    - filesystem_delete
+    - filesystem_move
+
+rate_limits:
+  requests_per_minute: 120
+  llm_calls_per_minute: 30
+  network_calls_per_minute: 60
+  palace_queries_per_minute: 120
