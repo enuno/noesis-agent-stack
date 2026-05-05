@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/ledgers/findings.schema.json",
+  "title": "Finding",
+  "description": "A validated research finding appended to workspace/research-vault/knowledge/findings.jsonl by the research-openclaw agent. Findings are promoted claims grounded in at least one source. Hermes and subconscious agents read findings to inform decisions and drift walks.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "finding_id",
+    "run_id",
+    "created_at",
+    "source_agent",
+    "topic",
+    "title",
+    "summary",
+    "confidence",
+    "evidence",
+    "freshness"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "finding_id": { "type": "string", "format": "uuid", "description": "Stable UUIDv4 for this finding. Never reuse across updates; create a new finding with supersedes_id."},
+    "run_id": { "type": "string", "format": "uuid", "description": "Run receipt ID of the research run that produced this finding."},
+    "created_at": { "type": "string", "format": "date-time" },
+    "source_agent": { "type": "string", "const": "research-openclaw" },
+    "supersedes_id": { "type": "string", "format": "uuid", "description": "Optional. finding_id of a prior finding this one replaces."},
+    "topic": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 120,
+      "description": "Domain topic or dossier key this finding belongs to (e.g. 'otel-tracing', 'btc-mining-efficiency')."
+    },
+    "title": { "type": "string", "minLength": 5, "maxLength": 200 },
+    "summary": { "type": "string", "minLength": 20, "maxLength": 2000, "description": "Concise summary of the finding in plain language. Must be standalone-readable without source context."},
+    "detail": { "type": "string", "maxLength": 8000, "description": "Optional extended detail, analysis, or raw extracted content supporting the summary."},
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "speculative"],
+      "description": "Confidence in the finding. 'speculative' findings are flagged and not promoted to build intents without human review."
+    },
+    "signal_value": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "noise"],
+      "description": "Estimated signal value for subconscious pattern-noticing. 'noise' findings are stored but excluded from signal scoring."
+    },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Source references grounding this finding. At least one required.",
+      "items": {
+        "type": "object",
+        "required": ["source_id", "relevance"],
+        "additionalProperties": false,
+        "properties": {
+          "source_id": { "type": "string", "format": "uuid", "description": "UUID of a source record in sources.jsonl."},
+          "relevance": { "type": "string", "minLength": 5, "maxLength": 500 },
+          "excerpt": { "type": "string", "maxLength": 1000, "description": "Optional verbatim excerpt from the source supporting this finding."}
+        }
+      }
+    },
+    "freshness": {
+      "type": "object",
+      "required": ["oldest_source_date", "within_threshold"],
+      "additionalProperties": false,
+      "properties": {
+        "oldest_source_date": { "type": "string", "format": "date-time", "description": "Publication date of the oldest source in evidence[]." },
+        "within_threshold": { "type": "boolean", "description": "Whether all sources are within the configured freshness_threshold_h." },
+        "freshness_threshold_h": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "related_findings": {
+      "type": "array",
+      "items": { "type": "string", "format": "uuid" },
+      "description": "finding_ids of related or corroborating findings."
+    },
+    "dossier_ref": { "type": "string", "description": "Optional path to an associated dossier file in workspace/research-vault/dossiers/." }
+  },
+  "examples": [{
+    "schema_version": "1.0",
+    "finding_id": "f1a2b3c4-d5e6-7890-abcd-ef1234567890",
+    "run_id": "a9b8c7d6-e5f4-3210-fedc-ba9876543210",
+    "created_at": "2026-05-05T08:00:00Z",
+    "source_agent": "research-openclaw",
+    "topic": "otel-tracing",
+    "title": "W3C traceparent propagation is not forwarded through broker job submit payloads",
+    "summary": "Current broker job submission payloads do not carry W3C traceparent headers, breaking distributed trace continuity between Hermes supervisor spans and OpenClaw worker execution spans.",
+    "confidence": "high",
+    "signal_value": "high",
+    "tags": ["otel", "broker", "tracing", "observability"],
+    "evidence": [{
+      "source_id": "s1a2b3c4-d5e6-7890-abcd-ef1234567890",
+      "relevance": "W3C trace context spec confirms traceparent must be propagated across all async boundaries.",
+      "excerpt": "Vendors MUST propagate trace context headers across async boundaries."
+    }],
+    "freshness": {
+      "oldest_source_date": "2026-04-28T00:00:00Z",
+      "within_threshold": true,
+      "freshness_threshold_h": 168
+    }
+  }]
+}

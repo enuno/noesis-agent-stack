@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/ledgers/run-receipt.schema.json",
+  "title": "RunReceipt",
+  "description": "Immutable audit record appended to workspace/research-vault/runs/run-receipts.jsonl at the end of every research-openclaw or subconscious-openclaw job. Provides a complete, tamper-evident log of what each run did, what it produced, and what it cost. Hermes reads run receipts for health monitoring and cost accounting.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "job_id",
+    "correlation_id",
+    "agent_id",
+    "mode",
+    "started_at",
+    "ended_at",
+    "status",
+    "metrics",
+    "artifacts_produced"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "run_id": { "type": "string", "format": "uuid", "description": "Unique ID for this run. Referenced by findings, claims, and health reports." },
+    "job_id": { "type": "string", "format": "uuid", "description": "Broker job ID that spawned this run." },
+    "correlation_id": { "type": "string", "format": "uuid" },
+    "agent_id": {
+      "type": "string",
+      "enum": ["research-openclaw", "subconscious-openclaw"],
+      "description": "Agent that produced this receipt."
+    },
+    "mode": {
+      "type": "string",
+      "description": "Execution mode for this run (e.g. 'refresh', 'bootstrap', 'drift-from-research', 'digest')."
+    },
+    "started_at": { "type": "string", "format": "date-time" },
+    "ended_at": { "type": "string", "format": "date-time" },
+    "duration_s": { "type": "number", "minimum": 0, "description": "Run duration in seconds. Computed from started_at / ended_at." },
+    "status": {
+      "type": "string",
+      "enum": ["success", "partial", "failed", "timeout", "cancelled"],
+      "description": "Final run status."
+    },
+    "failure_reason": { "type": "string", "maxLength": 1000, "description": "Human-readable failure reason if status is not 'success'." },
+    "metrics": {
+      "type": "object",
+      "required": ["llm_calls", "tool_calls", "tokens_input", "tokens_output", "cost_usd"],
+      "additionalProperties": false,
+      "properties": {
+        "llm_calls": { "type": "integer", "minimum": 0 },
+        "tool_calls": { "type": "integer", "minimum": 0 },
+        "tokens_input": { "type": "integer", "minimum": 0 },
+        "tokens_output": { "type": "integer", "minimum": 0 },
+        "cost_usd": { "type": "number", "minimum": 0 },
+        "model_profile_used": { "type": "string" },
+        "retries": { "type": "integer", "minimum": 0, "default": 0 },
+        "sources_fetched": { "type": "integer", "minimum": 0 },
+        "claims_extracted": { "type": "integer", "minimum": 0 },
+        "findings_written": { "type": "integer", "minimum": 0 },
+        "signals_emitted": { "type": "integer", "minimum": 0 },
+        "walks_completed": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "artifacts_produced": {
+      "type": "array",
+      "description": "List of artifact records written during this run.",
+      "items": {
+        "type": "object",
+        "required": ["artifact_type", "path"],
+        "additionalProperties": false,
+        "properties": {
+          "artifact_type": {
+            "type": "string",
+            "enum": ["finding", "claim", "source", "note", "signal_event", "walk", "dossier", "health_report", "build_intent", "digest", "other"]
+          },
+          "path": { "type": "string" },
+          "artifact_id": { "type": "string", "format": "uuid" },
+          "schema": { "type": "string", "description": "Schema key used to validate this artifact." }
+        }
+      }
+    },
+    "tool_call_log": {
+      "type": "array",
+      "description": "Ordered log of tool calls made during this run.",
+      "items": {
+        "type": "object",
+        "required": ["tool_name", "called_at", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "tool_name": { "type": "string" },
+          "called_at": { "type": "string", "format": "date-time" },
+          "duration_ms": { "type": "integer", "minimum": 0 },
+          "status": { "type": "string", "enum": ["success", "failed", "timeout", "denied"] },
+          "error": { "type": "string", "maxLength": 500 }
+        }
+      }
+    },
+    "network_calls": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of outbound network calls made during this run."
+    },
+    "schema_violations": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of schema validation failures encountered. Non-zero values are flagged in health reports."
+    },
+    "sprint_lock_triggered": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this run triggered a sprint lock on the subconscious room."
+    },
+    "build_intent_created": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this run produced a build intent document."
+    },
+    "notes": { "type": "string", "maxLength": 2000, "description": "Optional agent notes or observations about this run." }
+  },
+  "examples": [{
+    "schema_version": "1.0",
+    "run_id": "a9b8c7d6-e5f4-3210-fedc-ba9876543210",
+    "job_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+    "correlation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "agent_id": "research-openclaw",
+    "mode": "refresh",
+    "started_at": "2026-05-05T07:30:00Z",
+    "ended_at": "2026-05-05T07:58:00Z",
+    "duration_s": 1680,
+    "status": "success",
+    "metrics": {
+      "llm_calls": 12,
+      "tool_calls": 28,
+      "tokens_input": 42000,
+      "tokens_output": 8400,
+      "cost_usd": 0.47,
+      "model_profile_used": "extraction_fast",
+      "retries": 0,
+      "sources_fetched": 5,
+      "claims_extracted": 18,
+      "findings_written": 3,
+      "signals_emitted": 2
+    },
+    "artifacts_produced": [
+      { "artifact_type": "source", "path": "workspace/research-vault/knowledge/sources.jsonl", "artifact_id": "s1a2b3c4-d5e6-7890-abcd-ef1234567890", "schema": "sources" },
+      { "artifact_type": "claim", "path": "workspace/research-vault/knowledge/claims.jsonl", "artifact_id": "c1a2b3c4-d5e6-7890-abcd-ef1234567890", "schema": "claims" },
+      { "artifact_type": "finding", "path": "workspace/research-vault/knowledge/findings.jsonl", "artifact_id": "f1a2b3c4-d5e6-7890-abcd-ef1234567890", "schema": "findings" }
+    ],
+    "network_calls": 14,
+    "schema_violations": 0,
+    "sprint_lock_triggered": false,
+    "build_intent_created": false
+  }]
+}

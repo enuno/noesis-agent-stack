@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/ledgers/health-report.schema.json",
+  "title": "HealthReport",
+  "description": "Self-assessment report written by research-openclaw to workspace/research-vault/health after each run. Tracks vault integrity, source freshness, collector health, and agent self-assessment flags. Hermes reads health reports during supervisor review cycles to detect degraded research quality before routing jobs to downstream agents.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "report_id",
+    "run_id",
+    "created_at",
+    "source_agent",
+    "overall_status",
+    "vault_integrity",
+    "source_freshness",
+    "collector_health",
+    "self_assessment"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "report_id": { "type": "string", "format": "uuid" },
+    "run_id": { "type": "string", "format": "uuid", "description": "run_id of the run this report covers." },
+    "created_at": { "type": "string", "format": "date-time" },
+    "source_agent": { "type": "string", "const": "research-openclaw" },
+    "overall_status": {
+      "type": "string",
+      "enum": ["healthy", "degraded", "critical", "unknown"],
+      "description": "Rolled-up health status. 'degraded' triggers Hermes alert. 'critical' blocks new job routing until resolved."
+    },
+    "vault_integrity": {
+      "type": "object",
+      "required": ["findings_ledger_ok", "claims_ledger_ok", "sources_ledger_ok", "schema_violations_since_last_run"],
+      "additionalProperties": false,
+      "properties": {
+        "findings_ledger_ok": { "type": "boolean", "description": "Whether findings.jsonl is readable and all entries pass schema validation." },
+        "claims_ledger_ok": { "type": "boolean" },
+        "sources_ledger_ok": { "type": "boolean" },
+        "schema_violations_since_last_run": { "type": "integer", "minimum": 0 },
+        "orphaned_claims": { "type": "integer", "minimum": 0, "description": "Claims with no matching source_id in sources.jsonl." },
+        "orphaned_findings": { "type": "integer", "minimum": 0, "description": "Findings with evidence pointing to non-existent source_ids." },
+        "duplicate_source_urls": { "type": "integer", "minimum": 0, "description": "Number of duplicate URL entries in sources.jsonl detected." }
+      }
+    },
+    "source_freshness": {
+      "type": "object",
+      "required": ["total_sources", "within_threshold", "stale_count", "freshness_threshold_h"],
+      "additionalProperties": false,
+      "properties": {
+        "total_sources": { "type": "integer", "minimum": 0 },
+        "within_threshold": { "type": "integer", "minimum": 0, "description": "Sources fetched within freshness_threshold_h." },
+        "stale_count": { "type": "integer", "minimum": 0 },
+        "freshness_threshold_h": { "type": "integer", "minimum": 1 },
+        "oldest_source_age_h": { "type": "number", "minimum": 0 },
+        "freshness_pct": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "collector_health": {
+      "type": "array",
+      "description": "Per-collector health status.",
+      "items": {
+        "type": "object",
+        "required": ["collector_key", "status", "last_fetched_at", "entries_returned"],
+        "additionalProperties": false,
+        "properties": {
+          "collector_key": { "type": "string" },
+          "status": { "type": "string", "enum": ["ok", "degraded", "failed", "empty", "blocked"] },
+          "last_fetched_at": { "type": "string", "format": "date-time" },
+          "entries_returned": { "type": "integer", "minimum": 0 },
+          "error": { "type": "string", "maxLength": 500 }
+        }
+      }
+    },
+    "self_assessment": {
+      "type": "object",
+      "required": [
+        "run_completed_within_budget",
+        "no_guardrail_violations",
+        "all_writes_schema_valid",
+        "confidence_in_findings"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "run_completed_within_budget": { "type": "boolean" },
+        "no_guardrail_violations": { "type": "boolean", "const": true, "description": "Must be true. If any guardrail was violated, the run should have failed before reaching health report." },
+        "all_writes_schema_valid": { "type": "boolean" },
+        "confidence_in_findings": {
+          "type": "string",
+          "enum": ["high", "medium", "low"],
+          "description": "Agent self-assessed confidence in the quality of findings produced this run."
+        },
+        "degradation_flags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "stale_sources",
+              "low_finding_count",
+              "high_schema_violations",
+              "collector_failures",
+              "budget_overrun",
+              "repeated_retries",
+              "weak_evidence_only"
+            ]
+          },
+          "description": "Flags indicating degraded quality conditions detected during this run. Non-empty array upgrades overall_status to at least 'degraded'."
+        },
+        "recommended_action": {
+          "type": "string",
+          "enum": ["none", "rerun", "expand_sources", "human_review", "halt"],
+          "default": "none",
+          "description": "Agent recommendation to Hermes for follow-up action based on health assessment."
+        },
+        "notes": { "type": "string", "maxLength": 2000 }
+      }
+    },
+    "run_metrics_ref": {
+      "type": "string",
+      "format": "uuid",
+      "description": "run_id cross-reference to the corresponding run receipt in run-receipts.jsonl."
+    }
+  },
+  "examples": [{
+    "schema_version": "1.0",
+    "report_id": "h1a2b3c4-d5e6-7890-abcd-ef1234567890",
+    "run_id": "a9b8c7d6-e5f4-3210-fedc-ba9876543210",
+    "created_at": "2026-05-05T07:59:00Z",
+    "source_agent": "research-openclaw",
+    "overall_status": "healthy",
+    "vault_integrity": {
+      "findings_ledger_ok": true,
+      "claims_ledger_ok": true,
+      "sources_ledger_ok": true,
+      "schema_violations_since_last_run": 0,
+      "orphaned_claims": 0,
+      "orphaned_findings": 0,
+      "duplicate_source_urls": 0
+    },
+    "source_freshness": {
+      "total_sources": 5,
+      "within_threshold": 5,
+      "stale_count": 0,
+      "freshness_threshold_h": 168,
+      "oldest_source_age_h": 168,
+      "freshness_pct": 100
+    },
+    "collector_health": [
+      { "collector_key": "w3c-rss", "status": "ok", "last_fetched_at": "2026-05-05T07:38:00Z", "entries_returned": 8 },
+      { "collector_key": "github-otel", "status": "ok", "last_fetched_at": "2026-05-05T07:39:00Z", "entries_returned": 12 }
+    ],
+    "self_assessment": {
+      "run_completed_within_budget": true,
+      "no_guardrail_violations": true,
+      "all_writes_schema_valid": true,
+      "confidence_in_findings": "high",
+      "degradation_flags": [],
+      "recommended_action": "none"
+    },
+    "run_metrics_ref": "a9b8c7d6-e5f4-3210-fedc-ba9876543210"
+  }]
+}

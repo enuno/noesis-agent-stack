@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/ledgers/sources.schema.json",
+  "title": "Source",
+  "description": "A normalized source record appended to workspace/research-vault/knowledge/sources.jsonl by research-openclaw. Sources are the authoritative provenance records for all claims and findings. Every claim must reference a source_id present in this ledger.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "source_id",
+    "run_id",
+    "created_at",
+    "source_agent",
+    "url",
+    "source_type",
+    "title",
+    "fetched_at",
+    "trust_level"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "source_id": { "type": "string", "format": "uuid", "description": "Stable UUIDv4. Deterministically derived from URL + fetched_at for deduplication." },
+    "run_id": { "type": "string", "format": "uuid" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "source_agent": { "type": "string", "const": "research-openclaw" },
+    "url": { "type": "string", "format": "uri", "description": "Canonical URL of the source." },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "official_docs",
+        "github_repo",
+        "github_release",
+        "github_issue",
+        "github_pr",
+        "rss_entry",
+        "blog_post",
+        "paper",
+        "news_article",
+        "forum_post",
+        "social_signal",
+        "curated_rss",
+        "selected_domain",
+        "other"
+      ]
+    },
+    "title": { "type": "string", "minLength": 1, "maxLength": 500 },
+    "description": { "type": "string", "maxLength": 2000 },
+    "author": { "type": "string", "maxLength": 200 },
+    "published_at": { "type": "string", "format": "date-time", "description": "Publication date of the source content, if known." },
+    "fetched_at": { "type": "string", "format": "date-time", "description": "Timestamp when research-openclaw fetched this source." },
+    "content_hash": { "type": "string", "description": "SHA-256 hex digest of the fetched content for deduplication and change detection." },
+    "content_length": { "type": "integer", "minimum": 0, "description": "Length in bytes of fetched content." },
+    "trust_level": {
+      "type": "string",
+      "enum": ["trusted", "provisional", "low_trust", "social_signal"],
+      "description": "Trust classification. 'social_signal' sources are early-indicator only and cannot be sole evidence for a high-confidence finding."
+    },
+    "collector": {
+      "type": "string",
+      "description": "Collector key from workspace/research-vault/config/collectors.yaml that produced this source, if applicable."
+    },
+    "language": { "type": "string", "maxLength": 10, "default": "en" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "topic": { "type": "string", "maxLength": 120 },
+    "claim_ids": {
+      "type": "array",
+      "items": { "type": "string", "format": "uuid" },
+      "description": "claim_ids extracted from this source. Populated after extraction pass."
+    },
+    "fetch_status": {
+      "type": "string",
+      "enum": ["ok", "partial", "failed", "blocked", "too_large"],
+      "default": "ok"
+    },
+    "fetch_error": { "type": "string", "maxLength": 500, "description": "Error message if fetch_status is not 'ok'." }
+  },
+  "examples": [{
+    "schema_version": "1.0",
+    "source_id": "s1a2b3c4-d5e6-7890-abcd-ef1234567890",
+    "run_id": "a9b8c7d6-e5f4-3210-fedc-ba9876543210",
+    "created_at": "2026-05-05T07:40:00Z",
+    "source_agent": "research-openclaw",
+    "url": "https://www.w3.org/TR/trace-context/",
+    "source_type": "official_docs",
+    "title": "W3C Trace Context Level 2",
+    "description": "W3C specification defining HTTP headers for distributed trace propagation.",
+    "published_at": "2023-02-07T00:00:00Z",
+    "fetched_at": "2026-05-05T07:39:12Z",
+    "content_hash": "a3f2e1d4c5b6a7980123456789abcdef0123456789abcdef0123456789abcdef",
+    "content_length": 84200,
+    "trust_level": "trusted",
+    "language": "en",
+    "tags": ["otel", "w3c", "tracing", "spec"],
+    "topic": "otel-tracing",
+    "claim_ids": ["c1a2b3c4-d5e6-7890-abcd-ef1234567890"],
+    "fetch_status": "ok"
+  }]
+}

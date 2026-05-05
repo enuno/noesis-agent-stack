@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/ledgers/claims.schema.json",
+  "title": "Claim",
+  "description": "A normalized atomic claim extracted from a raw source and appended to workspace/research-vault/knowledge/claims.jsonl. Claims are the lowest-level evidence unit; findings are built from one or more validated claims. Written by research-openclaw during extraction passes.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "claim_id",
+    "run_id",
+    "created_at",
+    "source_agent",
+    "source_id",
+    "claim_text",
+    "claim_type",
+    "extracted_from",
+    "extraction_method"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "claim_id": { "type": "string", "format": "uuid" },
+    "run_id": { "type": "string", "format": "uuid", "description": "Run receipt ID of the research run that extracted this claim." },
+    "created_at": { "type": "string", "format": "date-time" },
+    "source_agent": { "type": "string", "const": "research-openclaw" },
+    "source_id": { "type": "string", "format": "uuid", "description": "UUID of the source record in sources.jsonl this claim was extracted from." },
+    "claim_text": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 2000,
+      "description": "The atomic claim statement in plain language. Must be a single assertable proposition."
+    },
+    "claim_type": {
+      "type": "string",
+      "enum": ["fact", "observation", "trend", "warning", "recommendation", "speculation"],
+      "description": "Epistemic type of the claim."
+    },
+    "extracted_from": {
+      "type": "object",
+      "required": ["url", "section"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "section": { "type": "string", "description": "Section heading, page, or structural location within the source." },
+        "excerpt": { "type": "string", "maxLength": 1000, "description": "Verbatim excerpt from which the claim was extracted." },
+        "char_offset": { "type": "integer", "minimum": 0, "description": "Optional character offset for precise provenance." }
+      }
+    },
+    "extraction_method": {
+      "type": "string",
+      "enum": ["llm_extraction", "rule_based", "manual", "rss_summary"],
+      "description": "Method used to extract this claim."
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "speculative"],
+      "default": "medium"
+    },
+    "normalized": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this claim has been normalized and deduplicated against existing claims."
+    },
+    "promoted_to_finding_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "finding_id if this claim was promoted to a finding. Null if pending or rejected."
+    },
+    "promotion_status": {
+      "type": "string",
+      "enum": ["pending", "promoted", "rejected", "superseded"],
+      "default": "pending"
+    },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "topic": { "type": "string", "maxLength": 120, "description": "Domain topic this claim belongs to. Should match findings topic taxonomy." }
+  },
+  "examples": [{
+    "schema_version": "1.0",
+    "claim_id": "c1a2b3c4-d5e6-7890-abcd-ef1234567890",
+    "run_id": "a9b8c7d6-e5f4-3210-fedc-ba9876543210",
+    "created_at": "2026-05-05T07:45:00Z",
+    "source_agent": "research-openclaw",
+    "source_id": "s1a2b3c4-d5e6-7890-abcd-ef1234567890",
+    "claim_text": "W3C trace context specification requires vendors to propagate traceparent headers across all asynchronous boundaries.",
+    "claim_type": "fact",
+    "extracted_from": {
+      "url": "https://www.w3.org/TR/trace-context/",
+      "section": "Section 3.2 — Vendor Requirements",
+      "excerpt": "Vendors MUST propagate trace context headers across async boundaries."
+    },
+    "extraction_method": "llm_extraction",
+    "confidence": "high",
+    "normalized": true,
+    "promotion_status": "promoted",
+    "promoted_to_finding_id": "f1a2b3c4-d5e6-7890-abcd-ef1234567890",
+    "tags": ["otel", "tracing", "w3c", "spec"],
+    "topic": "otel-tracing"
+  }]
+}
