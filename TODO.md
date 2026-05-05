@@ -41,22 +41,22 @@
 
 ---
 
-## Phase 1: Broker Control Plane (NOT STARTED)
+## Phase 1: Broker Control Plane (COMPLETED 2026-05-05)
 
 ### Exit criteria
-- Broker accepts and validates typed requests against schemas
-- Job IDs, correlation IDs, read scopes, and write scopes enforced
-- Worker registry and health endpoints operational
+- [x] Broker accepts and validates typed requests against schemas
+- [x] Job IDs, correlation IDs, read scopes, and write scopes enforced
+- [x] Worker registry and health endpoints operational
 
 ### Tasks
 
-- [ ] 1.1 — Create `orchestration/broker/` directory structure
+- [x] 1.1 — Create `orchestration/broker/` directory structure
   - `orchestration/broker/README.md`
   - `orchestration/broker/SPEC.md`
   - `orchestration/broker/config.yaml`
   - `orchestration/broker/app/` — broker service skeleton
   - `orchestration/broker/tests/` — broker tests
-- [ ] 1.2 — Implement broker service skeleton
+- [x] 1.2 — Implement broker service skeleton
   - Worker registry
   - Job submission endpoint (`POST /v1/jobs`)
   - Job status endpoint (`GET /v1/jobs/{job_id}`)
@@ -65,14 +65,14 @@
   - Artifacts endpoint (`GET /v1/jobs/{job_id}/artifacts`)
   - Workers list endpoint (`GET /v1/workers`)
   - Health endpoint (`GET /v1/health`)
-- [ ] 1.3 — Schema validation layer
+- [x] 1.3 — Schema validation layer
   - Validate incoming jobs against `contracts/broker-api/job.schema.json`
   - Validate events against `contracts/broker-api/events.schema.json`
   - Validate artifacts against `contracts/broker-api/artifact.schema.json`
-- [ ] 1.4 — Scope enforcement
+- [x] 1.4 — Scope enforcement
   - Enforce read scopes and write scopes per worker profile
   - Enforce correlation IDs on job chains
-- [ ] 1.5 — Commit broker skeleton
+- [x] 1.5 — Commit broker skeleton
 
 ---
 

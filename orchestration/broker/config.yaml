@@ -1,0 +1,13 @@
+broker:
+  bind_host: "127.0.0.1"
+  bind_port: 8787
+  default_timeout_s: 600
+  max_queue_size: 100
+  log_level: "info"
+  version: "1.0.0"
+  idempotency_window_s: 3600
+
+schema_paths:
+  job: "../../contracts/broker-api/job.schema.json"
+  events: "../../contracts/broker-api/events.schema.json"
+  artifact: "../../contracts/broker-api/artifact.schema.json"
