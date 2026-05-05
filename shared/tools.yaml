@@ -1,0 +1,691 @@
+# shared/tools.yaml
+# Canonical tool registry for the Hermes-OpenClaw stack.
+# Every tool available to any agent must be declared here.
+# Agents in config/stack.yaml reference tools by key under tools:.
+# Runtime enforcement of allowed_runtimes and capability flags is
+# the responsibility of the broker and OpenClaw session manager.
+
+version: 0.1
+
+# ---------------------------------------------------------------------------
+# Tool Categories
+# ---------------------------------------------------------------------------
+# categories are metadata only — used for dashboards and audit filtering.
+categories:
+  - search          # External information retrieval
+  - fetch           # Structured data pulling (RSS, GitHub, APIs)
+  - write           # Workspace / artifact write operations
+  - read            # Workspace / artifact read operations
+  - validate        # Schema and contract checking
+  - broker          # Job lifecycle management (supervisor only)
+  - routing         # Handoff and agent routing (supervisor only)
+  - memory          # Memory bridge and sync operations
+  - signal          # Signal board and filter operations
+  - infra           # Infrastructure and git operations
+  - test            # Test execution and audit
+  - health          # Self-reporting and health checks
+  - publish         # External content publishing (gated)
+  - treasury        # Financial / wallet operations (hard-gated)
+
+# ---------------------------------------------------------------------------
+# Tools
+# ---------------------------------------------------------------------------
+
+tools:
+
+  # -------------------------------------------------------------------------
+  # SEARCH
+  # -------------------------------------------------------------------------
+
+  web_search:
+    category: search
+    description: >-
+      Performs a web search against an allowlisted search provider and returns
+      ranked results with title, url, snippet, and freshness metadata.
+    allowed_runtimes:
+      - openclaw
+    allowed_agents:
+      - research-openclaw
+    requires_network: true
+    network_scope: allowlisted
+    allowlisted_domains_env: RESEARCH_ALLOWED_DOMAINS
+    rate_limit:
+      calls_per_minute: 10
+      calls_per_run: 50
+    outputs:
+      - type: json
+        schema: contracts/tools/web-search-result.schema.json
+    audit: true
+    tags:
+      - search
+      - network
+      - research
+
+  # -------------------------------------------------------------------------
+  # FETCH
+  # -------------------------------------------------------------------------
+
+  rss_fetch:
+    category: fetch
+    description: >-
+      Fetches and parses RSS/Atom feeds from configured collector sources.
+      Returns normalized entries with title, link, published, summary.
+    allowed_runtimes:
+      - openclaw
+    allowed_agents:
+      - research-openclaw
+    requires_network: true
+    network_scope: allowlisted
+    config_ref: workspace/research-vault/config/collectors.yaml
+    rate_limit:
+      calls_per_minute: 20
+      calls_per_run: 100
+    outputs:
+      - type: jsonl
+        schema: contracts/tools/rss-entry.schema.json
+    audit: true
+    tags:
+      - fetch
+      - network
+      - research
+
+  github_fetch:
+    category: fetch
+    description: >-
+      Fetches GitHub repository metadata, releases, issues, PRs, and file
+      contents via the GitHub REST API. Auth via GITHUB_TOKEN env var.
+    allowed_runtimes:
+      - openclaw
+      - hermes
+    allowed_agents:
+      - research-openclaw
+      - main-hermes
+      - coder
+    requires_network: true
+    network_scope: github.com
+    auth_env: GITHUB_TOKEN
+    rate_limit:
+      calls_per_minute: 30
+      calls_per_run: 200
+    outputs:
+      - type: json
+    audit: true
+    tags:
+      - fetch
+      - network
+      - github
+      - research
+
+  # -------------------------------------------------------------------------
+  # WRITE — Vault
+  # -------------------------------------------------------------------------
+
+  write_vault_artifact:
+    category: write
+    description: >-
+      Writes a validated artifact (finding, claim, source, note, dossier entry,
+      or run receipt) to the research vault. Schema validation is enforced
+      before write. Appends to ledger JSONL files atomically.
+    allowed_runtimes:
+      - openclaw
+    allowed_agents:
+      - research-openclaw
+    requires_network: false
+    write_scope:
+      - workspace/research-vault
+    schema_enforcement: true
+    schemas:
+      finding: contracts/ledgers/findings.schema.json
+      claim: contracts/ledgers/claims.schema.json
+      source: contracts/ledgers/sources.schema.json
+      run_receipt: contracts/ledgers/run-receipt.schema.json
+    audit: true
+    tags:
+      - write
+      - vault
+      - research
+      - schema
+
+  write_main_state:
+    category: write
+    description: >-
+      Writes to the Hermes supervisor main state file and shared handoff
+      directories. Restricted to the Hermes supervisor runtime only.
+    allowed_runtimes:
+      - hermes
+    allowed_agents:
+      - main-hermes
+    requires_network: false
+    write_scope:
+      - workspace/main-state
+      - workspace/shared-handoffs
+    audit: true
+    tags:
+      - write
+      - supervisor
+      - state
+
+  write_room_note:
+    category: write
+    description: >-
+      Writes a note, walk entry, or project update into the subconscious room.
+      Enforces write scope — cannot touch vault or handoffs directly.
+    allowed_runtimes:
+      - openclaw
+    allowed_agents:
+      - subconscious-openclaw
+    requires_network: false
+    write_scope:
+      - workspace/subconscious-room
+    audit: true
+    tags:
+      - write
+      - subconscious
+      - room
+
+  create_build_intent:
+    category: write
+    description: >-
+      Writes a validated build intent document to the shared handoff directory
+      for the coder agent. Schema enforcement required. Can only be invoked
+      when signal filter threshold is met.
+    allowed_runtimes:
+      - openclaw
+    allowed_agents:
+      - subconscious-openclaw
+    requires_network: false
+    write_scope:
+      - workspace/shared-handoffs/build
+    schema_enforcement: true
+    schema: contracts/handoffs/build-intent.schema.json
+    prerequisite_check: signal_filter_passed
+    audit: true
+    tags:
+      - write
+      - handoff
+      - subconscious
+      - schema
+      - signal_gated
+
+  git_write:
+    category: infra
+    description: >-
+      Commits and pushes code changes to a git repository. Scoped to
+      configured repo paths only. Requires GITHUB_TOKEN. All commits
+      are logged with correlation ID.
+    allowed_runtimes:
+      - hermes
+    allowed_agents:
+      - coder
+    requires_network: true
+    network_scope: github.com
+    auth_env: GITHUB_TOKEN
+    write_scope:
+      - workspace/coder-jobs
+    audit: true
+    approval_required: false
+    tags:
+      - infra
+      - git
+      - write
+      - coder
+
+  write_release_gate:
+    category: write
+    description: >-
+      Writes the QA release gate result (pass/fail/conditional) to the QA
+      reports directory. Result is read by Hermes before any build promotion.
+    allowed_runtimes:
+      - hermes
+    allowed_agents:
+      - qa
+    requires_network: false
+    write_scope:
+      - workspace/qa-reports
+    schema_enforcement: true
+    schema: contracts/handoffs/release-gate.schema.json
+    audit: true
+    tags:
+      - write
+      - qa
+      - release_gate
+
+  # -------------------------------------------------------------------------
+  # READ
+  # -------------------------------------------------------------------------
+
+  read_workspace:
+    category: read
+    description: >-
+      General-purpose workspace read tool for the Hermes supervisor.
+      Reads files from allowed workspace paths. No write capability.
+    allowed_runtimes:
+      - hermes
+    allowed_agents:
+      - main-hermes
+    requires_network: false
+    read_scope:
+      - workspace
+      - shared
+      - contracts
+    audit: false
+    tags:
+      - read
+      - supervisor
+
+  read_room:
+    category: read
+    description: >-
+      Reads subconscious room state: walks, projects, notes, signal log,
+      signal board, fascinations, lessons, and inbox from research.
+    allowed_runtimes:
+      - openclaw
+    allowed_agents:
+      - subconscious-openclaw
+    requires_network: false
+    read_scope:
+      - workspace/subconscious-room
+      - workspace/research-vault/notes
+      - workspace/research-vault/queue
+      - workspace/research-vault/health
+    audit: false
+    tags:
+      - read
+      - subconscious
+      - room
+
+  # -------------------------------------------------------------------------
+  # VALIDATE
+  # -------------------------------------------------------------------------
+
+  schema_validate:
+    category: validate
+    description: >-
+      Validates a JSON or JSONL payload against a named contract schema.
+      Returns pass/fail with field-level error detail. Used by both research
+      and coder agents before any write or promotion.
+    allowed_runtimes:
+      - openclaw
+      - hermes
+    allowed_agents:
+      - research-openclaw
+      - coder
+      - qa
+    requires_network: false
+    schemas_root: contracts
+    audit: true
+    tags:
+      - validate
+      - schema
+      - contract
+
+  compare_contracts:
+    category: validate
+    description: >-
+      Diffs two versions of a contract schema or handoff document and reports
+      breaking vs non-breaking changes. Used by QA before release gate.
+    allowed_runtimes:
+      - hermes
+    allowed_agents:
+      - qa
+    requires_network: false
+    audit: true
+    tags:
+      - validate
+      - qa
+      - contract
+      - diff
+
+  # -------------------------------------------------------------------------
+  # BROKER (supervisor only)
+  # -------------------------------------------------------------------------
+
+  broker_submit_job:
+    category: broker
+    description: >-
+      Submits a structured job to the Hermes-OpenClaw broker. Returns a
+      job_id and correlation_id. Only the Hermes supervisor may call this.
+    allowed_runtimes:
+      - hermes
+    allowed_agents:
+      - main-hermes
+    requires_network: true
+    network_scope: broker
+    schema_enforcement: true
+    schema: contracts/broker/job-submit.schema.json
+    audit: true
+    tags:
+      - broker
+      - supervisor
+      - job
+
+  broker_get_job:
+    category: broker
+    description: >-
+      Polls job status, logs, and artifacts from the broker by job_id.
+      Returns structured status, stdout tail, artifact list, and cost metrics.
+    allowed_runtimes:
+      - hermes
+    allowed_agents:
+      - main-hermes
+    requires_network: true
+    network_scope: broker
+    audit: false
+    tags:
+      - broker
+      - supervisor
+      - job
+
+  broker_list_artifacts:
+    category: broker
+    description: >-
+      Lists artifacts indexed by the broker for a given job_id or
+      correlation_id. Returns artifact paths, types, and sizes.
+    allowed_runtimes:
+      - hermes
+    allowed_agents:
+      - main-hermes
+    requires_network: true
+    network_scope: broker
+    audit: false
+    tags:
+      - broker
+      - supervisor
+      - artifacts
+
+  # -------------------------------------------------------------------------
+  # ROUTING (supervisor only)
+  # -------------------------------------------------------------------------
+
+  route_handoff:
+    category: routing
+    description: >-
+      Routes a validated handoff payload to a downstream agent lane
+      (coder, qa, content, ops, treasury). Checks approval policy before
+      routing. Writes to shared-handoffs/{lane} atomically.
+    allowed_runtimes:
+      - hermes
+    allowed_agents:
+      - main-hermes
+    requires_network: false
+    write_scope:
+      - workspace/shared-handoffs
+    schema_enforcement: true
+    approval_policy_ref: config/stack.yaml#agents.main-hermes.approvals
+    audit: true
+    tags:
+      - routing
+      - supervisor
+      - handoff
+
+  # -------------------------------------------------------------------------
+  # SIGNAL
+  # -------------------------------------------------------------------------
+
+  signal_filter:
+    category: signal
+    description: >-
+      Evaluates the current subconscious signal board against configured
+      thresholds (ready_threshold, positive_walks_required,
+      signal_types_required, sprint_lock). Returns pass/block with reasons.
+    allowed_runtimes:
+      - openclaw
+    allowed_agents:
+      - subconscious-openclaw
+    requires_network: false
+    config_ref: config/stack.yaml#agents.subconscious-openclaw.limits
+    audit: true
+    tags:
+      - signal
+      - subconscious
+      - gate
+
+  rebuild_signal_board:
+    category: signal
+    description: >-
+      Rebuilds the signal board markdown from the current signal log JSONL.
+      Idempotent. Called after tend-the-room and digest runs.
+    allowed_runtimes:
+      - openclaw
+    allowed_agents:
+      - subconscious-openclaw
+    requires_network: false
+    write_scope:
+      - workspace/subconscious-room/signal-state
+    audit: true
+    tags:
+      - signal
+      - subconscious
+      - board
+
+  # -------------------------------------------------------------------------
+  # MEMORY
+  # -------------------------------------------------------------------------
+
+  memory_bridge_sync:
+    category: memory
+    description: >-
+      Syncs selected subconscious room notes and lessons to the global shared
+      memory file and agent-specific MEMORY.md files. One-way push only —
+      does not pull from agent memory into the room. Requires feature flag
+      enable_memory_bridge_sync: true.
+    allowed_runtimes:
+      - openclaw
+    allowed_agents:
+      - subconscious-openclaw
+    requires_network: false
+    feature_flag: enable_memory_bridge_sync
+    write_scope:
+      - shared/MEMORY.global.md
+      - agents
+    audit: true
+    tags:
+      - memory
+      - subconscious
+      - sync
+
+  # -------------------------------------------------------------------------
+  # TEST
+  # -------------------------------------------------------------------------
+
+  unit_test:
+    category: test
+    description: >-
+      Runs unit test suite for the current coder job workspace. Returns
+      pass/fail counts, coverage delta, and failing test details.
+    allowed_runtimes:
+      - hermes
+    allowed_agents:
+      - coder
+    requires_network: false
+    audit: true
+    tags:
+      - test
+      - coder
+
+  run_tests:
+    category: test
+    description: >-
+      Runs the full test suite (unit + integration) against a build artifact
+      for QA sign-off. Returns structured test report and release gate verdict.
+    allowed_runtimes:
+      - hermes
+    allowed_agents:
+      - qa
+    requires_network: false
+    audit: true
+    tags:
+      - test
+      - qa
+
+  audit_artifacts:
+    category: test
+    description: >-
+      Runs integrity checks on build artifacts: hash verification, schema
+      conformance, dependency audit, and contract diff. Used by QA.
+    allowed_runtimes:
+      - hermes
+    allowed_agents:
+      - qa
+    requires_network: false
+    audit: true
+    tags:
+      - test
+      - qa
+      - audit
+
+  # -------------------------------------------------------------------------
+  # HEALTH
+  # -------------------------------------------------------------------------
+
+  health_report:
+    category: health
+    description: >-
+      Writes a structured health report for the current agent run to the
+      vault health directory. Includes run stats, error counts, source
+      freshness, and self-assessment flags.
+    allowed_runtimes:
+      - openclaw
+    allowed_agents:
+      - research-openclaw
+    requires_network: false
+    write_scope:
+      - workspace/research-vault/health
+    schema_enforcement: true
+    schema: contracts/ledgers/health-report.schema.json
+    audit: true
+    tags:
+      - health
+      - research
+      - vault
+
+  # -------------------------------------------------------------------------
+  # PUBLISH (gated)
+  # -------------------------------------------------------------------------
+
+  artifact_publish_internal:
+    category: publish
+    description: >-
+      Publishes a build artifact to the internal artifact index for QA pickup.
+      Does NOT publish externally. No human approval required.
+    allowed_runtimes:
+      - hermes
+    allowed_agents:
+      - coder
+    requires_network: false
+    audit: true
+    approval_required: false
+    tags:
+      - publish
+      - internal
+      - coder
+
+  artifact_publish_external:
+    category: publish
+    description: >-
+      Publishes a release artifact to an external registry or CDN.
+      Requires human approval gate. Disabled until content lane is enabled.
+    allowed_runtimes:
+      - hermes
+    allowed_agents:
+      - content
+    requires_network: true
+    network_scope: allowlisted
+    feature_flag: enable_content_lane
+    audit: true
+    approval_required: true
+    approval_type: human
+    tags:
+      - publish
+      - external
+      - content
+      - gated
+
+  # -------------------------------------------------------------------------
+  # TREASURY (hard-gated)
+  # -------------------------------------------------------------------------
+
+  treasury_read:
+    category: treasury
+    description: >-
+      Read-only access to treasury state files (balances, allocation targets,
+      hedging rules). No write, no wallet signing.
+    allowed_runtimes:
+      - hermes
+    allowed_agents:
+      - treasury
+    requires_network: false
+    feature_flag: enable_treasury_lane
+    audit: true
+    approval_required: false
+    tags:
+      - treasury
+      - read
+
+  treasury_propose_action:
+    category: treasury
+    description: >-
+      Writes a proposed treasury action (rebalance, convert, hedge) to the
+      treasury handoff directory. Does NOT execute. Requires hard human gate
+      before any downstream execution.
+    allowed_runtimes:
+      - hermes
+    allowed_agents:
+      - treasury
+    requires_network: false
+    feature_flag: enable_treasury_lane
+    write_scope:
+      - workspace/treasury-jobs
+    schema_enforcement: true
+    schema: contracts/handoffs/treasury-handoff.schema.json
+    audit: true
+    approval_required: true
+    approval_type: human_hard_gate
+    tags:
+      - treasury
+      - propose
+      - gated
+
+# ---------------------------------------------------------------------------
+# Security policy
+# ---------------------------------------------------------------------------
+security:
+  default_deny: true
+  enforcement_point: broker
+  allow_tool_if:
+    - agent is in tool.allowed_agents
+    - runtime matches tool.allowed_runtimes
+    - feature_flag is enabled (if required)
+    - approval obtained (if approval_required: true)
+  deny_all_unlisted_tools: true
+  audit_all_writes: true
+  audit_all_network_calls: true
+  network_policy:
+    default: deny
+    allowlisted_scopes:
+      broker: http://127.0.0.1:8787
+      github.com: https://api.github.com
+      anthropic: https://api.anthropic.com
+      openai: https://api.openai.com
+      minimax: https://api.minimax.chat
+    dynamic_allowlist_env: RESEARCH_ALLOWED_DOMAINS
+
+# ---------------------------------------------------------------------------
+# Audit settings
+# ---------------------------------------------------------------------------
+audit:
+  tool_call_ledger: workspace/research-vault/runs/tool-calls.jsonl
+  fields:
+    - timestamp
+    - agent_id
+    - job_id
+    - correlation_id
+    - tool_name
+    - input_summary
+    - output_summary
+    - duration_ms
+    - approval_status
+  redact_fields:
+    - api_key
+    - token
+    - secret
