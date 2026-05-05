@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/handoffs/signal-event.schema.json",
+  "title": "SignalEvent",
+  "description": "An async notification emitted by research-openclaw or subconscious-openclaw to workspace/research-vault/signals/ when a finding, contradiction, or pattern warrants Hermes attention outside the normal review cycle. Hermes polls this directory after each worker callback and routes signal events into its planning loop. Signal events are informational — they advise Hermes but do not trigger automatic action.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "signal_id",
+    "run_id",
+    "emitted_at",
+    "emitted_by",
+    "signal_type",
+    "severity",
+    "topic",
+    "title",
+    "summary",
+    "recommended_action"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "signal_id": { "type": "string", "format": "uuid" },
+    "run_id": { "type": "string", "format": "uuid", "description": "run_id of the job that produced this signal." },
+    "emitted_at": { "type": "string", "format": "date-time" },
+    "emitted_by": {
+      "type": "string",
+      "enum": ["research-openclaw", "subconscious-openclaw"]
+    },
+    "signal_type": {
+      "type": "string",
+      "enum": [
+        "breaking_change",
+        "cve_detected",
+        "spec_contradiction",
+        "knowledge_drift",
+        "knowledge_gap",
+        "confidence_downgrade",
+        "new_high_signal_finding",
+        "collector_failure",
+        "cost_threshold",
+        "build_intent_ready",
+        "pattern_cluster",
+        "anomaly"
+      ],
+      "description": "Categorical type of signal. Hermes uses this to route the signal into the appropriate planning branch."
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low", "informational"],
+      "description": "'critical' and 'high' signals are surfaced to the human operator immediately. 'medium' and below are queued for the next planning cycle."
+    },
+    "topic": { "type": "string", "maxLength": 120 },
+    "title": { "type": "string", "minLength": 5, "maxLength": 200 },
+    "summary": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 2000,
+      "description": "Plain-language description of what was detected and why it matters. Must be standalone-readable by Hermes without access to the underlying finding or walk record."
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Cross-references to the artifacts that grounded this signal.",
+      "properties": {
+        "finding_ids": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+        "claim_ids": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+        "walk_id": { "type": "string", "format": "uuid" },
+        "source_ids": { "type": "array", "items": { "type": "string", "format": "uuid" } }
+      }
+    },
+    "recommended_action": {
+      "type": "string",
+      "enum": [
+        "none",
+        "schedule_refresh",
+        "schedule_targeted_query",
+        "schedule_pattern_walk",
+        "schedule_contradiction_audit",
+        "review_build_intent",
+        "human_review_required",
+        "halt_dispatch"
+      ],
+      "description": "Worker's recommended next action for Hermes. Hermes decides whether to act — this is advisory only."
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional structured context to help Hermes act on the recommendation.",
+      "properties": {
+        "suggested_objective": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Draft objective text Hermes can use as-is or adapt for a follow-up broker job."
+        },
+        "suggested_mode": { "type": "string" },
+        "suggested_target_agent": {
+          "type": "string",
+          "enum": ["research-openclaw", "subconscious-openclaw"]
+        },
+        "suggested_priority": {
+          "type": "string",
+          "enum": ["critical", "high", "normal", "low", "background"]
+        },
+        "affected_dossier": { "type": "string" },
+        "cve_id": { "type": "string", "description": "CVE identifier if signal_type is cve_detected." },
+        "breaking_change_description": { "type": "string", "maxLength": 1000 }
+      }
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "default": false,
+      "description": "Set to true by Hermes after processing this signal. Unacknowledged signals are re-surfaced each planning cycle."
+    },
+    "acknowledged_at": { "type": "string", "format": "date-time" },
+    "hermes_action_taken": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Written by Hermes describing what action was taken in response to this signal."
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Optional TTL after which this signal is auto-archived if unacknowledged. Useful for informational/low signals that become stale."
+    }
+  },
+  "examples": [{
+    "schema_version": "1.0",
+    "signal_id": "e1a2b3c4-d5e6-7890-abcd-ef1234567890",
+    "run_id": "a9b8c7d6-e5f4-3210-fedc-ba9876543210",
+    "emitted_at": "2026-05-05T08:01:00Z",
+    "emitted_by": "research-openclaw",
+    "signal_type": "breaking_change",
+    "severity": "high",
+    "topic": "otel-tracing",
+    "title": "W3C Trace Context Level 2 deprecates baggage header forwarding requirements",
+    "summary": "A new finding indicates that the W3C Trace Context Level 2 working draft has removed the MUST-forward requirement for baggage headers in async contexts. This contradicts finding f1a2b3c4 and may require updates to the broker job payload spec and worker span propagation logic.",
+    "evidence": {
+      "finding_ids": ["f9a8b7c6-d5e4-3210-fedc-ba9876543210"],
+      "source_ids": ["s2b3c4d5-e6f7-8901-bcde-f23456789012"]
+    },
+    "recommended_action": "schedule_targeted_query",
+    "context": {
+      "suggested_objective": "Fetch and verify the W3C Trace Context Level 2 working draft. Confirm whether baggage forwarding requirements have changed. Update finding f1a2b3c4 if confirmed.",
+      "suggested_mode": "targeted-query",
+      "suggested_target_agent": "research-openclaw",
+      "suggested_priority": "high",
+      "breaking_change_description": "Removal of MUST-forward requirement for baggage headers in async contexts in W3C TC Level 2 draft."
+    },
+    "acknowledged": false
+  }]
+}

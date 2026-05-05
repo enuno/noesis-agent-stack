@@ -1,0 +1,147 @@
+# model-profiles.yaml
+# Model cost/quality profiles for broker-job constraints.model_profile.
+# Referenced by: contracts/handoffs/broker-job.schema.json
+# Loaded by: broker at job routing time to select the correct model endpoint and parameters.
+#
+# Each profile defines:
+#   provider:     LLM provider key
+#   model:        Model identifier as used in the provider API
+#   context_k:    Context window in thousands of tokens
+#   cost_input:   USD per 1M input tokens
+#   cost_output:  USD per 1M output tokens
+#   max_tokens:   Maximum output tokens per call
+#   temperature:  Default sampling temperature
+#   use_case:     Primary use case description
+#   notes:        Operational notes for the broker
+
+profiles:
+
+  # ─────────────────────────────────────────────
+  # extraction_fast
+  # High-throughput, low-cost extraction.
+  # Use for: claim extraction, source normalization,
+  #          deduplication, structured output from
+  #          well-formatted sources.
+  # ─────────────────────────────────────────────
+  extraction_fast:
+    provider: anthropic
+    model: claude-3-5-haiku-20241022
+    context_k: 200
+    cost_input: 0.80
+    cost_output: 4.00
+    max_tokens: 4096
+    temperature: 0.1
+    use_case: >-
+      Bulk claim extraction from fetched sources. Structured JSON output.
+      Fast iteration over large source sets. Low-stakes normalization tasks.
+    notes: >-
+      Preferred default for research-openclaw refresh and bootstrap modes.
+      Do not use for multi-step reasoning or contradiction evaluation.
+    supports_tool_use: true
+    supports_structured_output: true
+
+  # ─────────────────────────────────────────────
+  # extraction_quality
+  # Higher-quality extraction for complex sources.
+  # Use for: dense technical documents, specs with
+  #          ambiguous language, multi-part claims.
+  # ─────────────────────────────────────────────
+  extraction_quality:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    context_k: 200
+    cost_input: 3.00
+    cost_output: 15.00
+    max_tokens: 8192
+    temperature: 0.1
+    use_case: >-
+      High-fidelity extraction from technical specs, RFCs, academic papers,
+      and sources with dense or ambiguous language. Build intent research.
+    notes: >-
+      Use for research-openclaw build-intent-research mode and targeted-query
+      when source quality demands it. 3-4x cost of extraction_fast — authorize
+      explicitly in broker job constraints.
+    supports_tool_use: true
+    supports_structured_output: true
+
+  # ─────────────────────────────────────────────
+  # reasoning_standard
+  # Balanced reasoning for synthesis tasks.
+  # Use for: pattern walks, drift analysis, digest
+  #          generation, contradiction evaluation.
+  # ─────────────────────────────────────────────
+  reasoning_standard:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    context_k: 200
+    cost_input: 3.00
+    cost_output: 15.00
+    max_tokens: 8192
+    temperature: 0.3
+    use_case: >-
+      Subconscious-openclaw synthesis modes: drift-from-research, digest,
+      pattern-walk. Multi-finding analysis. Signal evaluation. Walk record
+      generation. Hermes planning loop reasoning.
+    notes: >-
+      Default for subconscious-openclaw and Hermes planning. Higher temperature
+      than extraction profiles to support associative reasoning. Do not use
+      for structured JSON output tasks — use extraction_fast instead.
+    supports_tool_use: true
+    supports_structured_output: false
+
+  # ─────────────────────────────────────────────
+  # reasoning_deep
+  # Extended thinking for high-stakes decisions.
+  # Use for: contradiction audits involving conflicting
+  #          high-confidence findings, build intent
+  #          approval reasoning, complex signal triage.
+  # ─────────────────────────────────────────────
+  reasoning_deep:
+    provider: anthropic
+    model: claude-opus-4-5
+    context_k: 200
+    cost_input: 15.00
+    cost_output: 75.00
+    max_tokens: 16000
+    temperature: 0.2
+    use_case: >-
+      High-stakes reasoning requiring extended context and deep analysis.
+      Contradiction audits. Complex build intent evaluation. Anomaly
+      investigation. Reserved for Hermes planning on critical signals.
+    notes: >-
+      Use sparingly. ~20x cost of extraction_fast. Requires explicit
+      Hermes authorization in broker job constraints. Not for worker
+      extraction tasks. Daily spend cap: $5 USD across all reasoning_deep calls.
+    supports_tool_use: true
+    supports_structured_output: false
+    daily_spend_cap_usd: 5.00
+
+# ─────────────────────────────────────────────
+# Profile assignment defaults by agent and mode
+# ─────────────────────────────────────────────
+defaults:
+  research-openclaw:
+    bootstrap:               extraction_fast
+    refresh:                 extraction_fast
+    targeted-query:          extraction_quality
+    build-intent-research:   extraction_quality
+
+  subconscious-openclaw:
+    drift-from-research:     reasoning_standard
+    digest:                  reasoning_standard
+    pattern-walk:            reasoning_standard
+    contradiction-audit:     reasoning_deep
+
+  main-hermes:
+    planning:                reasoning_standard
+    escalation:              reasoning_deep
+    signal-triage:           reasoning_standard
+
+# ─────────────────────────────────────────────
+# Global cost guardrails
+# ─────────────────────────────────────────────
+cost_guardrails:
+  daily_total_cap_usd: 10.00
+  per_job_hard_cap_usd: 5.00
+  alert_threshold_pct: 80
+  reasoning_deep_daily_cap_usd: 5.00

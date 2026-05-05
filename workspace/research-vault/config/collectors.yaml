@@ -1,0 +1,209 @@
+# collectors.yaml
+# Source collector registry for research-openclaw.
+# Referenced by: contracts/ledgers/health-report.schema.json (collector_health[])
+# Loaded by: research-openclaw at the start of each run.
+#
+# Each collector entry defines a named source feed that research-openclaw
+# knows how to fetch. The collector_key becomes the primary identifier
+# in source records and health reports.
+#
+# Fields:
+#   key:            Unique collector identifier (snake_case)
+#   type:           Fetch strategy (rss | github_releases | github_issues |
+#                   github_repo | web_page | search_query)
+#   url:            Primary fetch URL or API endpoint
+#   topic:          Domain topic this collector covers (matches findings taxonomy)
+#   trust_level:    Default trust level for sources from this collector
+#                   (trusted | provisional | low_trust | social_signal)
+#   freshness_h:    How many hours before a source from this collector is stale
+#   enabled:        Whether this collector is active (true/false)
+#   max_entries:    Max entries to process per run (rate limiting)
+#   notes:          Operational notes
+
+collectors:
+
+  # ── Agent Frameworks ──────────────────────────────────────
+
+  - key: langchain_releases
+    type: github_releases
+    url: https://api.github.com/repos/langchain-ai/langchain/releases
+    topic: agent-frameworks
+    trust_level: trusted
+    freshness_h: 168
+    enabled: true
+    max_entries: 10
+    notes: LangChain release notes and changelogs.
+
+  - key: crewai_releases
+    type: github_releases
+    url: https://api.github.com/repos/crewAIInc/crewAI/releases
+    topic: agent-frameworks
+    trust_level: trusted
+    freshness_h: 168
+    enabled: true
+    max_entries: 10
+    notes: CrewAI release notes.
+
+  - key: elizaos_releases
+    type: github_releases
+    url: https://api.github.com/repos/elizaOS/eliza/releases
+    topic: agent-frameworks
+    trust_level: trusted
+    freshness_h: 168
+    enabled: true
+    max_entries: 10
+    notes: ElizaOS release feed.
+
+  - key: mcp_registry_releases
+    type: github_releases
+    url: https://api.github.com/repos/modelcontextprotocol/registry/releases
+    topic: mcp-protocol
+    trust_level: trusted
+    freshness_h: 72
+    enabled: true
+    max_entries: 10
+    notes: MCP registry releases. High-priority — protocol changes affect broker and tool trust.
+
+  - key: mcp_spec_repo
+    type: github_repo
+    url: https://api.github.com/repos/modelcontextprotocol/modelcontextprotocol
+    topic: mcp-protocol
+    trust_level: trusted
+    freshness_h: 168
+    enabled: true
+    max_entries: 5
+    notes: MCP spec repo for watching spec PRs and issues.
+
+  - key: a2a_project_releases
+    type: github_releases
+    url: https://api.github.com/repos/a2aproject/A2A/releases
+    topic: agent-interop
+    trust_level: trusted
+    freshness_h: 168
+    enabled: true
+    max_entries: 10
+    notes: A2A protocol releases.
+
+  # ── Observability ─────────────────────────────────────────
+
+  - key: otel_releases
+    type: github_releases
+    url: https://api.github.com/repos/open-telemetry/opentelemetry-specification/releases
+    topic: otel-tracing
+    trust_level: trusted
+    freshness_h: 168
+    enabled: true
+    max_entries: 5
+    notes: OTel specification releases.
+
+  - key: otel_collector_releases
+    type: github_releases
+    url: https://api.github.com/repos/open-telemetry/opentelemetry-collector/releases
+    topic: otel-tracing
+    trust_level: trusted
+    freshness_h: 72
+    enabled: true
+    max_entries: 5
+    notes: OTel Collector releases. Relevant for broker and worker span export config.
+
+  - key: w3c_trace_context
+    type: web_page
+    url: https://www.w3.org/TR/trace-context/
+    topic: otel-tracing
+    trust_level: trusted
+    freshness_h: 720
+    enabled: true
+    max_entries: 1
+    notes: W3C Trace Context spec. Fetch monthly or on breaking_change signal.
+
+  # ── Web3 / DePIN ──────────────────────────────────────────
+
+  - key: virtuals_protocol_releases
+    type: github_releases
+    url: https://api.github.com/repos/Virtual-Protocol/protocol-contracts/releases
+    topic: virtuals-protocol
+    trust_level: provisional
+    freshness_h: 168
+    enabled: true
+    max_entries: 10
+    notes: Virtuals Protocol smart contract releases.
+
+  - key: bitcoin_core_releases
+    type: github_releases
+    url: https://api.github.com/repos/bitcoin/bitcoin/releases
+    topic: bitcoin-mining
+    trust_level: trusted
+    freshness_h: 168
+    enabled: true
+    max_entries: 5
+    notes: Bitcoin Core releases. Relevant for mining node compatibility.
+
+  - key: ans_registry_releases
+    type: github_releases
+    url: https://api.github.com/repos/ruvnet/Agent-Name-Service/releases
+    topic: agent-identity
+    trust_level: provisional
+    freshness_h: 168
+    enabled: true
+    max_entries: 5
+    notes: Agent Name Service releases. Tracks ANS identity framework changes.
+
+  # ── Noesis Stack (self-monitoring) ────────────────────────
+
+  - key: noesis_stack_issues
+    type: github_issues
+    url: https://api.github.com/repos/enuno/noesis-agent-stack/issues
+    topic: noesis-stack
+    trust_level: trusted
+    freshness_h: 24
+    enabled: true
+    max_entries: 20
+    notes: >-
+      Self-monitoring collector. Tracks open issues in this repo.
+      Enables research-openclaw to surface schema or contract issues
+      as findings before they reach production.
+
+  - key: openclaw_releases
+    type: github_releases
+    url: https://api.github.com/repos/openclaw/openclaw/releases
+    topic: noesis-stack
+    trust_level: trusted
+    freshness_h: 72
+    enabled: true
+    max_entries: 10
+    notes: OpenClaw worker runtime releases. Breaking changes require broker-job schema review.
+
+  # ── Security / CVE ────────────────────────────────────────
+
+  - key: github_advisory_python
+    type: rss
+    url: https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip&format=atom
+    topic: security
+    trust_level: trusted
+    freshness_h: 24
+    enabled: true
+    max_entries: 20
+    notes: GitHub Security Advisories for Python ecosystem. Triggers cve_detected signals.
+
+  - key: github_advisory_js
+    type: rss
+    url: https://github.com/advisories?query=type%3Areviewed+ecosystem%3Anpm&format=atom
+    topic: security
+    trust_level: trusted
+    freshness_h: 24
+    enabled: true
+    max_entries: 20
+    notes: GitHub Security Advisories for npm ecosystem.
+
+# ─────────────────────────────────────────────────────────────
+# Global collector settings
+# ─────────────────────────────────────────────────────────────
+global:
+  default_freshness_h: 168
+  default_max_entries: 10
+  request_timeout_s: 30
+  retry_attempts: 2
+  retry_backoff_s: 5
+  user_agent: "noesis-research-openclaw/1.0 (+https://github.com/enuno/noesis-agent-stack)"
+  github_api_base: "https://api.github.com"
+  # github_token: loaded from environment GITHUB_TOKEN — never hardcoded here
