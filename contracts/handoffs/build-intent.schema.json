@@ -1,0 +1,461 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/handoffs/build-intent.schema.json",
+  "title": "BuildIntent",
+  "description": "Validated handoff document written by subconscious-openclaw to workspace/shared-handoffs/build when signal filter threshold is met. Consumed by the coder agent via Hermes approval routing.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "intent_id",
+    "correlation_id",
+    "created_at",
+    "source_agent",
+    "target_agent",
+    "signal_snapshot",
+    "intent",
+    "evidence_links",
+    "guardrail_attestation"
+  ],
+  "additionalProperties": false,
+  "properties": {
+
+    "schema_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version. Must be '1.0'. Increment on breaking changes."
+    },
+
+    "intent_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this build intent document. UUIDv4."
+    },
+
+    "correlation_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Broker correlation ID linking this intent to the originating subconscious run."
+    },
+
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp of intent creation."
+    },
+
+    "source_agent": {
+      "type": "string",
+      "const": "subconscious-openclaw",
+      "description": "Must be 'subconscious-openclaw'. Enforced by broker."
+    },
+
+    "target_agent": {
+      "type": "string",
+      "const": "coder",
+      "description": "Must be 'coder'. Routing enforced by Hermes supervisor."
+    },
+
+    "status": {
+      "type": "string",
+      "enum": ["pending_approval", "approved", "rejected", "in_progress", "complete", "cancelled"],
+      "default": "pending_approval",
+      "description": "Lifecycle status. Set to 'pending_approval' on creation. Updated by Hermes supervisor."
+    },
+
+    "priority": {
+      "type": "string",
+      "enum": ["low", "normal", "high", "critical"],
+      "default": "normal",
+      "description": "Routing priority for Hermes scheduling."
+    },
+
+    "signal_snapshot": {
+      "type": "object",
+      "description": "Snapshot of the signal board state at the time this intent was created. Must reflect a passing signal_filter evaluation.",
+      "required": [
+        "score",
+        "positive_walks",
+        "signal_types_present",
+        "sprint_lock_active",
+        "filter_passed",
+        "evaluated_at"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Cumulative signal score at time of evaluation."
+        },
+        "ready_threshold": {
+          "type": "integer",
+          "description": "Configured threshold required for filter pass."
+        },
+        "positive_walks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of positive walk entries contributing to this score."
+        },
+        "positive_walks_required": {
+          "type": "integer",
+          "description": "Configured minimum positive walks required."
+        },
+        "signal_types_present": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Distinct signal types present (e.g. research_finding, pattern_match, convergence)."
+        },
+        "signal_types_required": {
+          "type": "integer",
+          "description": "Configured minimum distinct signal types required."
+        },
+        "sprint_lock_active": {
+          "type": "boolean",
+          "description": "Must be false for filter to pass."
+        },
+        "filter_passed": {
+          "type": "boolean",
+          "const": true,
+          "description": "Must be true. Intent cannot be created if filter did not pass."
+        },
+        "evaluated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 UTC timestamp of signal filter evaluation."
+        }
+      }
+    },
+
+    "intent": {
+      "type": "object",
+      "description": "The core build intent: what to build, why, and how to bound the work.",
+      "required": [
+        "title",
+        "summary",
+        "motivation",
+        "proposed_approach",
+        "scope"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 120,
+          "description": "Short human-readable title for this build intent."
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 1000,
+          "description": "One-paragraph summary of what is being proposed and why it matters now."
+        },
+        "motivation": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 2000,
+          "description": "Detailed motivation grounded in signal evidence. Must reference at least one evidence_link."
+        },
+        "proposed_approach": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 2000,
+          "description": "High-level technical approach proposed by subconscious. Not a spec — a direction."
+        },
+        "scope": {
+          "type": "object",
+          "description": "Explicit scope boundaries for the coder agent.",
+          "required": ["in_scope", "out_of_scope"],
+          "additionalProperties": false,
+          "properties": {
+            "in_scope": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 3 },
+              "minItems": 1,
+              "description": "Explicit list of what the coder is expected to build or modify."
+            },
+            "out_of_scope": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 3 },
+              "minItems": 1,
+              "description": "Explicit list of what the coder must NOT touch in this sprint."
+            },
+            "affected_paths": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Workspace or repo paths expected to be modified."
+            },
+            "affected_agents": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Agent IDs whose behavior or config may be affected by this build."
+            }
+          }
+        },
+        "acceptance_criteria": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["criterion", "verifiable"],
+            "additionalProperties": false,
+            "properties": {
+              "criterion": {
+                "type": "string",
+                "minLength": 5,
+                "description": "A single testable acceptance criterion."
+              },
+              "verifiable": {
+                "type": "boolean",
+                "description": "Whether QA can automatically verify this criterion."
+              },
+              "verification_hint": {
+                "type": "string",
+                "description": "Optional hint for QA on how to verify this criterion."
+              }
+            }
+          },
+          "description": "Optional but strongly recommended. QA uses these for release gate evaluation."
+        },
+        "estimated_complexity": {
+          "type": "string",
+          "enum": ["trivial", "small", "medium", "large", "unknown"],
+          "default": "unknown",
+          "description": "Subconscious estimate of build complexity. Informational only."
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Free-form tags for routing, filtering, and dashboard display."
+        }
+      }
+    },
+
+    "evidence_links": {
+      "type": "array",
+      "description": "References to vault artifacts (findings, claims, notes) that ground this intent. At least one required.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["artifact_type", "artifact_path", "relevance"],
+        "additionalProperties": false,
+        "properties": {
+          "artifact_type": {
+            "type": "string",
+            "enum": ["finding", "claim", "source", "note", "dossier", "signal_event", "walk"],
+            "description": "Type of vault artifact being referenced."
+          },
+          "artifact_path": {
+            "type": "string",
+            "description": "Relative path to the artifact within the workspace."
+          },
+          "artifact_id": {
+            "type": "string",
+            "description": "Optional stable ID of the artifact (e.g. finding UUID)."
+          },
+          "relevance": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 500,
+            "description": "One sentence explaining why this artifact supports the intent."
+          },
+          "freshness_ok": {
+            "type": "boolean",
+            "description": "Whether the artifact was within freshness threshold at time of intent creation."
+          }
+        }
+      }
+    },
+
+    "guardrail_attestation": {
+      "type": "object",
+      "description": "Attestation that subconscious-openclaw guardrails were respected when creating this intent.",
+      "required": [
+        "cannot_code",
+        "cannot_self_approve",
+        "cannot_change_thresholds",
+        "cannot_touch_secrets",
+        "cannot_publish",
+        "signal_filter_passed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "cannot_code": {
+          "type": "boolean",
+          "const": true,
+          "description": "Attests that no code was written by the subconscious agent."
+        },
+        "cannot_self_approve": {
+          "type": "boolean",
+          "const": true,
+          "description": "Attests that this intent requires Hermes supervisor approval before routing to coder."
+        },
+        "cannot_change_thresholds": {
+          "type": "boolean",
+          "const": true,
+          "description": "Attests that signal thresholds were not modified to force this intent."
+        },
+        "cannot_touch_secrets": {
+          "type": "boolean",
+          "const": true,
+          "description": "Attests that no secrets or credentials were accessed during intent creation."
+        },
+        "cannot_publish": {
+          "type": "boolean",
+          "const": true,
+          "description": "Attests that no external publishing was triggered."
+        },
+        "signal_filter_passed": {
+          "type": "boolean",
+          "const": true,
+          "description": "Attests that signal_filter tool returned pass before create_build_intent was called."
+        }
+      }
+    },
+
+    "hermes_review": {
+      "type": "object",
+      "description": "Populated by Hermes supervisor during review. Not set by subconscious-openclaw.",
+      "additionalProperties": false,
+      "properties": {
+        "reviewed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "decision": {
+          "type": "string",
+          "enum": ["approved", "rejected", "deferred", "modified"]
+        },
+        "reviewer_notes": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "modifications": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["field", "original_value", "modified_value", "reason"],
+            "additionalProperties": false,
+            "properties": {
+              "field": { "type": "string" },
+              "original_value": {},
+              "modified_value": {},
+              "reason": { "type": "string" }
+            }
+          },
+          "description": "Fields modified by Hermes during review, with original values preserved."
+        },
+        "sprint_lock_set": {
+          "type": "boolean",
+          "description": "Whether Hermes set a sprint lock on the subconscious room after approval."
+        }
+      }
+    },
+
+    "coder_receipt": {
+      "type": "object",
+      "description": "Populated by the coder agent on job pickup. Not set by subconscious or Hermes.",
+      "additionalProperties": false,
+      "properties": {
+        "picked_up_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "job_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "build_plan_path": {
+          "type": "string",
+          "description": "Path to the coder's detailed build plan derived from this intent."
+        }
+      }
+    }
+
+  },
+
+  "examples": [
+    {
+      "schema_version": "1.0",
+      "intent_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "correlation_id": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+      "created_at": "2026-05-05T12:00:00Z",
+      "source_agent": "subconscious-openclaw",
+      "target_agent": "coder",
+      "status": "pending_approval",
+      "priority": "normal",
+      "signal_snapshot": {
+        "score": 8,
+        "ready_threshold": 6,
+        "positive_walks": 4,
+        "positive_walks_required": 3,
+        "signal_types_present": ["research_finding", "pattern_match", "convergence"],
+        "signal_types_required": 2,
+        "sprint_lock_active": false,
+        "filter_passed": true,
+        "evaluated_at": "2026-05-05T11:58:00Z"
+      },
+      "intent": {
+        "title": "Add OpenTelemetry trace propagation to broker job submit path",
+        "summary": "The broker currently emits metrics but does not propagate OTEL trace context through job submissions. Adding trace propagation will close the observability gap between Hermes supervisor spans and OpenClaw worker execution.",
+        "motivation": "Research vault findings (finding:otel-gap-001) and three positive subconscious walks consistently surface the same gap: broker job submissions break distributed traces. This is the right time to fix it given the active observability sprint.",
+        "proposed_approach": "Inject W3C traceparent header into broker job payloads. Extract and bind in OpenClaw session init. Propagate through tool call spans.",
+        "scope": {
+          "in_scope": [
+            "broker job submit payload schema (add trace_context field)",
+            "OpenClaw session manager trace context extraction",
+            "Tool call span binding"
+          ],
+          "out_of_scope": [
+            "Metrics pipeline changes",
+            "Grafana dashboard updates",
+            "Any agent prompt or persona changes"
+          ],
+          "affected_paths": [
+            "platform/broker",
+            "agents/research-openclaw",
+            "contracts/broker/job-submit.schema.json"
+          ],
+          "affected_agents": ["research-openclaw", "subconscious-openclaw"]
+        },
+        "acceptance_criteria": [
+          {
+            "criterion": "broker_submit_job includes valid W3C traceparent in payload",
+            "verifiable": true,
+            "verification_hint": "Assert traceparent header format in unit test"
+          },
+          {
+            "criterion": "OpenClaw session spans appear as children of Hermes supervisor span in OTEL backend",
+            "verifiable": true,
+            "verification_hint": "Integration test with OTEL collector in test mode"
+          }
+        ],
+        "estimated_complexity": "small",
+        "tags": ["observability", "otel", "broker", "tracing"]
+      },
+      "evidence_links": [
+        {
+          "artifact_type": "finding",
+          "artifact_path": "workspace/research-vault/knowledge/findings.jsonl",
+          "artifact_id": "otel-gap-001",
+          "relevance": "Documents the missing trace propagation gap in broker job submissions.",
+          "freshness_ok": true
+        },
+        {
+          "artifact_type": "walk",
+          "artifact_path": "workspace/subconscious-room/walks/2026-05-04-otel-pattern.md",
+          "relevance": "Three consecutive positive walks converged on this as the highest-value observability fix.",
+          "freshness_ok": true
+        }
+      ],
+      "guardrail_attestation": {
+        "cannot_code": true,
+        "cannot_self_approve": true,
+        "cannot_change_thresholds": true,
+        "cannot_touch_secrets": true,
+        "cannot_publish": true,
+        "signal_filter_passed": true
+      }
+    }
+  ]
+}
