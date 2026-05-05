@@ -1,0 +1,10 @@
+{
+  "receipt_version": "1.0",
+  "job_id": "316c37e1-d26c-414d-b47a-4b8c090dea1d",
+  "worker": "research-openclaw",
+  "status": "cancelled",
+  "correlation_id": "a7e8c9d0-1111-2222-3333-444455556666",
+  "requested_by": "main-hermes",
+  "reason": null,
+  "cancelled_at": "2026-05-05T15:58:49.956925+00:00"
+}

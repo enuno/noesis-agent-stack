@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from app import registry, scopes, schemas
 from app.models import Approval, Artifact, Event, HealthResponse, JobCreate, JobResponse
 from app.store import JobStore
+from hooks.mempalace_receipt_hook import write_cancelled_record, write_job_receipt
 
 app = FastAPI(title="Hermes-OpenClaw Broker", version="1.0.0")
 _store = JobStore()
@@ -55,6 +56,7 @@ async def submit_job(payload: dict[str, Any]) -> JobResponse:
         parameters=payload.get("parameters"),
         idempotency_key=idempotency_key,
         status="pending",
+        started_at=_now(),
     )
 
     await _store.create_job(job)
@@ -80,7 +82,71 @@ async def cancel_job(job_id: UUID, reason: str | None = None) -> dict[str, Any]:
     await _store.update_job(job_id, status="cancelling")
     # Simulate immediate cancellation for skeleton
     await _store.update_job(job_id, status="cancelled", finished_at=_now())
+
+    # Write palace receipt
+    write_cancelled_record(
+        job_id=job.job_id,
+        worker=job.worker,
+        correlation_id=job.correlation_id,
+        requested_by=job.requested_by,
+        reason=reason,
+    )
+
     return {"job_id": str(job_id), "status": "cancelled"}
+
+
+@app.post("/v1/jobs/{job_id}/complete")
+async def complete_job(
+    job_id: UUID,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Report job completion. Called by workers or the supervisor."""
+    job = await _store.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.status in ("completed", "failed", "cancelled", "timeout"):
+        raise HTTPException(status_code=409, detail="Job already terminal")
+
+    exit_code = payload.get("exit_code", 0)
+    status = "completed" if exit_code == 0 else "failed"
+    finished_at = _now()
+
+    await _store.update_job(
+        job_id,
+        status=status,
+        finished_at=finished_at,
+        exit_code=exit_code,
+        artifact_count=payload.get("artifact_count", job.artifact_count),
+        warnings=payload.get("warnings", job.warnings),
+        summary=payload.get("summary", job.summary),
+        health=payload.get("health", job.health),
+    )
+
+    # Refresh job object after update
+    job = await _store.get_job(job_id)
+
+    # Write palace receipt
+    receipt_path = write_job_receipt(
+        job_id=job.job_id,
+        worker=job.worker,
+        status=job.status,
+        correlation_id=job.correlation_id,
+        requested_by=job.requested_by,
+        started_at=job.started_at,
+        finished_at=job.finished_at,
+        exit_code=job.exit_code,
+        artifact_count=job.artifact_count,
+        warnings=job.warnings,
+        summary=job.summary,
+        traceparent=job.traceparent,
+        mode=job.mode,
+    )
+
+    return {
+        "job_id": str(job_id),
+        "status": status,
+        "receipt_path": str(receipt_path),
+    }
 
 
 @app.get("/v1/jobs/{job_id}/events")

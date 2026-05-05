@@ -70,6 +70,47 @@ class TestCancelJob:
         assert response.status_code == 409
 
 
+class TestCompleteJob:
+    def test_complete_job_success(self, client: TestClient, sample_job):
+        created = client.post("/v1/jobs", json=sample_job).json()
+        job_id = created["job_id"]
+        response = client.post(
+            f"/v1/jobs/{job_id}/complete",
+            json={"exit_code": 0, "artifact_count": 3, "summary": {"findings": 5}},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "completed"
+        assert "receipt_path" in data
+
+    def test_complete_job_failure(self, client: TestClient, sample_job):
+        created = client.post("/v1/jobs", json=sample_job).json()
+        job_id = created["job_id"]
+        response = client.post(
+            f"/v1/jobs/{job_id}/complete",
+            json={"exit_code": 1, "warnings": ["timeout exceeded"]},
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "failed"
+
+    def test_complete_job_not_found(self, client: TestClient):
+        response = client.post(
+            "/v1/jobs/11111111-1111-1111-1111-111111111111/complete",
+            json={"exit_code": 0},
+        )
+        assert response.status_code == 404
+
+    def test_complete_job_terminal_conflict(self, client: TestClient, sample_job):
+        created = client.post("/v1/jobs", json=sample_job).json()
+        job_id = created["job_id"]
+        client.post(f"/v1/jobs/{job_id}/cancel")
+        response = client.post(
+            f"/v1/jobs/{job_id}/complete",
+            json={"exit_code": 0},
+        )
+        assert response.status_code == 409
+
+
 class TestJobEvents:
     def test_get_job_events(self, client: TestClient, sample_job):
         created = client.post("/v1/jobs", json=sample_job).json()

@@ -1,0 +1,18 @@
+{
+  "receipt_version": "1.0",
+  "job_id": "55eac6b2-33c3-4328-876b-b4ee73f32662",
+  "worker": "research-openclaw",
+  "mode": "refresh",
+  "status": "failed",
+  "correlation_id": "a7e8c9d0-1111-2222-3333-444455556666",
+  "requested_by": "main-hermes",
+  "started_at": "2026-05-05T15:58:49.968110",
+  "finished_at": "2026-05-05T15:58:49.970176",
+  "exit_code": 1,
+  "artifact_count": 0,
+  "warnings": [
+    "timeout exceeded"
+  ],
+  "summary": {},
+  "emitted_at": "2026-05-05T15:58:49.970247+00:00"
+}

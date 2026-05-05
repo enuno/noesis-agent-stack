@@ -1,0 +1,381 @@
+{
+  "version": "1.0",
+  "rooms": [
+    {
+      "wing": "hermes",
+      "hall": "decisions",
+      "room": "routing-decisions",
+      "owner": "main-hermes",
+      "description": "Routing choices, delegation records, schedule changes.",
+      "path": "workspace/mempalace/hermes/decisions/routing-decisions"
+    },
+    {
+      "wing": "hermes",
+      "hall": "decisions",
+      "room": "approvals",
+      "owner": "main-hermes",
+      "description": "Approved plans, build intents, and release gates.",
+      "path": "workspace/mempalace/hermes/decisions/approvals"
+    },
+    {
+      "wing": "hermes",
+      "hall": "decisions",
+      "room": "rejections",
+      "owner": "main-hermes",
+      "description": "Rejected proposals with reasoning.",
+      "path": "workspace/mempalace/hermes/decisions/rejections"
+    },
+    {
+      "wing": "hermes",
+      "hall": "state",
+      "room": "operator-preferences",
+      "owner": "main-hermes",
+      "description": "Operator interest profiles and preference history.",
+      "path": "workspace/mempalace/hermes/state/operator-preferences"
+    },
+    {
+      "wing": "hermes",
+      "hall": "state",
+      "room": "workflow-state",
+      "owner": "main-hermes",
+      "description": "Active workflow state and checkpoints.",
+      "path": "workspace/mempalace/hermes/state/workflow-state"
+    },
+    {
+      "wing": "hermes",
+      "hall": "diary",
+      "room": "main-hermes-diary",
+      "owner": "main-hermes",
+      "description": "End-of-session diary entries.",
+      "path": "workspace/mempalace/hermes/diary/main-hermes-diary"
+    },
+    {
+      "wing": "broker",
+      "hall": "jobs",
+      "room": "job-receipts",
+      "owner": "broker",
+      "description": "Normalized job completion receipts written by broker hook.",
+      "path": "workspace/mempalace/broker/jobs/job-receipts"
+    },
+    {
+      "wing": "broker",
+      "hall": "jobs",
+      "room": "job-events",
+      "owner": "broker",
+      "description": "Structured event stream snapshots.",
+      "path": "workspace/mempalace/broker/jobs/job-events"
+    },
+    {
+      "wing": "broker",
+      "hall": "jobs",
+      "room": "cancelled-jobs",
+      "owner": "broker",
+      "description": "Records of cancelled or timed-out jobs.",
+      "path": "workspace/mempalace/broker/jobs/cancelled-jobs"
+    },
+    {
+      "wing": "broker",
+      "hall": "workers",
+      "room": "worker-registry",
+      "owner": "broker",
+      "description": "Registered workers and capability cards.",
+      "path": "workspace/mempalace/broker/workers/worker-registry"
+    },
+    {
+      "wing": "broker",
+      "hall": "workers",
+      "room": "worker-health",
+      "owner": "broker",
+      "description": "Health snapshots and stale-worker flags.",
+      "path": "workspace/mempalace/broker/workers/worker-health"
+    },
+    {
+      "wing": "broker",
+      "hall": "diary",
+      "room": "broker-diary",
+      "owner": "broker",
+      "description": "Broker operational diary.",
+      "path": "workspace/mempalace/broker/diary/broker-diary"
+    },
+    {
+      "wing": "research-vault",
+      "hall": "knowledge",
+      "room": "findings",
+      "owner": "research-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/research-vault/knowledge/findings"
+    },
+    {
+      "wing": "research-vault",
+      "hall": "knowledge",
+      "room": "claims",
+      "owner": "research-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/research-vault/knowledge/claims"
+    },
+    {
+      "wing": "research-vault",
+      "hall": "knowledge",
+      "room": "sources",
+      "owner": "research-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/research-vault/knowledge/sources"
+    },
+    {
+      "wing": "research-vault",
+      "hall": "output",
+      "room": "dossiers",
+      "owner": "research-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/research-vault/output/dossiers"
+    },
+    {
+      "wing": "research-vault",
+      "hall": "output",
+      "room": "operator-briefs",
+      "owner": "research-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/research-vault/output/operator-briefs"
+    },
+    {
+      "wing": "research-vault",
+      "hall": "output",
+      "room": "handoff-candidates",
+      "owner": "research-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/research-vault/output/handoff-candidates"
+    },
+    {
+      "wing": "research-vault",
+      "hall": "state",
+      "room": "queue",
+      "owner": "research-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/research-vault/state/queue"
+    },
+    {
+      "wing": "research-vault",
+      "hall": "state",
+      "room": "config",
+      "owner": "research-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/research-vault/state/config"
+    },
+    {
+      "wing": "research-vault",
+      "hall": "state",
+      "room": "health",
+      "owner": "research-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/research-vault/state/health"
+    },
+    {
+      "wing": "research-vault",
+      "hall": "state",
+      "room": "runs",
+      "owner": "research-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/research-vault/state/runs"
+    },
+    {
+      "wing": "research-vault",
+      "hall": "diary",
+      "room": "research-openclaw-diary",
+      "owner": "research-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/research-vault/diary/research-openclaw-diary"
+    },
+    {
+      "wing": "subconscious-room",
+      "hall": "walks",
+      "room": "walk-notes",
+      "owner": "subconscious-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/subconscious-room/walks/walk-notes"
+    },
+    {
+      "wing": "subconscious-room",
+      "hall": "walks",
+      "room": "drift-from-research",
+      "owner": "subconscious-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/subconscious-room/walks/drift-from-research"
+    },
+    {
+      "wing": "subconscious-room",
+      "hall": "walks",
+      "room": "pure-tangent",
+      "owner": "subconscious-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/subconscious-room/walks/pure-tangent"
+    },
+    {
+      "wing": "subconscious-room",
+      "hall": "signals",
+      "room": "signal-events",
+      "owner": "subconscious-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/subconscious-room/signals/signal-events"
+    },
+    {
+      "wing": "subconscious-room",
+      "hall": "signals",
+      "room": "signal-board",
+      "owner": "subconscious-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/subconscious-room/signals/signal-board"
+    },
+    {
+      "wing": "subconscious-room",
+      "hall": "signals",
+      "room": "intent-drafts",
+      "owner": "subconscious-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/subconscious-room/signals/intent-drafts"
+    },
+    {
+      "wing": "subconscious-room",
+      "hall": "state",
+      "room": "projects",
+      "owner": "subconscious-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/subconscious-room/state/projects"
+    },
+    {
+      "wing": "subconscious-room",
+      "hall": "state",
+      "room": "feedback",
+      "owner": "subconscious-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/subconscious-room/state/feedback"
+    },
+    {
+      "wing": "subconscious-room",
+      "hall": "state",
+      "room": "inbox-from-research",
+      "owner": "subconscious-openclaw",
+      "description": "Read-only snapshots from research-vault written by broker hook on behalf of subconscious schedule.",
+      "path": "workspace/mempalace/subconscious-room/state/inbox-from-research"
+    },
+    {
+      "wing": "subconscious-room",
+      "hall": "state",
+      "room": "lessons",
+      "owner": "subconscious-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/subconscious-room/state/lessons"
+    },
+    {
+      "wing": "subconscious-room",
+      "hall": "state",
+      "room": "fascinations",
+      "owner": "subconscious-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/subconscious-room/state/fascinations"
+    },
+    {
+      "wing": "subconscious-room",
+      "hall": "diary",
+      "room": "subconscious-openclaw-diary",
+      "owner": "subconscious-openclaw",
+      "description": "",
+      "path": "workspace/mempalace/subconscious-room/diary/subconscious-openclaw-diary"
+    },
+    {
+      "wing": "coder-jobs",
+      "hall": "builds",
+      "room": "active-builds",
+      "owner": "coder",
+      "description": "",
+      "path": "workspace/mempalace/coder-jobs/builds/active-builds"
+    },
+    {
+      "wing": "coder-jobs",
+      "hall": "builds",
+      "room": "build-artifacts",
+      "owner": "coder",
+      "description": "",
+      "path": "workspace/mempalace/coder-jobs/builds/build-artifacts"
+    },
+    {
+      "wing": "coder-jobs",
+      "hall": "builds",
+      "room": "migration-notes",
+      "owner": "coder",
+      "description": "",
+      "path": "workspace/mempalace/coder-jobs/builds/migration-notes"
+    },
+    {
+      "wing": "coder-jobs",
+      "hall": "context",
+      "room": "implementation-decisions",
+      "owner": "coder",
+      "description": "",
+      "path": "workspace/mempalace/coder-jobs/context/implementation-decisions"
+    },
+    {
+      "wing": "coder-jobs",
+      "hall": "context",
+      "room": "tech-constraints",
+      "owner": "coder",
+      "description": "",
+      "path": "workspace/mempalace/coder-jobs/context/tech-constraints"
+    },
+    {
+      "wing": "coder-jobs",
+      "hall": "diary",
+      "room": "coder-diary",
+      "owner": "coder",
+      "description": "",
+      "path": "workspace/mempalace/coder-jobs/diary/coder-diary"
+    },
+    {
+      "wing": "qa-reports",
+      "hall": "audits",
+      "room": "test-results",
+      "owner": "qa",
+      "description": "",
+      "path": "workspace/mempalace/qa-reports/audits/test-results"
+    },
+    {
+      "wing": "qa-reports",
+      "hall": "audits",
+      "room": "audit-reports",
+      "owner": "qa",
+      "description": "",
+      "path": "workspace/mempalace/qa-reports/audits/audit-reports"
+    },
+    {
+      "wing": "qa-reports",
+      "hall": "audits",
+      "room": "release-gates",
+      "owner": "qa",
+      "description": "",
+      "path": "workspace/mempalace/qa-reports/audits/release-gates"
+    },
+    {
+      "wing": "qa-reports",
+      "hall": "evidence",
+      "room": "claim-verification-history",
+      "owner": "qa",
+      "description": "",
+      "path": "workspace/mempalace/qa-reports/evidence/claim-verification-history"
+    },
+    {
+      "wing": "qa-reports",
+      "hall": "evidence",
+      "room": "contradiction-flags",
+      "owner": "qa",
+      "description": "",
+      "path": "workspace/mempalace/qa-reports/evidence/contradiction-flags"
+    },
+    {
+      "wing": "qa-reports",
+      "hall": "diary",
+      "room": "qa-diary",
+      "owner": "qa",
+      "description": "",
+      "path": "workspace/mempalace/qa-reports/diary/qa-diary"
+    }
+  ]
+}

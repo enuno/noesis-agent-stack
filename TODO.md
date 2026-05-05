@@ -76,33 +76,33 @@
 
 ---
 
-## Phase 1.5: MemPalace Memory Layer (NOT STARTED)
+## Phase 1.5: MemPalace Memory Layer (COMPLETED 2026-05-05)
 
 ### Exit criteria
-- Every broker job completion writes a retrievable receipt to the palace
-- Hermes can query palace context before approving or delegating
-- Research and Subconscious write surfaces map 1:1 to palace wings/rooms
-- Knowledge graph contains project, agent, and job entities with basic temporal facts
+- [x] Every broker job completion writes a retrievable receipt to the palace
+- [x] Hermes can query palace context before approving or delegating
+- [x] Research and Subconscious write surfaces map 1:1 to palace wings/rooms
+- [x] Knowledge graph contains project, agent, and job entities with basic temporal facts
 
 ### Tasks
 
-- [ ] 1.5.1 — Stand up `workspace/mempalace/` scaffold and init scripts
-- [ ] 1.5.2 — Define wing/room taxonomy in `contracts/mempalace/taxonomy.yaml`
+- [x] 1.5.1 — Stand up `workspace/mempalace/` scaffold and init scripts
+- [x] 1.5.2 — Define wing/room taxonomy in `contracts/mempalace/taxonomy.yaml`
   - `hermes` wing
   - `broker` wing
   - `research-vault` wing
   - `subconscious-room` wing
   - `coder-jobs` wing
   - `qa-reports` wing
-- [ ] 1.5.3 — Define KG schema in `contracts/mempalace/kg-schema.yaml`
-- [ ] 1.5.4 — Implement broker receipt hook
+- [x] 1.5.3 — Define KG schema in `contracts/mempalace/kg-schema.yaml`
+- [x] 1.5.4 — Implement broker receipt hook
   - `orchestration/broker/hooks/mempalace_receipt_hook.py`
   - Writes job receipt drawer to `broker/jobs` room on every completion
-- [ ] 1.5.5 — Implement Hermes palace query tool
+- [x] 1.5.5 — Implement Hermes palace query tool
   - `agents/main-hermes/tools/palace_query.py`
-  - Search, KG lookup, diary read
-- [ ] 1.5.6 — Initialize diary systems per agent
-- [ ] 1.5.7 — Commit memory layer
+  - Search, KG lookup, diary read, traverse, status
+- [x] 1.5.6 — Initialize diary systems per agent
+- [x] 1.5.7 — Commit memory layer
 
 ---
 
