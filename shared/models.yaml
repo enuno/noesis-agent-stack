@@ -1,0 +1,274 @@
+# shared/models.yaml
+# Canonical model profile registry for the Hermes-OpenClaw stack.
+# Agents reference profiles by key (e.g. model_profile: reasoning_primary).
+# Providers require matching env vars — see security.env_vars below.
+# Do NOT store API keys here; use the env var references only.
+
+version: 0.1
+
+# ---------------------------------------------------------------------------
+# Providers
+# ---------------------------------------------------------------------------
+providers:
+  anthropic:
+    display_name: Anthropic
+    api_base: https://api.anthropic.com/v1
+    auth_env: ANTHROPIC_API_KEY
+    enabled: true
+    notes: Primary cloud reasoning provider. Used for Hermes supervisor and strong-reasoning tasks.
+
+  openai:
+    display_name: OpenAI
+    api_base: https://api.openai.com/v1
+    auth_env: OPENAI_API_KEY
+    enabled: true
+    notes: Strong-reasoning fallback and treasury/ops gate tasks requiring highest accuracy.
+
+  minimax:
+    display_name: MiniMax
+    api_base: https://api.minimax.chat/v1
+    auth_env: MINIMAX_API_KEY
+    enabled: true
+    notes: Mid-tier synthesis provider. Used for digest and daily summary workloads.
+
+  ollama:
+    display_name: Ollama (local)
+    api_base: http://127.0.0.1:11434/v1
+    auth_env: null
+    enabled: true
+    notes: >-
+      Local inference host. Used for subconscious drift and pattern-noticing
+      workloads where creative temperature and privacy matter more than raw accuracy.
+      Requires Ollama daemon running with target models pulled.
+
+  local:
+    display_name: Local vLLM / llama.cpp
+    api_base: http://127.0.0.1:8000/v1
+    auth_env: null
+    enabled: true
+    notes: >-
+      High-throughput local endpoint for fast extraction tasks.
+      Point api_base at your vLLM or llama.cpp server.
+
+# ---------------------------------------------------------------------------
+# Model Profiles
+# ---------------------------------------------------------------------------
+# Each profile is a named, reusable binding of provider + model + sampling params.
+# Agents in config/stack.yaml reference profiles by key under model_profile:
+# or model_bindings:. Profiles do NOT contain secrets.
+
+profiles:
+
+  # --- Cloud: primary reasoning ---
+  reasoning_primary:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    description: >-
+      Default supervisor and orchestration model. Balances reasoning quality
+      with cost. Used by Hermes, Coder, QA, and Content agents.
+    temperature: 0.2
+    top_p: 0.95
+    max_tokens: 12000
+    timeout_s: 120
+    cost_per_1k_input_usd: 0.003
+    cost_per_1k_output_usd: 0.015
+    supports_tool_use: true
+    supports_vision: true
+    context_window_k: 200
+    tags:
+      - cloud
+      - reasoning
+      - supervisor
+      - tool_use
+
+  # --- Cloud: strong reasoning / high-stakes ---
+  reasoning_strong:
+    provider: openai
+    model: gpt-4.1
+    description: >-
+      High-accuracy model reserved for hard-gate tasks: treasury, ops approvals,
+      schema conflict resolution, and escalation paths. Higher cost — use sparingly.
+    temperature: 0.1
+    top_p: 0.9
+    max_tokens: 16000
+    timeout_s: 180
+    cost_per_1k_input_usd: 0.002
+    cost_per_1k_output_usd: 0.008
+    supports_tool_use: true
+    supports_vision: true
+    context_window_k: 1000
+    tags:
+      - cloud
+      - reasoning
+      - high_stakes
+      - tool_use
+
+  # --- Local: creative / drift ---
+  local_drift:
+    provider: ollama
+    model: qwen3:32b
+    description: >-
+      High-temperature local model for subconscious pattern-noticing, free
+      association, and creative drift walks. Runs fully offline. Privacy-safe
+      for unfiltered ideation. No tool use.
+    temperature: 0.85
+    top_p: 0.98
+    min_p: 0.05
+    max_tokens: 8000
+    timeout_s: 300
+    cost_per_1k_input_usd: 0.0
+    cost_per_1k_output_usd: 0.0
+    supports_tool_use: false
+    supports_vision: false
+    context_window_k: 128
+    ollama_options:
+      num_gpu: -1
+      num_thread: 8
+      repeat_penalty: 1.1
+    tags:
+      - local
+      - creative
+      - drift
+      - subconscious
+      - offline
+
+  # --- Cloud: mid-tier synthesis ---
+  synthesis_mid:
+    provider: minimax
+    model: MiniMax-M1
+    description: >-
+      Cost-effective synthesis model for digest generation, daily summaries,
+      and build intent elaboration. Good balance of instruction-following and
+      cost at moderate context lengths.
+    temperature: 0.35
+    top_p: 0.95
+    max_tokens: 10000
+    timeout_s: 120
+    cost_per_1k_input_usd: 0.0004
+    cost_per_1k_output_usd: 0.0016
+    supports_tool_use: true
+    supports_vision: false
+    context_window_k: 1000
+    tags:
+      - cloud
+      - synthesis
+      - digest
+      - cost_optimized
+
+  # --- Local: fast extraction ---
+  extraction_fast:
+    provider: local
+    model: qwen2.5-14b-instruct
+    description: >-
+      Low-latency local model for structured extraction, claim normalization,
+      source metadata parsing, and schema validation tasks. Runs on local
+      vLLM or llama.cpp endpoint. No vision, no tool calling.
+    temperature: 0.1
+    top_p: 0.9
+    max_tokens: 6000
+    timeout_s: 60
+    cost_per_1k_input_usd: 0.0
+    cost_per_1k_output_usd: 0.0
+    supports_tool_use: false
+    supports_vision: false
+    context_window_k: 32
+    tags:
+      - local
+      - extraction
+      - fast
+      - offline
+      - schema
+
+# ---------------------------------------------------------------------------
+# Agent → Profile Bindings (reference)
+# ---------------------------------------------------------------------------
+# Informational only — authoritative bindings live in config/stack.yaml.
+# Duplicated here for at-a-glance cross-referencing.
+
+agent_profile_map:
+  main-hermes:
+    default: reasoning_primary
+    escalation: reasoning_strong
+
+  research-openclaw:
+    bootstrap: reasoning_primary
+    refresh: extraction_fast
+    validation: extraction_fast
+    daily_summary: synthesis_mid
+    midday_focus: synthesis_mid
+    recover: reasoning_strong
+
+  subconscious-openclaw:
+    drift_from_research: local_drift
+    continue_project: local_drift
+    pure_tangent: local_drift
+    tend_the_room: local_drift
+    digest: synthesis_mid
+    elaborate_intent: synthesis_mid
+
+  coder:
+    default: reasoning_primary
+
+  qa:
+    default: reasoning_primary
+
+  content:
+    default: reasoning_primary
+
+  ops:
+    default: reasoning_strong
+
+  treasury:
+    default: reasoning_strong
+
+# ---------------------------------------------------------------------------
+# Cost guardrails
+# ---------------------------------------------------------------------------
+cost_policy:
+  enforce_budget: true
+  alert_threshold_usd: 2.00
+  hard_limit_usd: 10.00
+  per_job_hard_limit_usd: 2.00
+  block_reasoning_strong_without_approval: true
+  log_cost_events: true
+  cost_event_ledger: workspace/research-vault/runs/cost-events.jsonl
+
+# ---------------------------------------------------------------------------
+# Fallback & retry policy
+# ---------------------------------------------------------------------------
+fallback_policy:
+  on_provider_error:
+    reasoning_primary:
+      fallback_profile: reasoning_strong
+      max_fallback_attempts: 1
+    local_drift:
+      fallback_profile: synthesis_mid
+      max_fallback_attempts: 1
+    extraction_fast:
+      fallback_profile: synthesis_mid
+      max_fallback_attempts: 1
+  on_timeout:
+    action: fail_job
+    notify_supervisor: true
+
+# ---------------------------------------------------------------------------
+# Security
+# ---------------------------------------------------------------------------
+security:
+  env_vars:
+    required:
+      - ANTHROPIC_API_KEY
+      - OPENAI_API_KEY
+      - MINIMAX_API_KEY
+    optional:
+      - OLLAMA_HOST        # override default 127.0.0.1:11434
+      - LOCAL_LLM_HOST     # override default 127.0.0.1:8000
+  worker_access:
+    openclaw_workers_may_call_cloud_providers: true
+    openclaw_workers_may_call_local_providers: true
+    openclaw_workers_denied_profiles:
+      - reasoning_strong   # requires Hermes supervisor approval path
+  audit:
+    log_model_calls: true
+    redact_prompt_content: false
+    redact_response_content: false
