@@ -1,0 +1,561 @@
+version: 0.1
+stack:
+  name: hermes-openclaw
+  environment: dev
+  region: us-west-2
+  timezone: America/Denver
+  description: >-
+    Multi-agent control plane with Hermes as supervisor, OpenClaw research and
+    subconscious workers, and downstream execution agents for coding, QA,
+    publishing, operations, and treasury.
+
+paths:
+  repo_root: .
+  personas_dir: personas
+  shared_dir: shared
+  agents_dir: agents
+  platform_dir: platform
+  contracts_dir: contracts
+  workspace_dir: workspace
+  orchestration_dir: orchestration
+  logs_dir: logs
+
+shared:
+  personas:
+    core: personas/SOUL.core.md
+    main_operator: personas/SOUL.main-operator.md
+    evidence_operator: personas/SOUL.evidence-operator.md
+    subconscious_houseguest: personas/SOUL.subconscious-houseguest.md
+    builder: personas/SOUL.builder.md
+    auditor: personas/SOUL.auditor.md
+    publisher: personas/SOUL.publisher.md
+  memory:
+    global: shared/MEMORY.global.md
+    topics:
+      - shared/memory/domain-knowledge.md
+      - shared/memory/api-conventions.md
+      - shared/memory/orchestration-patterns.md
+      - shared/memory/incidents.md
+  policy:
+    global_policy: shared/POLICY.global.md
+    global_guardrails: shared/GUARDRAILS.global.yaml
+  models_catalog: shared/models.yaml
+  tools_catalog: shared/tools.yaml
+
+models:
+  profiles:
+    reasoning_primary:
+      provider: anthropic
+      model: claude-sonnet
+      temperature: 0.2
+      max_tokens: 12000
+    reasoning_strong:
+      provider: openai
+      model: gpt-5
+      temperature: 0.1
+      max_tokens: 16000
+    local_drift:
+      provider: ollama
+      model: qwen3-35b-a3b
+      temperature: 0.8
+      max_tokens: 8000
+    synthesis_mid:
+      provider: minimax
+      model: minimax-m2.7
+      temperature: 0.3
+      max_tokens: 10000
+    extraction_fast:
+      provider: local
+      model: qwen2.5-14b-instruct
+      temperature: 0.1
+      max_tokens: 6000
+
+broker:
+  enabled: true
+  service_name: hermes-openclaw-broker
+  transport: http
+  bind_host: 127.0.0.1
+  bind_port: 8787
+  base_url: http://127.0.0.1:8787
+  auth:
+    mode: bearer
+    token_env: HERMES_BROKER_TOKEN
+  defaults:
+    timeout_s: 1800
+    max_parallel_jobs: 4
+    retries: 1
+    artifact_indexing: true
+    structured_events: true
+  policy:
+    require_job_id: true
+    require_correlation_id: true
+    enforce_write_scopes: true
+    reject_unregistered_workers: true
+    approval_required_for:
+      - destructive
+      - external_publish
+      - secret_access
+      - wallet_access
+  observability:
+    emit_events: true
+    store_run_receipts: true
+    otel_enabled: true
+    metrics_path: /metrics
+    health_path: /v1/health
+
+platform:
+  supervisor: main-hermes
+  graph:
+    nodes:
+      - main-hermes
+      - research-openclaw
+      - subconscious-openclaw
+      - coder
+      - qa
+      - content
+      - ops
+      - treasury
+    edges:
+      - from: main-hermes
+        to: research-openclaw
+        when: needs_external_evidence
+      - from: research-openclaw
+        to: main-hermes
+        when: operator_brief_ready
+      - from: research-openclaw
+        to: subconscious-openclaw
+        when: research_snapshot_ready
+      - from: subconscious-openclaw
+        to: main-hermes
+        when: signal_board_updated
+      - from: main-hermes
+        to: coder
+        when: build_plan_approved
+      - from: coder
+        to: qa
+        when: build_complete
+      - from: qa
+        to: main-hermes
+        when: release_gate_result_ready
+      - from: main-hermes
+        to: content
+        when: content_handoff_approved
+      - from: main-hermes
+        to: ops
+        when: ops_handoff_approved
+      - from: main-hermes
+        to: treasury
+        when: treasury_handoff_approved
+  routing:
+    default_timeout_s: 1200
+    max_fanout: 3
+    approval_mode: human-in-the-loop
+    fallback_agent: main-hermes
+
+agents:
+  main-hermes:
+    enabled: true
+    runtime: hermes
+    role: supervisor
+    personas:
+      - shared.core
+      - shared.main_operator
+    prompts:
+      systemprompt: agents/main-hermes/systemprompt.md
+      memory: agents/main-hermes/MEMORY.md
+    model_profile: reasoning_primary
+    tools:
+      - broker_submit_job
+      - broker_get_job
+      - broker_list_artifacts
+      - read_workspace
+      - write_main_state
+      - route_handoff
+    limits:
+      max_steps: 24
+      timeout_s: 900
+      retries: 1
+      budget_usd: 5.0
+    reads:
+      - workspace/main-state
+      - workspace/shared-handoffs
+      - workspace/research-vault/notes
+      - workspace/research-vault/dossiers
+      - workspace/subconscious-room/signal-state
+    writes:
+      - workspace/main-state
+      - workspace/shared-handoffs
+    approvals:
+      required_for:
+        - build_promotion
+        - external_publish
+        - infra_change
+        - treasury_action
+
+  research-openclaw:
+    enabled: true
+    runtime: openclaw
+    role: evidence-operator
+    personas:
+      - shared.core
+      - shared.evidence_operator
+    prompts:
+      soul: agents/research-openclaw/SOUL.md
+      systemprompt: agents/research-openclaw/systemprompt.md
+      memory: agents/research-openclaw/MEMORY.md
+    model_bindings:
+      bootstrap: reasoning_primary
+      refresh: extraction_fast
+      validation: extraction_fast
+      daily_summary: synthesis_mid
+      midday_focus: synthesis_mid
+      recover: reasoning_strong
+    tools:
+      - web_search
+      - rss_fetch
+      - github_fetch
+      - schema_validate
+      - write_vault_artifact
+      - health_report
+    modes:
+      - bootstrap
+      - refresh
+      - validate
+      - daily_summary
+      - midday_focus
+      - backup
+      - restore
+      - recover
+    reads:
+      - shared
+      - workspace/research-vault/context
+      - workspace/research-vault/config
+    writes:
+      - workspace/research-vault
+    limits:
+      timeout_s: 1800
+      retries: 1
+      max_sources_per_run: 5
+      max_claims_per_run: 25
+      network_access: allowlisted
+    guardrails:
+      cannot_publish: true
+      cannot_execute_external_actions: true
+      cannot_touch_secrets: true
+      cannot_promote_weak_claims: true
+
+  subconscious-openclaw:
+    enabled: true
+    runtime: openclaw
+    role: pattern-noticer
+    personas:
+      - shared.core
+      - shared.subconscious_houseguest
+    prompts:
+      soul: agents/subconscious-openclaw/SOUL.md
+      systemprompt: agents/subconscious-openclaw/systemprompt.md
+      memory: agents/subconscious-openclaw/MEMORY.md
+    model_bindings:
+      drift_from_research: local_drift
+      continue_project: local_drift
+      pure_tangent: local_drift
+      tend_the_room: local_drift
+      digest: synthesis_mid
+      elaborate_intent: synthesis_mid
+    tools:
+      - read_room
+      - write_room_note
+      - signal_filter
+      - rebuild_signal_board
+      - create_build_intent
+      - memory_bridge_sync
+    modes:
+      - drift-from-research
+      - continue-project
+      - pure-tangent
+      - tend-the-room
+      - digest
+      - elaborate-intent
+    reads:
+      - workspace/subconscious-room
+      - workspace/research-vault/notes
+      - workspace/research-vault/queue
+      - workspace/research-vault/health
+    writes:
+      - workspace/subconscious-room
+      - workspace/shared-handoffs/build
+    limits:
+      timeout_s: 1200
+      retries: 1
+      sprint_lock_enabled: true
+      experiment_cooldown_h: 24
+      ready_threshold: 6
+      positive_walks_required: 3
+      signal_types_required: 2
+    guardrails:
+      cannot_code: true
+      cannot_self_approve: true
+      cannot_change_thresholds: true
+      cannot_touch_secrets: true
+      cannot_publish: true
+
+  coder:
+    enabled: true
+    runtime: hermes
+    role: builder
+    personas:
+      - shared.core
+      - shared.builder
+    prompts:
+      systemprompt: agents/coder/systemprompt.md
+      memory: agents/coder/MEMORY.md
+    model_profile: reasoning_primary
+    tools:
+      - git_write
+      - unit_test
+      - schema_validate
+      - artifact_publish_internal
+    reads:
+      - workspace/shared-handoffs/build
+      - workspace/coder-jobs
+    writes:
+      - workspace/coder-jobs
+    limits:
+      timeout_s: 2400
+      retries: 1
+
+  qa:
+    enabled: true
+    runtime: hermes
+    role: auditor
+    personas:
+      - shared.core
+      - shared.auditor
+    prompts:
+      systemprompt: agents/qa/systemprompt.md
+      memory: agents/qa/MEMORY.md
+    model_profile: reasoning_primary
+    tools:
+      - run_tests
+      - audit_artifacts
+      - compare_contracts
+      - write_release_gate
+    reads:
+      - workspace/coder-jobs
+      - workspace/shared-handoffs/verify
+    writes:
+      - workspace/qa-reports
+
+  content:
+    enabled: false
+    runtime: hermes
+    role: publisher
+    personas:
+      - shared.core
+      - shared.publisher
+    prompts:
+      systemprompt: agents/content/systemprompt.md
+      memory: agents/content/MEMORY.md
+    model_profile: reasoning_primary
+    reads:
+      - workspace/shared-handoffs/content
+    writes:
+      - workspace/content-drafts
+
+  ops:
+    enabled: false
+    runtime: hermes
+    role: infra-operator
+    personas:
+      - shared.core
+    prompts:
+      systemprompt: agents/ops/systemprompt.md
+      memory: agents/ops/MEMORY.md
+    model_profile: reasoning_strong
+    reads:
+      - workspace/shared-handoffs/ops
+    writes:
+      - workspace/ops-jobs
+
+  treasury:
+    enabled: false
+    runtime: hermes
+    role: treasury-analyst
+    personas:
+      - shared.core
+    prompts:
+      systemprompt: agents/treasury/systemprompt.md
+      memory: agents/treasury/MEMORY.md
+    model_profile: reasoning_strong
+    reads:
+      - workspace/shared-handoffs/treasury
+    writes:
+      - workspace/treasury-jobs
+    approvals:
+      hard_human_gate: true
+
+research:
+  vault:
+    root: workspace/research-vault
+    context_dir: workspace/research-vault/context
+    config_dir: workspace/research-vault/config
+    dossiers_dir: workspace/research-vault/dossiers
+    knowledge_dir: workspace/research-vault/knowledge
+    raw_dir: workspace/research-vault/raw
+    queue_dir: workspace/research-vault/queue
+    notes_dir: workspace/research-vault/notes
+    wiki_dir: workspace/research-vault/wiki
+    health_dir: workspace/research-vault/health
+    ops_dir: workspace/research-vault/ops
+    runs_dir: workspace/research-vault/runs
+    decisions_dir: workspace/research-vault/decisions
+  ledgers:
+    findings: workspace/research-vault/knowledge/findings.jsonl
+    claims: workspace/research-vault/knowledge/claims.jsonl
+    sources: workspace/research-vault/knowledge/sources.jsonl
+    run_receipts: workspace/research-vault/runs/run-receipts.jsonl
+  source_strategy:
+    default_max_sources: 5
+    freshness_threshold_h: 24
+    degrade_on_stale_collectors: true
+    trusted_source_types:
+      - official_docs
+      - github_repo
+      - release_notes
+      - curated_rss
+      - selected_domain
+    social_signal_policy: early-indicator-only
+  handoffs:
+    build: workspace/shared-handoffs/build
+    verify: workspace/shared-handoffs/verify
+    content: workspace/shared-handoffs/content
+    watch: workspace/shared-handoffs/watch
+    ops: workspace/shared-handoffs/ops
+    treasury: workspace/shared-handoffs/treasury
+
+subconscious:
+  room:
+    root: workspace/subconscious-room
+    walks_dir: workspace/subconscious-room/walks
+    projects_dir: workspace/subconscious-room/projects
+    notes_dir: workspace/subconscious-room/notes
+    feedback_dir: workspace/subconscious-room/feedback
+    inbox_from_research_dir: workspace/subconscious-room/inbox-from-research
+    signal_log_dir: workspace/subconscious-room/signal-log
+    signal_state_dir: workspace/subconscious-room/signal-state
+    fascinations_file: workspace/subconscious-room/fascinations.md
+    lessons_file: workspace/subconscious-room/lessons.md
+  signal_filter:
+    ready_threshold: 6
+    positive_walks_required: 3
+    signal_types_required: 2
+    experiment_lane_enabled: true
+    experiment_cooldown_h: 24
+    require_no_active_sprint_lock: true
+    block_on:
+      - hard_block
+      - cooldown_active
+      - sprint_lock_active
+  statuses:
+    - watching
+    - ready
+    - queued
+    - active
+    - built
+    - ghost
+    - broken
+    - reopened
+    - criticrejected
+    - pendingrevision
+
+schedules:
+  research:
+    refresh: "0 */6 * * *"
+    daily_summary: "0 7 * * *"
+    midday_focus: "0 12 * * *"
+    validate_after_refresh: true
+  subconscious:
+    drift_from_research: "30 */6 * * *"
+    continue_project: "0 10 * * *"
+    pure_tangent: "0 16 * * 1-5"
+    tend_the_room: "0 18 * * 0"
+    digest:
+      - "0 6 * * *"
+      - "0 12 * * *"
+      - "0 18 * * *"
+
+contracts:
+  schemas:
+    findings: contracts/ledgers/findings.schema.json
+    claims: contracts/ledgers/claims.schema.json
+    sources: contracts/ledgers/sources.schema.json
+    run_receipt: contracts/ledgers/run-receipt.schema.json
+    signal_event: contracts/ledgers/signal-event.schema.json
+    build_intent: contracts/handoffs/build-intent.schema.json
+    build_plan: contracts/handoffs/build-plan.schema.json
+    verify_handoff: contracts/handoffs/verify-handoff.schema.json
+    content_handoff: contracts/handoffs/content-handoff.schema.json
+    ops_handoff: contracts/handoffs/ops-handoff.schema.json
+    treasury_handoff: contracts/handoffs/treasury-handoff.schema.json
+  enforcement:
+    validate_before_promotion: true
+    block_on_schema_error: true
+    block_on_missing_evidence_links: true
+    block_on_stale_sources: true
+
+security:
+  sandboxing:
+    openclaw_workers_ephemeral: true
+    separate_workspaces: true
+    non_root: true
+    readonly_mounts:
+      - shared
+    writable_mounts:
+      - workspace/research-vault
+      - workspace/subconscious-room
+      - workspace/shared-handoffs
+  secrets:
+    provider: env
+    allowed_env_prefixes:
+      - HERMES_
+      - BROKER_
+      - OLLAMA_
+    deny_to_workers:
+      - PROD_
+      - WALLET_
+      - SSH_PRIVATE_KEY
+  approvals:
+    destructive_requires_human: true
+    external_publish_requires_human: true
+    treasury_requires_human: true
+  audit:
+    keep_job_history_days: 30
+    keep_artifact_index_days: 30
+    redact_sensitive_fields: true
+
+observability:
+  logging:
+    format: json
+    level: info
+    correlation_id_required: true
+  metrics:
+    enabled: true
+    namespace: hermes_openclaw
+    labels:
+      stack: hermes-openclaw
+      env: dev
+  tracing:
+    enabled: true
+    provider: otel
+    sample_rate: 0.2
+  dashboards:
+    operator_cockpit: workspace/research-vault/ops/operator-cockpit.html
+    signal_board: workspace/subconscious-room/signal-state/signal-board.md
+
+feature_flags:
+  enable_content_lane: false
+  enable_ops_lane: false
+  enable_treasury_lane: false
+  enable_experiment_lane: true
+  enable_daily_digest_delivery: true
+  enable_memory_bridge_sync: true
