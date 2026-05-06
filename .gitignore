@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Workspace runtime artifacts
+workspace/mempalace/broker/jobs/*.receipt.json
+workspace/mempalace/broker/cancelled-jobs/*.cancelled.json
