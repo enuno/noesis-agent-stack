@@ -1,0 +1,301 @@
+# Workflow: release-validation
+# Purpose: Verify build artifacts against evidence, schema, and policy before release.
+# Primary actors: Hermes Main, broker, QA, MemPalace
+# Based on: WORKFLOWS.md section 4
+#
+# Simplified state lane:
+#   queued -> verifying -> schema_check -> policy_check -> approved -> released
+
+workflow:
+  id: release-validation
+  version: "1.0"
+  description: |
+    Audit build artifacts against evidence, schema, policy, and operational
+    readiness before release or merge. State transitions are owned by the
+    broker; agents report outcomes and do not directly mutate workflow state.
+
+  trigger:
+    - type: event-driven
+      source: build-promotion
+      description: |
+        The build-promotion workflow enters awaiting_qa state and emits a
+        handoff for validation.
+    - type: manual
+      actor: main-hermes
+      description: |
+        Hermes Main or an authorized operator submits artifacts for ad-hoc
+        validation.
+    - type: scheduled
+      description: |
+        Recurring validation sweep of pending or recently completed builds.
+
+  states:
+    - idle
+    - pending_approval
+    - queued
+    - verifying
+    - ingesting
+    - schema_check
+    - contradiction_check
+    - policy_check
+    - checkpoint
+    - test_execution
+    - approved
+    - verdict_drafting
+    - verdict_review
+    - rejected
+    - released
+    - archived
+    - failed
+    - cancelled
+
+  transitions:
+    - from: idle
+      to: pending_approval
+      condition: Trigger received (build event / manual / schedule)
+      auto: true
+
+    - from: pending_approval
+      to: queued
+      condition: Hermes Main or operator approves validation scope
+      auto: false
+      gate: approval_gate__scope_approval
+
+    - from: pending_approval
+      to: rejected
+      condition: Validation scope undefined or policy prohibits
+      auto: false
+      gate: approval_gate__scope_approval
+
+    - from: queued
+      to: verifying
+      condition: QA assigned and healthy
+      auto: true
+
+    - from: queued
+      to: failed
+      condition: QA worker unavailable after timeout
+      auto: true
+      error_action: emit_broker_event, notify_hermes, archive_receipt
+
+    - from: verifying
+      to: ingesting
+      condition: QA begins loading build artifacts, plan, evidence trail, and policy
+      auto: true
+
+    - from: ingesting
+      to: schema_check
+      condition: Artifacts and evidence loaded
+      auto: true
+
+    - from: schema_check
+      to: contradiction_check
+      condition: All schemas validate, checksums match
+      auto: true
+
+    - from: schema_check
+      to: rejected
+      condition: Schema mismatch or checksum failure
+      auto: true
+      error_action: emit_broker_event, write_rejection_receipt, notify_hermes
+
+    - from: contradiction_check
+      to: policy_check
+      condition: |
+        No contradictions detected, or contradictions documented and waived
+      auto: true
+
+    - from: contradiction_check
+      to: rejected
+      condition: Unresolvable contradiction in evidence trail
+      auto: true
+      error_action: emit_broker_event, write_rejection_receipt, notify_hermes
+
+    - from: policy_check
+      to: test_execution
+      condition: Policy checks pass
+      auto: true
+
+    - from: policy_check
+      to: rejected
+      condition: |
+        Policy violation (safety, scope, secret exposure)
+      auto: true
+      error_action: emit_broker_event, write_rejection_receipt, notify_hermes
+
+    - from: test_execution
+      to: checkpoint
+      condition: 15 exchanges reached
+      auto: true
+      note: HEARTBEAT checkpoint
+
+    - from: checkpoint
+      to: test_execution
+      condition: Checkpoint saved successfully
+      auto: true
+
+    - from: test_execution
+      to: verdict_drafting
+      condition: Tests complete
+      auto: true
+
+    - from: test_execution
+      to: rejected
+      condition: Test failure and retry limit reached
+      auto: true
+      error_action: emit_broker_event, write_rejection_receipt, notify_hermes
+
+    - from: verdict_drafting
+      to: verdict_review
+      condition: Report written to workspace/qa-reports/<job_id>/
+      auto: true
+
+    - from: verdict_review
+      to: approved
+      condition: Hermes Main accepts QA verdict
+      auto: false
+      gate: approval_gate__verdict_gate
+
+    - from: approved
+      to: released
+      condition: Build cleared for release/merge
+      auto: true
+
+    - from: verdict_review
+      to: rejected
+      condition: Hermes Main rejects or requests re-validation
+      auto: false
+      gate: approval_gate__verdict_gate
+
+    - from: released
+      to: archived
+      condition: EOS save complete; build cleared for release
+      auto: true
+
+    - from: rejected
+      to: archived
+      condition: EOS save complete; issues preserved for retry or audit
+      auto: true
+
+    - from: any
+      to: cancelled
+      condition: Hermes Main or operator issues cancel
+      auto: false
+      gate: approval_gate__operator_override
+      error_action: emit_cancel_event, write_cancel_receipt
+
+  approval_gates:
+    - id: approval_gate__scope_approval
+      name: Scope Approval
+      description: |
+        Hermes Main or an authorized operator must approve what is being
+        validated and against which policy version.
+      owner: main-hermes
+      required_fields:
+        - validation_scope
+        - policy_version
+      policy_check: |
+        Verify validation scope references a completed build-promotion handoff
+        and policy version is current.
+
+    - id: approval_gate__schema_gate
+      name: Schema Gate
+      description: |
+        All artifacts must conform to their declared schemas and checksums
+        must match. This is automatic but blocking.
+      owner: broker
+      auto_check: true
+
+    - id: approval_gate__contradiction_gate
+      name: Contradiction Gate
+      description: |
+        QA must flag stale claims, broken source links, or evidence that
+        contradicts the build justification. Unresolved contradictions block
+        acceptance.
+      owner: qa
+      auto_check: false
+
+    - id: approval_gate__policy_gate
+      name: Policy Gate
+      description: |
+        Safety model violations (e.g., secret exposure, unauthorized external
+        call, scope creep) result in automatic rejection.
+      owner: qa
+      auto_check: false
+
+    - id: approval_gate__verdict_gate
+      name: Verdict Gate
+      description: |
+        Hermes Main must explicitly accept or reject the QA verdict. QA cannot
+        self-release.
+      owner: main-hermes
+      required_fields:
+        - qa_report_path
+        - verdict_decision
+      policy_check: |
+        Verify verdict is grounded in test results, audit output, and contract
+        checks. Low confidence triggers human review.
+
+    - id: approval_gate__operator_override
+      name: Operator Override / Cancel
+      description: |
+        Hermes Main or an authorized human operator may cancel a running job
+        from any state. Cancel emits a structured event and writes a receipt.
+      owner: main-hermes
+      human_override: true
+
+  error_handling:
+    general:
+      - All errors emit a structured broker event with correlation_id.
+      - Every transition MUST leave a receipt in the broker event log and a
+        corresponding drawer in MemPalace.
+      - Failed validations are preserved for retry or audit per retention_policy.
+      - Rejected builds are returned to Coder or closed; they cannot be
+        released without a new validation cycle.
+
+    timeout:
+      queued_timeout_s: 300
+      ingesting_timeout_s: 600
+      schema_check_timeout_s: 300
+      contradiction_check_timeout_s: 600
+      policy_check_timeout_s: 300
+      test_execution_timeout_s: 3600
+      verdict_drafting_timeout_s: 300
+      action_on_timeout: transition_to_failed
+
+    retry:
+      max_retries: 1
+      backoff: exponential
+      backoff_base_s: 15
+      retryable_states:
+        - ingesting
+        - schema_check
+        - contradiction_check
+        - policy_check
+        - test_execution
+        - verdict_drafting
+
+    failure_actions:
+      - emit_broker_event
+      - write_rejection_receipt
+      - notify_hermes
+      - archive_receipt
+
+  cross_workflow_rules:
+    - id: no_bypass
+      description: |
+        A build intent MUST pass through build-promotion and release-validation
+        before any production merge or deploy. There is no fast path.
+    - id: evidence_linkage
+      description: |
+        Every build-promotion handoff MUST reference the research vault
+        artifacts and subconscious signal IDs that justified it. QA validates
+        this linkage.
+    - id: state_isolation
+      description: |
+        Workflow state transitions are owned by the broker. Agents report
+        outcomes; they do not directly mutate workflow state.
+    - id: replayability
+      description: |
+        Every transition MUST leave a receipt in the broker event log and a
+        corresponding drawer in MemPalace.

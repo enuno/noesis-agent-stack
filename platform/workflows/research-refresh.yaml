@@ -1,0 +1,207 @@
+# Workflow: research-refresh
+# Purpose: Collect, score, and preserve evidence in the research vault.
+# Primary actors: Hermes Main, broker, Research (OpenClaw)
+# Based on: WORKFLOWS.md section 1
+
+workflow:
+  id: research-refresh
+  version: "1.0"
+  description: |
+    Run a bounded evidence collection cycle, normalize findings, and write
+    durable artifacts to the research vault. State transitions are owned by
+    the broker; agents report outcomes and do not directly mutate workflow state.
+
+  trigger:
+    - type: scheduled
+      source: platform/schedules/research.yaml
+      description: Cron or interval defined in the research schedule.
+    - type: manual
+      actor: main-hermes
+      description: Hermes Main submits a typed refresh job via the broker API.
+    - type: event-driven
+      actor: subconscious-openclaw
+      description: |
+        Subconscious signal board requests an updated research snapshot for a
+        specific topic.
+
+  states:
+    - idle
+    - pending_approval
+    - queued
+    - collecting
+    - normalizing
+    - writing_vault
+    - checkpoint
+    - validating
+    - completed
+    - archived
+    - rejected
+    - failed
+    - cancelled
+
+  transitions:
+    - from: idle
+      to: pending_approval
+      condition: Trigger received (schedule / manual / event)
+      auto: true
+
+    - from: pending_approval
+      to: queued
+      condition: Hermes Main approves scope and source plan
+      auto: false
+      gate: approval_gate__scope_approval
+
+    - from: pending_approval
+      to: rejected
+      condition: Scope too broad, source plan missing, or policy conflict
+      auto: false
+      gate: approval_gate__scope_approval
+
+    - from: queued
+      to: collecting
+      condition: Worker assigned and healthy
+      auto: true
+
+    - from: queued
+      to: failed
+      condition: Worker unavailable after timeout
+      auto: true
+      error_action: emit_broker_event, notify_hermes, archive_receipt
+
+    - from: collecting
+      to: normalizing
+      condition: Source plan complete or bounded limit reached
+      auto: true
+
+    - from: collecting
+      to: checkpoint
+      condition: 15 exchanges reached
+      auto: true
+      note: HEARTBEAT checkpoint
+
+    - from: checkpoint
+      to: collecting
+      condition: Checkpoint saved successfully
+      auto: true
+
+    - from: normalizing
+      to: writing_vault
+      condition: Normalization pass complete
+      auto: true
+
+    - from: writing_vault
+      to: validating
+      condition: All artifacts written
+      auto: true
+
+    - from: validating
+      to: completed
+      condition: Schema and integrity checks pass
+      auto: true
+
+    - from: validating
+      to: failed
+      condition: Schema mismatch or integrity failure
+      auto: true
+      error_action: emit_broker_event, write_failure_receipt, notify_hermes
+
+    - from: completed
+      to: archived
+      condition: EOS save complete and retention policy applied
+      auto: true
+
+    - from: any
+      to: cancelled
+      condition: Hermes Main or operator issues cancel
+      auto: false
+      gate: approval_gate__operator_override
+      error_action: emit_cancel_event, write_cancel_receipt
+
+  approval_gates:
+    - id: approval_gate__scope_approval
+      name: Scope Approval
+      description: |
+        Hermes Main must approve the source plan and read/write scopes before
+        the job leaves pending_approval.
+      owner: main-hermes
+      required_fields:
+        - source_plan
+        - read_scopes
+        - write_scopes
+      policy_check: |
+        Verify write scope is restricted to workspace/research-vault/ and
+        read scope does not include sensitive paths.
+
+    - id: approval_gate__claim_promotion
+      name: Claim Promotion
+      description: |
+        No finding may be promoted to a claim without passing the threshold
+        defined in agents/research-openclaw/config/thresholds.yaml.
+      owner: research-openclaw
+      enforcer: broker
+      auto_check: true
+
+    - id: approval_gate__vault_write_scope
+      name: Vault Write Scope
+      description: |
+        Research worker cannot write outside workspace/research-vault/.
+        Broker enforces this at the runtime level via workspace mounts.
+      owner: broker
+      auto_check: true
+
+    - id: approval_gate__operator_override
+      name: Operator Override / Cancel
+      description: |
+        Hermes Main or an authorized human operator may cancel a running job
+        from any state. Cancel emits a structured event and writes a receipt.
+      owner: main-hermes
+      human_override: true
+
+  error_handling:
+    general:
+      - All errors emit a structured broker event with correlation_id.
+      - Every transition MUST leave a receipt in the broker event log and a
+        corresponding drawer in MemPalace.
+      - Failed jobs are retained for replay and audit per retention_policy.
+
+    timeout:
+      queued_timeout_s: 300
+      collecting_timeout_s: 3600
+      normalizing_timeout_s: 600
+      writing_vault_timeout_s: 300
+      validating_timeout_s: 300
+      action_on_timeout: transition_to_failed
+
+    retry:
+      max_retries: 2
+      backoff: exponential
+      backoff_base_s: 10
+      retryable_states:
+        - collecting
+        - normalizing
+        - writing_vault
+        - validating
+
+    failure_actions:
+      - emit_broker_event
+      - write_failure_receipt
+      - notify_hermes
+      - archive_receipt
+
+  cross_workflow_rules:
+    - id: no_bypass
+      description: |
+        All research output MUST be validated before it can be referenced in
+        downstream workflows. There is no fast path around validation.
+    - id: evidence_linkage
+      description: |
+        Every completed refresh MUST produce artifact references that can be
+        consumed by the subconscious-walk and build-promotion workflows.
+    - id: state_isolation
+      description: |
+        Workflow state transitions are owned by the broker. Agents report
+        outcomes; they do not directly mutate workflow state.
+    - id: replayability
+      description: |
+        Every transition MUST leave a receipt in the broker event log and a
+        corresponding drawer in MemPalace.

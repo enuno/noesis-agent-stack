@@ -1,0 +1,352 @@
+# agents/main-hermes/GUARDRAILS.yaml
+# Phase 2 — Structured guardrails for the main-hermes supervisor agent.
+# Machine-parseable YAML. Enforced by the broker and monitored by the
+# orchestrator health subsystem.
+#
+# References:
+#   - shared/policy/global.yaml (forbidden_actions, write_scope_rules, approval_gates)
+#   - shared/policy/guardrails.yaml (token budgets, timeout ceilings, forbidden tools)
+#   - agents/main-hermes/systemprompt.md (safety invariants)
+#   - config/stack.yaml (security.approvals, limits)
+
+guardrails_version: "1.0"
+agent_id: main-hermes
+last_updated: "2025-01-15"
+enforced_by: [broker, orchestrator, policy_engine]
+
+# ---------------------------------------------------------------------------
+# Forbidden Actions
+# ---------------------------------------------------------------------------
+# These actions are NEVER permitted for main-hermes, regardless of context
+# or instruction source. They are hard invariants.
+forbidden_actions:
+  - action: execute_shell_directly
+    reason: "Hermes plans and delegates; it does not execute shells directly."
+    violation_severity: critical
+    escalate_on_attempt: true
+
+  - action: write_to_research_vault_knowledge
+    reason: "Only research-openclaw writes findings, claims, and sources."
+    violation_severity: critical
+    escalate_on_attempt: true
+
+  - action: bypass_require_human_approval
+    reason: "Jobs marked require_human_approval must always surface to operator."
+    violation_severity: critical
+    escalate_on_attempt: true
+
+  - action: submit_invalid_broker_job
+    reason: "Every broker job must conform to contracts/handoffs/broker-job.schema.json."
+    violation_severity: high
+    escalate_on_attempt: true
+
+  - action: fabricate_findings_or_sources
+    reason: "Hermes must not invent evidence; vault is ground truth."
+    violation_severity: critical
+    escalate_on_attempt: true
+
+  - action: take_autonomous_irreversible_action
+    reason: "Financial, infrastructure, and blockchain writes require human approval."
+    violation_severity: critical
+    escalate_on_attempt: true
+
+  - action: promote_weak_claim_without_review
+    reason: "Speculative findings cannot be sole basis for build intent."
+    violation_severity: high
+    escalate_on_attempt: true
+
+  - action: allow_worker_self_approval
+    reason: "No worker may self-approve execution or build promotion."
+    violation_severity: critical
+    escalate_on_attempt: true
+
+  - action: bypass_qa_gate
+    reason: "QA gates are mandatory; waivers require human approval."
+    violation_severity: critical
+    escalate_on_attempt: true
+
+  - action: alter_worker_capabilities_at_runtime
+    reason: "Capability escalation is prohibited."
+    violation_severity: high
+    escalate_on_attempt: true
+
+  - action: delete_or_modify_another_agent_policy
+    reason: "Agents may not alter another agent’s policy, guardrails, or thresholds."
+    violation_severity: high
+    escalate_on_attempt: true
+
+  - action: touch_secrets_or_credentials
+    reason: "Secrets access is restricted to treasury scope with audited runbooks."
+    violation_severity: critical
+    escalate_on_attempt: true
+
+  - action: publish_externally_without_approval
+    reason: "External publish requires human approval per security.approvals."
+    violation_severity: high
+    escalate_on_attempt: true
+
+# ---------------------------------------------------------------------------
+# Scope Limits
+# ---------------------------------------------------------------------------
+# Read and write path restrictions. Write scopes are enforced at the broker
+# mount level; read scopes are advisory and logged.
+scope_limits:
+  read_paths:
+    - path: workspace/hermes
+      note: "Own working memory, plans, decision logs, sprint state."
+    - path: workspace/main-state
+      note: "Shared main state surface."
+    - path: workspace/shared-handoffs
+      note: "Approved handoffs from upstream to downstream agents."
+    - path: workspace/research-vault/notes
+      note: "Research notes for interpretation."
+    - path: workspace/research-vault/dossiers
+      note: "Curated dossiers for review."
+    - path: workspace/research-vault/knowledge
+      note: "Findings, claims, sources — read-only."
+    - path: workspace/research-vault/runs
+      note: "Run receipts and health reports."
+    - path: workspace/research-vault/health
+      note: "Collector health status."
+    - path: workspace/subconscious-room/signal-state
+      note: "Signal board state for review."
+    - path: workspace/subconscious-room/signal-log
+      note: "Historical signal events."
+    - path: workspace/coder-jobs
+      note: "Build artifacts and plans for monitoring."
+    - path: workspace/qa-reports
+      note: "Validation reports for verdict review."
+    - path: shared
+      note: "Shared personas, memory, policy, schemas, tools."
+    - path: contracts
+      note: "Schema and contract definitions for validation."
+
+  write_paths:
+    - path: workspace/hermes
+      note: "Private working memory, plans, decision-log.jsonl, cost-ledger.jsonl."
+    - path: workspace/main-state
+      note: "Shared state updates."
+    - path: workspace/shared-handoffs
+      note: "Approved handoffs to downstream agents."
+
+  forbidden_write_paths:
+    - path: workspace/research-vault/knowledge
+      reason: "Research-only write surface."
+    - path: workspace/subconscious-room
+      reason: "Subconscious-only write surface."
+    - path: workspace/coder-jobs
+      reason: "Coder-only write surface."
+    - path: workspace/qa-reports
+      reason: "QA-only write surface."
+    - path: workspace/content-out
+      reason: "Content-only write surface."
+    - path: workspace/ops-state
+      reason: "Ops-only write surface."
+    - path: workspace/treasury-vault
+      reason: "Treasury-only write surface."
+
+# ---------------------------------------------------------------------------
+# Cost Caps
+# ---------------------------------------------------------------------------
+# Aligned with shared/models.yaml cost_policy and config/stack.yaml limits.
+cost_caps:
+  daily_hard_limit_usd: 10.00
+  daily_alert_threshold_usd: 8.00
+  per_job_hard_limit_usd: 5.00
+  per_job_alert_threshold_usd: 4.00
+  reasoning_strong_job_limit_usd: 2.00
+  reasoning_strong_requires_approval: true
+  action_on_daily_threshold_exceeded:
+    - pause_dispatch
+    - alert_operator
+    - log_cost_event
+  action_on_per_job_threshold_exceeded:
+    - block_job
+    - alert_operator
+    - log_cost_event
+  cost_event_ledger: workspace/hermes/cost-ledger.jsonl
+  ledger_format: jsonl
+  ledger_fields:
+    - timestamp
+    - agent_id
+    - job_id
+    - model_profile
+    - cost_usd
+    - cumulative_daily_usd
+
+# ---------------------------------------------------------------------------
+# Timeout Limits
+# ---------------------------------------------------------------------------
+# Aligned with shared/policy/guardrails.yaml timeout_ceilings.
+timeout_limits:
+  default_s: 900
+  max_s: 1800
+  absolute_max_s: 7200
+  broker_hard_kill_s: 7200
+  per_task:
+    broker_job_submit: 30
+    broker_job_monitor: 900
+    palace_query: 30
+    human_approval_wait: 3600
+    plan_cycle: 900
+    interpret_results: 600
+  action_on_timeout:
+    - retry_once_same_payload
+    - escalate_if_retry_fails
+    - log_timeout_event
+
+# ---------------------------------------------------------------------------
+# Approval-Required Actions
+# ---------------------------------------------------------------------------
+# These actions MAY NOT proceed without explicit approval from Hermes Main
+# (and often the human operator) before execution.
+approval_required_actions:
+  - action: build_promotion
+    approver: hermes_main
+    human_override_required: true
+    description: "Promoting a build intent from subconscious-room to coder job."
+
+  - action: external_publish
+    approver: hermes_main
+    human_override_required: true
+    description: "Publishing artifacts, content, or releases externally."
+
+  - action: infra_change
+    approver: hermes_main
+    human_override_required: true
+    description: "Infrastructure changes, deploys, or config mutations."
+
+  - action: treasury_action
+    approver: hermes_main
+    human_override_required: true
+    description: "Financial transactions, wallet access, or treasury operations."
+
+  - action: policy_change
+    approver: hermes_main
+    human_override_required: true
+    description: "Modifying shared/policy/global.yaml or agent policy files."
+
+  - action: guardrail_change
+    approver: hermes_main
+    human_override_required: true
+    description: "Modifying shared/policy/guardrails.yaml or agent GUARDRAILS.yaml."
+
+  - action: destructive_operation
+    approver: hermes_main
+    human_override_required: true
+    description: "Delete, overwrite, or irreversibly mutate production state."
+
+  - action: worker_registration
+    approver: hermes_main
+    human_override_required: false
+    description: "Registering a new worker in the broker registry."
+
+  - action: reasoning_strong_dispatch
+    approver: hermes_main
+    human_override_required: false
+    description: "Dispatching a job using the reasoning_strong model profile."
+
+# ---------------------------------------------------------------------------
+# Human Override Triggers
+# ---------------------------------------------------------------------------
+# These conditions force an immediate escalation to the human operator,
+# bypassing any auto-approve rules and halting further autonomous action
+# until the operator responds.
+human_override_triggers:
+  - trigger: cost_overrun_80_percent
+    condition: cumulative_daily_cost >= 8.00
+    action: pause_dispatch_and_alert
+    auto_resume: false
+
+  - trigger: speculative_finding_high_signal
+    condition: confidence == speculative AND signal_value >= high
+    action: surface_to_operator_with_context
+    auto_resume: false
+
+  - trigger: critical_worker_health
+    condition: worker_health_status == critical
+    action: halt_dispatch_and_alert
+    auto_resume: false
+
+  - trigger: sprint_lock_override_request
+    condition: override_request_during_active_sprint_lock == true
+    action: surface_to_operator_with_context
+    auto_resume: false
+
+  - trigger: schema_violation_blocking
+    condition: schema_validation_failure_count >= 1
+    action: halt_dispatch_and_alert
+    auto_resume: false
+
+  - trigger: irreversible_action_detected
+    condition: action_class == irreversible AND approval_not_yet_granted
+    action: block_and_alert
+    auto_resume: false
+
+  - trigger: daily_budget_exceeded
+    condition: cumulative_daily_cost >= 10.00
+    action: hard_stop_all_jobs_and_alert
+    auto_resume: false
+
+  - trigger: stuck_job_detected
+    condition: job_duration > stuck_job_threshold_s
+    action: alert_operator_with_job_context
+    auto_resume: false
+
+  - trigger: stale_worker_detected
+    condition: worker_last_heartbeat > stale_worker_threshold_s
+    action: alert_operator_with_worker_context
+    auto_resume: false
+
+  - trigger: contradiction_in_evidence
+    condition: qa_contradiction_check == unresolvable
+    action: surface_to_operator_with_evidence_links
+    auto_resume: false
+
+  - trigger: secret_exposure_risk
+    condition: policy_check_detects_secret_in_artifact == true
+    action: block_and_alert
+    auto_resume: false
+
+# ---------------------------------------------------------------------------
+# Forbidden Tools
+# ---------------------------------------------------------------------------
+# Tools that must never be bound to main-hermes, even if requested.
+forbidden_tools:
+  - bash_exec
+  - filesystem_delete
+  - filesystem_move
+  - git_push
+  - send_email
+  - sms_send
+  - deploy_trigger
+  - treasury_transfer
+  - wallet_sign
+  - secrets_read
+
+# ---------------------------------------------------------------------------
+# Token Budget
+# ---------------------------------------------------------------------------
+# Aligned with shared/policy/guardrails.yaml token_budgets.per_role.
+token_budget:
+  input_limit: 131072
+  output_limit: 32768
+  action_on_exceed: truncate_and_alert
+
+# ---------------------------------------------------------------------------
+# Retry Policy
+# ---------------------------------------------------------------------------
+retry_policy:
+  max_retries: 1
+  backoff_strategy: exponential
+  base_backoff_s: 2
+  max_backoff_s: 60
+  retryable_errors:
+    - timeout
+    - transient_network
+    - provider_rate_limit
+  non_retryable_errors:
+    - schema_violation
+    - scope_violation
+    - forbidden_action
+    - cost_limit_exceeded

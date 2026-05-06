@@ -1,0 +1,285 @@
+# Workflow: build-promotion
+# Purpose: Advance an approved build intent through plan, code, and artifact handoff.
+# Primary actors: Hermes Main, broker, Coder, MemPalace
+# Based on: WORKFLOWS.md section 3
+#
+# Simplified state lane:
+#   intent_approved -> planned -> coded -> validated -> handed_off
+
+workflow:
+  id: build-promotion
+  version: "1.0"
+  description: |
+    Advance an approved build intent through planning, implementation, and
+    artifact production. This is the only workflow that produces production
+    code. State transitions are owned by the broker; agents report outcomes
+    and do not directly mutate workflow state.
+
+  trigger:
+    - type: manual
+      actor: main-hermes
+      description: |
+        Hermes Main promotes an intent draft from the subconscious room after
+        review.
+    - type: event-driven
+      description: |
+        Approved plan from a previous build cycle requires next-phase execution
+        (e.g., merge, deploy, doc update).
+    - type: scheduled
+      description: |
+        Recurring maintenance or dependency update job approved in prior session.
+
+  states:
+    - idle
+    - pending_approval
+    - intent_approved
+    - plan_drafting
+    - planned
+    - plan_review
+    - queued
+    - implementing
+    - coded
+    - checkpoint
+    - self_verifying
+    - validated
+    - handoff_prep
+    - handed_off
+    - awaiting_qa
+    - completed
+    - archived
+    - rejected
+    - failed
+    - cancelled
+
+  transitions:
+    - from: idle
+      to: pending_approval
+      condition: Trigger received (Hermes promotion / event / schedule)
+      auto: true
+
+    - from: pending_approval
+      to: intent_approved
+      condition: Hermes Main approves intent and assigns Coder
+      auto: false
+      gate: approval_gate__intent_promotion
+
+    - from: pending_approval
+      to: rejected
+      condition: Intent lacks evidence, plan violates policy, or scope unsafe
+      auto: false
+      gate: approval_gate__intent_promotion
+
+    - from: intent_approved
+      to: plan_drafting
+      condition: Intent accepted; Coder or Hermes composes typed build plan
+      auto: true
+
+    - from: plan_drafting
+      to: planned
+      condition: Build plan written to workspace/coder-jobs/<job_id>/plan/
+      auto: true
+
+    - from: planned
+      to: plan_review
+      condition: Plan ready for Hermes review
+      auto: true
+
+    - from: plan_review
+      to: queued
+      condition: Hermes Main approves plan
+      auto: false
+      gate: approval_gate__plan_approval
+
+    - from: plan_review
+      to: plan_drafting
+      condition: Plan rejected with revision notes
+      auto: false
+      gate: approval_gate__plan_approval
+
+    - from: queued
+      to: implementing
+      condition: Coder assigned and healthy
+      auto: true
+
+    - from: queued
+      to: failed
+      condition: Coder unavailable after timeout
+      auto: true
+      error_action: emit_broker_event, notify_hermes, archive_receipt
+
+    - from: implementing
+      to: checkpoint
+      condition: 15 exchanges reached
+      auto: true
+      note: HEARTBEAT checkpoint
+
+    - from: checkpoint
+      to: implementing
+      condition: Checkpoint saved successfully
+      auto: true
+
+    - from: implementing
+      to: coded
+      condition: Code complete per plan
+      auto: true
+
+    - from: coded
+      to: self_verifying
+      condition: Coder begins unit tests, lint, type-check per plan
+      auto: true
+
+    - from: self_verifying
+      to: validated
+      condition: Self-verify passes (tests, lint, type-check)
+      auto: true
+
+    - from: self_verifying
+      to: failed
+      condition: Self-verify fails and retry limit reached
+      auto: true
+      error_action: emit_broker_event, write_failure_receipt, notify_hermes
+
+    - from: validated
+      to: handoff_prep
+      condition: Artifacts packaged, checksums computed, schema validated
+      auto: true
+
+    - from: handoff_prep
+      to: handed_off
+      condition: Handoff schema validates, checksums recorded
+      auto: true
+
+    - from: handed_off
+      to: awaiting_qa
+      condition: Handoff queued for release-validation workflow
+      auto: true
+
+    - from: awaiting_qa
+      to: completed
+      condition: Release-validation workflow accepts handoff
+      auto: false
+      gate: approval_gate__qa_gate
+
+    - from: awaiting_qa
+      to: failed
+      condition: Release-validation workflow rejects handoff
+      auto: false
+      gate: approval_gate__qa_gate
+
+    - from: completed
+      to: archived
+      condition: EOS save complete and QA gate passed
+      auto: true
+
+    - from: any
+      to: cancelled
+      condition: Hermes Main or operator issues cancel
+      auto: false
+      gate: approval_gate__operator_override
+      error_action: emit_cancel_event, write_cancel_receipt
+
+  approval_gates:
+    - id: approval_gate__intent_promotion
+      name: Intent Promotion
+      description: |
+        Hermes Main must explicitly promote an intent draft from
+        subconscious-room/ into a build job. Subconscious signals cannot
+        directly enter build-promotion.
+      owner: main-hermes
+      required_fields:
+        - intent_id
+        - evidence_links
+      policy_check: |
+        Verify intent references at least one research vault artifact and
+        one subconscious signal event. Confirm guardrail_attestation is
+        present and all const fields are true.
+
+    - id: approval_gate__plan_approval
+      name: Plan Approval
+      description: |
+        Hermes Main must approve the typed build plan before implementation
+        begins. Coder may not self-approve its own plan.
+      owner: main-hermes
+      required_fields:
+        - build_plan_path
+        - acceptance_criteria
+      policy_check: |
+        Verify plan scope matches intent boundaries and acceptance criteria
+        are verifiable by QA.
+
+    - id: approval_gate__handoff_eligibility
+      name: Handoff Eligibility
+      description: |
+        The handoff schema (contracts/handoffs/build-plan.schema.json) must
+        validate, and all artifacts must have matching checksums, before the
+        job may enter awaiting_qa.
+      owner: broker
+      auto_check: true
+
+    - id: approval_gate__qa_gate
+      name: QA Gate
+      description: |
+        The release-validation workflow must accept the handoff before the
+        build is considered complete. Coder cannot skip QA.
+      owner: qa
+      downstream_workflow: release-validation
+      auto_check: false
+
+    - id: approval_gate__operator_override
+      name: Operator Override / Cancel
+      description: |
+        Hermes Main or an authorized human operator may cancel a running job
+        from any state. Cancel emits a structured event and writes a receipt.
+      owner: main-hermes
+      human_override: true
+
+  error_handling:
+    general:
+      - All errors emit a structured broker event with correlation_id.
+      - Every transition MUST leave a receipt in the broker event log and a
+        corresponding drawer in MemPalace.
+      - Failed jobs are retained for replay and audit per retention_policy.
+      - Build artifacts are quarantined on failure and must not be released.
+
+    timeout:
+      queued_timeout_s: 300
+      implementing_timeout_s: 7200
+      self_verifying_timeout_s: 1800
+      handoff_prep_timeout_s: 300
+      awaiting_qa_timeout_s: 3600
+      action_on_timeout: transition_to_failed
+
+    retry:
+      max_retries: 2
+      backoff: exponential
+      backoff_base_s: 15
+      retryable_states:
+        - implementing
+        - self_verifying
+        - handoff_prep
+
+    failure_actions:
+      - emit_broker_event
+      - write_failure_receipt
+      - quarantine_artifacts
+      - notify_hermes
+      - archive_receipt
+
+  cross_workflow_rules:
+    - id: no_bypass
+      description: |
+        A build intent MUST pass through build-promotion and release-validation
+        before any production merge or deploy. There is no fast path.
+    - id: evidence_linkage
+      description: |
+        Every build-promotion handoff MUST reference the research vault
+        artifacts and subconscious signal IDs that justified it. QA validates
+        this linkage.
+    - id: state_isolation
+      description: |
+        Workflow state transitions are owned by the broker. Agents report
+        outcomes; they do not directly mutate workflow state.
+    - id: replayability
+      description: |
+        Every transition MUST leave a receipt in the broker event log and a
+        corresponding drawer in MemPalace.

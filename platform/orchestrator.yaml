@@ -1,0 +1,343 @@
+# platform/orchestrator.yaml
+# Phase 2 — Hermes supervisor platform orchestrator configuration.
+# Defines the agent registry, worker bindings, schedule references, and
+# integration endpoints for the broker control plane and MemPalace memory layer.
+#
+# References:
+#   - config/stack.yaml (broker, platform, agents, schedules)
+#   - shared/models.yaml (profile registry)
+#   - WORKFLOWS.md (workflow state transitions)
+#   - DEVELOPMENT_PLAN.md Phase 2 deliverables
+
+version: "0.2.0"
+description: >-
+  Orchestrator control plane for the noesis-agent-stack. Hermes (main-hermes)
+  is the sole supervisor. All worker dispatch flows through the broker.
+  MemPalace provides semantic memory, KG, and diary services.
+
+orchestrator:
+  name: hermes-supervisor
+  supervisor_agent: main-hermes
+  fallback_agent: main-hermes
+  environment: dev
+  timezone: America/Denver
+
+# ---------------------------------------------------------------------------
+# Service Endpoints
+# ---------------------------------------------------------------------------
+endpoints:
+  broker:
+    base_url: http://127.0.0.1:8787
+    api_version: v1
+    health_path: /v1/health
+    workers_path: /v1/workers
+    jobs_path: /v1/jobs
+    auth:
+      mode: bearer
+      token_env: HERMES_BROKER_TOKEN
+    transport: http
+    timeout_connect_s: 5
+    timeout_read_s: 30
+
+  palace:
+    query_endpoint: http://127.0.0.1:8788/v1/query
+    search_endpoint: http://127.0.0.1:8788/v1/search
+    kg_query_endpoint: http://127.0.0.1:8788/v1/kg/query
+    diary_read_endpoint: http://127.0.0.1:8788/v1/diary/read
+    diary_write_endpoint: http://127.0.0.1:8788/v1/diary/write
+    auth:
+      mode: bearer
+      token_env: HERMES_PALACE_TOKEN
+    default_result_limit: 20
+    max_result_limit: 100
+
+# ---------------------------------------------------------------------------
+# Agent Registry
+# ---------------------------------------------------------------------------
+# Every agent that may receive broker jobs must be registered here.
+# Capabilities are used by the router to match job types to eligible workers.
+agents:
+  main-hermes:
+    agent_id: main-hermes
+    enabled: true
+    runtime: hermes
+    role: supervisor
+    capabilities:
+      - approve
+      - reject
+      - delegate
+      - plan
+      - escalate
+      - monitor
+      - interpret
+      - route_handoff
+    model_profile: reasoning_primary
+    max_parallel_jobs: 4
+    default_timeout_s: 900
+    default_cost_limit_usd: 5.00
+    schedules: []
+    palace_wings:
+      - hermes
+      - broker
+    notes: >-
+      Hermes is the only agent authorized to submit broker jobs and the only
+      persistent reasoning layer. It does not execute shell commands directly.
+
+  research-openclaw:
+    agent_id: research-openclaw
+    enabled: true
+    runtime: openclaw
+    role: evidence-operator
+    capabilities:
+      - collect
+      - normalize
+      - validate
+      - score
+      - preserve
+      - health_report
+    model_bindings:
+      bootstrap: reasoning_primary
+      refresh: extraction_fast
+      validation: extraction_fast
+      daily_summary: synthesis_mid
+      midday_focus: synthesis_mid
+      recover: reasoning_strong
+    default_timeout_s: 3600
+    default_cost_limit_usd: 2.00
+    schedules:
+      - research-refresh
+      - daily-summary
+      - midday-focus
+    palace_wings:
+      - research-vault
+    write_scope:
+      - workspace/research-vault
+    notes: >-
+      Extraction engine. Writes findings, claims, sources, and run receipts
+      to the research vault. Cannot publish, execute external actions, or
+      touch secrets.
+
+  subconscious-openclaw:
+    agent_id: subconscious-openclaw
+    enabled: true
+    runtime: openclaw
+    role: pattern-noticer
+    capabilities:
+      - walk
+      - digest
+      - signal_filter
+      - board_rebuild
+      - intent_draft
+      - memory_bridge_sync
+    model_bindings:
+      drift_from_research: local_drift
+      continue_project: local_drift
+      pure_tangent: local_drift
+      tend_the_room: local_drift
+      digest: synthesis_mid
+      elaborate_intent: synthesis_mid
+    default_timeout_s: 1800
+    default_cost_limit_usd: 0.75
+    schedules:
+      - subconscious-walk
+      - drift-from-research
+      - digest
+    palace_wings:
+      - subconscious-room
+    write_scope:
+      - workspace/subconscious-room
+      - workspace/shared-handoffs/build
+    notes: >-
+      Pattern-noticing layer. Consumes research snapshots and room memory,
+      emits signal events and intent drafts. Cannot code, self-approve, or
+      change its own thresholds.
+
+  coder:
+    agent_id: coder
+    enabled: true
+    runtime: hermes
+    role: builder
+    capabilities:
+      - plan_draft
+      - implement
+      - self_verify
+      - handoff_prep
+      - artifact_publish_internal
+    model_profile: reasoning_primary
+    default_timeout_s: 2400
+    default_cost_limit_usd: 3.00
+    schedules: []
+    palace_wings:
+      - coder-jobs
+    write_scope:
+      - workspace/coder-jobs
+    notes: >-
+      Builder lane. Receives approved handoffs from Hermes. Writes artifacts
+      to coder-jobs workspace. Cannot self-start from raw research or
+      subconscious signals.
+
+  qa:
+    agent_id: qa
+    enabled: true
+    runtime: hermes
+    role: auditor
+    capabilities:
+      - schema_check
+      - contradiction_check
+      - policy_check
+      - test_execution
+      - verdict_draft
+      - release_gate
+    model_profile: reasoning_primary
+    default_timeout_s: 1800
+    default_cost_limit_usd: 2.00
+    schedules: []
+    palace_wings:
+      - qa-reports
+    write_scope:
+      - workspace/qa-reports
+    notes: >-
+      Release gate. Audits build artifacts against evidence, schema, and
+      policy. Can block progression. Cannot waive gates based solely on
+      agent confidence.
+
+# ---------------------------------------------------------------------------
+# Worker Bindings
+# ---------------------------------------------------------------------------
+# Maps workflow types to the agent(s) that execute them.
+worker_bindings:
+  research-refresh:
+    primary_worker: research-openclaw
+    fallback_worker: null
+    modes: [refresh, validate, daily_summary, midday_focus]
+  subconscious-walk:
+    primary_worker: subconscious-openclaw
+    fallback_worker: null
+    modes: [drift-from-research, continue-project, pure-tangent, tend-the-room, digest]
+  build-promotion:
+    primary_worker: coder
+    fallback_worker: null
+    modes: [plan_drafting, implementing, self_verifying, handoff_prep]
+  release-validation:
+    primary_worker: qa
+    fallback_worker: null
+    modes: [schema_check, contradiction_check, policy_check, test_execution, verdict_drafting]
+
+# ---------------------------------------------------------------------------
+# Schedule References
+# ---------------------------------------------------------------------------
+# Schedules are defined in config/stack.yaml under the schedules: key.
+# The orchestrator loads them by reference and attaches workflow bindings.
+schedules:
+  research-refresh:
+    schedule_ref: schedules.research.refresh
+    workflow: research-refresh
+    worker: research-openclaw
+    default_mode: refresh
+    require_human_approval: false
+
+  research-daily-summary:
+    schedule_ref: schedules.research.daily_summary
+    workflow: research-refresh
+    worker: research-openclaw
+    default_mode: daily_summary
+    require_human_approval: false
+
+  research-midday-focus:
+    schedule_ref: schedules.research.midday_focus
+    workflow: research-refresh
+    worker: research-openclaw
+    default_mode: midday_focus
+    require_human_approval: false
+
+  subconscious-drift:
+    schedule_ref: schedules.subconscious.drift_from_research
+    workflow: subconscious-walk
+    worker: subconscious-openclaw
+    default_mode: drift-from-research
+    require_human_approval: false
+
+  subconscious-continue-project:
+    schedule_ref: schedules.subconscious.continue_project
+    workflow: subconscious-walk
+    worker: subconscious-openclaw
+    default_mode: continue-project
+    require_human_approval: false
+
+  subconscious-pure-tangent:
+    schedule_ref: schedules.subconscious.pure_tangent
+    workflow: subconscious-walk
+    worker: subconscious-openclaw
+    default_mode: pure-tangent
+    require_human_approval: false
+
+  subconscious-tend-the-room:
+    schedule_ref: schedules.subconscious.tend_the_room
+    workflow: subconscious-walk
+    worker: subconscious-openclaw
+    default_mode: tend-the-room
+    require_human_approval: false
+
+  subconscious-digest:
+    schedule_ref: schedules.subconscious.digest
+    workflow: subconscious-walk
+    worker: subconscious-openclaw
+    default_mode: digest
+    require_human_approval: false
+
+# ---------------------------------------------------------------------------
+# Palace Integration Settings
+# ---------------------------------------------------------------------------
+palace:
+  enabled: true
+  taxonomy_source: contracts/mempalace/taxonomy.yaml
+  kg_schema_source: contracts/mempalace/kg-schema.yaml
+  hooks:
+    broker_receipt:
+      enabled: true
+      script: orchestration/broker/hooks/mempalace_receipt_hook.py
+      trigger_on: [job_completed, job_failed, job_cancelled]
+    hermes_query:
+      enabled: true
+      script: agents/main-hermes/tools/palace_query.py
+      trigger_on: [pre_approval, pre_dispatch, post_interpret]
+  default_search:
+    wings: [hermes, broker, research-vault, subconscious-room, coder-jobs, qa-reports]
+    max_results: 20
+    include_kg: true
+    include_diary: true
+  diary:
+    enabled: true
+    agents_with_diaries:
+      - main-hermes
+      - research-openclaw
+      - subconscious-openclaw
+      - coder
+      - qa
+    write_on: [session_start, session_end, significant_decision, error]
+
+# ---------------------------------------------------------------------------
+# Defaults
+# ---------------------------------------------------------------------------
+defaults:
+  timeout_s: 1800
+  max_cost_usd: 2.00
+  priority: normal
+  max_parallel_jobs: 4
+  max_fanout: 3
+  approval_mode: human-in-the-loop
+  sandbox_mode: true
+  artifact_indexing: true
+  structured_events: true
+  traceparent_required: true
+  idempotency_pattern: "{agent}:{mode}:{topic}:{date}"
+
+# ---------------------------------------------------------------------------
+# Cost Caps
+# ---------------------------------------------------------------------------
+cost_caps:
+  daily_supervisor_budget_usd: 10.00
+  daily_alert_threshold_usd: 8.00
+  per_job_hard_limit_usd: 5.00
+  block_reasoning_strong_without_approval: true
+  cost_event_ledger: workspace/research-vault/runs/cost-events.jsonl

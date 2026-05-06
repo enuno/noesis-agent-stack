@@ -1,0 +1,212 @@
+# Workflow: subconscious-walk
+# Purpose: Traverse room memory, emit signals, and update the signal board.
+# Primary actors: Hermes Main, broker, Subconscious (OpenClaw)
+# Based on: WORKFLOWS.md section 2
+
+workflow:
+  id: subconscious-walk
+  version: "1.0"
+  description: |
+    Consume research snapshots and room memory, perform a bounded reflective
+    walk, and emit signal events or intent drafts without executing them.
+    State transitions are owned by the broker; agents report outcomes and do
+    not directly mutate workflow state.
+
+  trigger:
+    - type: scheduled
+      source: platform/schedules/subconscious.yaml
+      description: Cron or interval defined in the subconscious schedule.
+    - type: manual
+      actor: main-hermes
+      description: Hermes Main submits a walk job via the broker API.
+    - type: event-driven
+      actor: research-openclaw
+      description: |
+        Research vault update produces a new snapshot flagged for subconscious
+        inbox.
+
+  states:
+    - idle
+    - pending_approval
+    - queued
+    - reading_inbox
+    - walking
+    - checkpoint
+    - filtering
+    - updating_board
+    - drafting_intent
+    - completed
+    - archived
+    - rejected
+    - failed
+    - cancelled
+
+  transitions:
+    - from: idle
+      to: pending_approval
+      condition: Trigger received (schedule / manual / event)
+      auto: true
+
+    - from: pending_approval
+      to: queued
+      condition: Hermes Main approves walk mode and snapshot set
+      auto: false
+      gate: approval_gate__walk_mode_approval
+
+    - from: pending_approval
+      to: rejected
+      condition: Snapshot set unavailable or policy conflict
+      auto: false
+      gate: approval_gate__walk_mode_approval
+
+    - from: queued
+      to: reading_inbox
+      condition: Worker assigned and healthy
+      auto: true
+
+    - from: queued
+      to: failed
+      condition: Worker unavailable after timeout
+      auto: true
+      error_action: emit_broker_event, notify_hermes, archive_receipt
+
+    - from: reading_inbox
+      to: walking
+      condition: Inbox loaded successfully
+      auto: true
+
+    - from: walking
+      to: checkpoint
+      condition: 15 exchanges reached
+      auto: true
+      note: HEARTBEAT checkpoint
+
+    - from: checkpoint
+      to: walking
+      condition: Checkpoint saved successfully
+      auto: true
+
+    - from: walking
+      to: filtering
+      condition: Walk bounded limit reached or room fully traversed
+      auto: true
+
+    - from: filtering
+      to: updating_board
+      condition: Filter pass complete
+      auto: true
+
+    - from: updating_board
+      to: drafting_intent
+      condition: Board state persisted
+      auto: true
+
+    - from: drafting_intent
+      to: completed
+      condition: Intent drafts written to room
+      auto: true
+
+    - from: completed
+      to: archived
+      condition: EOS save complete
+      auto: true
+
+    - from: any
+      to: cancelled
+      condition: Hermes Main or operator issues cancel
+      auto: false
+      gate: approval_gate__operator_override
+      error_action: emit_cancel_event, write_cancel_receipt
+
+  approval_gates:
+    - id: approval_gate__walk_mode_approval
+      name: Walk Mode Approval
+      description: |
+        Hermes Main must approve the walk mode (deep, surface, targeted) and
+        the snapshot set before the job leaves pending_approval.
+      owner: main-hermes
+      required_fields:
+        - walk_mode
+        - snapshot_set
+      policy_check: |
+        Verify snapshot set references valid research vault artifacts and
+        walk mode is one of the allowed values.
+
+    - id: approval_gate__signal_threshold
+      name: Signal Threshold
+      description: |
+        Subconscious may not alter its own thresholds to force promotion.
+        Thresholds are read from agents/subconscious-openclaw/config/thresholds.yaml
+        and enforced by broker read scopes.
+      owner: broker
+      auto_check: true
+
+    - id: approval_gate__intent_draft_scope
+      name: Intent Draft Scope
+      description: |
+        Intent drafts are NOT approved tasks. They MUST remain in
+        workspace/subconscious-room/intents/ and MUST NOT trigger builds until
+        Hermes Main promotes them through the build-promotion workflow.
+      owner: main-hermes
+      policy_check: |
+        Verify intent draft paths are within subconscious-room/intents/ and
+        no downstream build jobs are auto-created.
+
+    - id: approval_gate__operator_override
+      name: Operator Override / Cancel
+      description: |
+        Hermes Main or an authorized human operator may cancel a running job
+        from any state. Cancel emits a structured event and writes a receipt.
+      owner: main-hermes
+      human_override: true
+
+  error_handling:
+    general:
+      - All errors emit a structured broker event with correlation_id.
+      - Every transition MUST leave a receipt in the broker event log and a
+        corresponding drawer in MemPalace.
+      - Failed jobs are retained for replay and audit per retention_policy.
+
+    timeout:
+      queued_timeout_s: 300
+      reading_inbox_timeout_s: 600
+      walking_timeout_s: 1800
+      filtering_timeout_s: 300
+      updating_board_timeout_s: 300
+      drafting_intent_timeout_s: 300
+      action_on_timeout: transition_to_failed
+
+    retry:
+      max_retries: 2
+      backoff: exponential
+      backoff_base_s: 10
+      retryable_states:
+        - reading_inbox
+        - walking
+        - filtering
+        - updating_board
+        - drafting_intent
+
+    failure_actions:
+      - emit_broker_event
+      - write_failure_receipt
+      - notify_hermes
+      - archive_receipt
+
+  cross_workflow_rules:
+    - id: no_bypass
+      description: |
+        Intent drafts produced by this workflow cannot directly enter
+        build-promotion. Hermes Main must explicitly promote them.
+    - id: evidence_linkage
+      description: |
+        Every walk MUST reference the research vault snapshot IDs that
+        grounded it, so QA can validate evidence linkage later.
+    - id: state_isolation
+      description: |
+        Workflow state transitions are owned by the broker. Agents report
+        outcomes; they do not directly mutate workflow state.
+    - id: replayability
+      description: |
+        Every transition MUST leave a receipt in the broker event log and a
+        corresponding drawer in MemPalace.

@@ -1,0 +1,252 @@
+# agents/main-hermes/agent.yaml
+# Phase 2 — Hermes supervisor agent configuration.
+# This file is the machine-parseable contract for the main-hermes agent.
+# It references config/stack.yaml for stack-level bindings and
+# shared/models.yaml for model profile definitions.
+#
+# References:
+#   - config/stack.yaml (agents.main-hermes, models.profiles, broker, platform)
+#   - shared/models.yaml (profile registry, cost policy, fallback policy)
+#   - agents/main-hermes/SOUL.md (identity and values)
+#   - agents/main-hermes/systemprompt.md (authorities and operating loop)
+
+version: "0.2.0"
+agent:
+  agent_id: main-hermes
+  name: Hermes
+  role: supervisor
+  stack_position: apex
+  enabled: true
+  runtime: hermes
+
+  # -------------------------------------------------------------------------
+  # Capabilities
+  # -------------------------------------------------------------------------
+  # Hermes is the only persistent reasoning layer and the only agent
+  # authorized to issue broker jobs and interact with the human operator.
+  capabilities:
+    - approve
+    - reject
+    - delegate
+    - plan
+    - escalate
+    - monitor
+    - interpret
+    - route_handoff
+    - sprint_lock_declare
+    - cost_alert
+    - palace_query
+    - diary_read
+    - diary_write
+
+  # -------------------------------------------------------------------------
+  # Persona Bindings
+  # -------------------------------------------------------------------------
+  personas:
+    - ref: shared.core
+      source: personas/SOUL.core.md
+    - ref: shared.main_operator
+      source: personas/SOUL.main-operator.md
+    - ref: agent.soul
+      source: agents/main-hermes/SOUL.md
+
+  # -------------------------------------------------------------------------
+  # Prompt Bindings
+  # -------------------------------------------------------------------------
+  prompts:
+    systemprompt: agents/main-hermes/systemprompt.md
+    soul: agents/main-hermes/SOUL.md
+    memory: agents/main-hermes/MEMORY.md
+    guardrails: agents/main-hermes/GUARDRAILS.yaml
+
+  # -------------------------------------------------------------------------
+  # Model Profile
+  # -------------------------------------------------------------------------
+  # Primary profile is defined in shared/models.yaml under profiles.reasoning_primary.
+  # Escalation profile is defined under profiles.reasoning_strong.
+  model_profile:
+    default: reasoning_primary
+    escalation: reasoning_strong
+    fallback_on_error:
+      target_profile: reasoning_strong
+      max_fallback_attempts: 1
+    fallback_on_timeout:
+      action: fail_job
+      notify_supervisor: true
+
+  # -------------------------------------------------------------------------
+  # Tool Bindings
+  # -------------------------------------------------------------------------
+  # Tools listed here MUST be registered in shared/tools.yaml and implemented
+  # in agents/main-hermes/tools/ or orchestration/broker/.
+  tools:
+    - name: broker_submit_job
+      description: Submit a typed broker job to a registered worker.
+      schema: contracts/broker-api/job.schema.json
+      scope: write
+      rate_limit: 30/minute
+
+    - name: broker_get_job
+      description: Fetch job status and artifacts by job ID.
+      schema: contracts/broker-api/job.schema.json
+      scope: read
+      rate_limit: 120/minute
+
+    - name: broker_list_artifacts
+      description: List artifacts produced by a completed job.
+      schema: contracts/broker-api/artifact.schema.json
+      scope: read
+      rate_limit: 120/minute
+
+    - name: broker_cancel_job
+      description: Cancel a running or queued broker job.
+      schema: contracts/broker-api/job.schema.json
+      scope: write
+      rate_limit: 30/minute
+
+    - name: read_workspace
+      description: Read files within authorized workspace paths.
+      schema: contracts/schemas/workspace-read.schema.json
+      scope: read
+      rate_limit: 120/minute
+
+    - name: write_main_state
+      description: Write files to workspace/hermes/ (plans, logs, sprint state).
+      schema: contracts/schemas/workspace-write.schema.json
+      scope: write
+      rate_limit: 120/minute
+
+    - name: route_handoff
+      description: Forward an approved handoff to a downstream agent workspace.
+      schema: contracts/handoffs/build-plan.schema.json
+      scope: write
+      rate_limit: 30/minute
+
+    - name: palace_query
+      description: Query MemPalace for semantic search, KG lookup, and diary read.
+      schema: contracts/mempalace/query.schema.json
+      scope: read
+      rate_limit: 120/minute
+
+    - name: palace_diary_write
+      description: Write a diary entry to the MemPalace diary system.
+      schema: contracts/mempalace/diary.schema.json
+      scope: write
+      rate_limit: 60/minute
+
+    - name: request_human_approval
+      description: Surface a decision to the human operator and await response.
+      schema: contracts/schemas/human-approval.schema.json
+      scope: write
+      rate_limit: 10/minute
+
+  # -------------------------------------------------------------------------
+  # Memory Settings
+  # -------------------------------------------------------------------------
+  memory:
+    working_directory: workspace/hermes
+    plans_dir: workspace/hermes/plans
+    decision_log: workspace/hermes/decision-log.jsonl
+    cost_ledger: workspace/hermes/cost-ledger.jsonl
+    signal_inbox_dir: workspace/hermes/signal-inbox
+    sprint_state_file: workspace/hermes/sprint-state.json
+
+    palace:
+      wings: [hermes, broker]
+      diary_enabled: true
+      diary_write_triggers:
+        - session_start
+        - session_end
+        - significant_decision
+        - job_dispatch
+        - job_failure
+        - escalation
+        - cost_alert
+
+    retention:
+      decision_log_days: 90
+      cost_ledger_days: 90
+      signal_inbox_days: 30
+      archive_after_days: 90
+
+  # -------------------------------------------------------------------------
+  # Read / Write Scopes
+  # -------------------------------------------------------------------------
+  # Aligned with shared/policy/global.yaml write_scope_rules.
+  reads:
+    - workspace/hermes
+    - workspace/main-state
+    - workspace/shared-handoffs
+    - workspace/research-vault/notes
+    - workspace/research-vault/dossiers
+    - workspace/research-vault/knowledge
+    - workspace/research-vault/runs
+    - workspace/research-vault/health
+    - workspace/subconscious-room/signal-state
+    - workspace/subconscious-room/signal-log
+    - workspace/coder-jobs
+    - workspace/qa-reports
+    - shared
+    - contracts
+
+  writes:
+    - workspace/hermes
+    - workspace/main-state
+    - workspace/shared-handoffs
+
+  # -------------------------------------------------------------------------
+  # Operational Limits
+  # -------------------------------------------------------------------------
+  limits:
+    max_steps: 24
+    timeout_s: 900
+    retries: 1
+    budget_usd: 5.00
+    max_parallel_jobs: 4
+    daily_cost_alert_threshold_usd: 8.00
+    daily_cost_hard_limit_usd: 10.00
+
+  # -------------------------------------------------------------------------
+  # Approval Gates
+  # -------------------------------------------------------------------------
+  # Aligned with shared/policy/global.yaml approval_gates.main-hermes.
+  approvals:
+    required_for:
+      - build_promotion
+      - external_publish
+      - infra_change
+      - treasury_action
+      - policy_change
+      - guardrail_change
+      - destructive_operation
+      - worker_registration
+    auto_approve:
+      - research_refresh_within_budget
+      - subconscious_walk_within_budget
+      - health_check_job
+    human_override_triggers:
+      - cost_overrun_80_percent
+      - speculative_finding_high_signal
+      - critical_worker_health
+      - sprint_lock_override_request
+      - schema_violation_blocking
+      - irreversible_action_detected
+
+  # -------------------------------------------------------------------------
+  # Health and Escalation
+  # -------------------------------------------------------------------------
+  health:
+    status_levels: [healthy, degraded, critical, unknown]
+    degraded_action: log_warning_and_include_flags
+    critical_action: halt_dispatch_and_notify_operator
+    unknown_action: treat_as_degraded_and_health_check
+    escalation_sticky: true
+
+  # -------------------------------------------------------------------------
+  # Observability
+  # -------------------------------------------------------------------------
+  observability:
+    emit_structured_events: true
+    log_correlation_id: true
+    traceparent_required: true
+    idempotency_pattern: "{agent}:{mode}:{topic}:{date}"
