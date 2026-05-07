@@ -1,0 +1,106 @@
+# jobs.yaml
+# Job type definitions for research-openclaw.
+# Each job type maps to a mode with default constraints and context.
+
+job_types:
+  bootstrap:
+    mode: bootstrap
+    description: Cold-start initialization of the research vault.
+    default_constraints:
+      max_cost_usd: 1.00
+      max_llm_calls: 50
+      max_tool_calls: 100
+      max_runtime_s: 600
+      write_paths:
+        - workspace/research-vault/
+      allowed_capabilities:
+        - rss_fetch
+        - fetch_url
+        - github_read
+        - llm_call
+        - write_jsonl
+        - write_markdown
+      allow_write_build_intent: false
+      freshness_threshold_h: 168
+    default_context:
+      topic: "all"
+      since: null
+      urls: []
+      questions: []
+
+  refresh:
+    mode: refresh
+    description: Scheduled evidence collection and finding promotion.
+    default_constraints:
+      max_cost_usd: 0.50
+      max_llm_calls: 20
+      max_tool_calls: 50
+      max_runtime_s: 300
+      write_paths:
+        - workspace/research-vault/
+      allowed_capabilities:
+        - rss_fetch
+        - fetch_url
+        - github_read
+        - llm_call
+        - emit_signal
+        - write_jsonl
+        - write_markdown
+      allow_write_build_intent: false
+      freshness_threshold_h: 168
+    default_context:
+      topic: "all"
+      since: "auto"  # auto-detect from last run receipt
+      urls: []
+      questions: []
+
+  targeted-query:
+    mode: targeted-query
+    description: Directed research on specific URLs or questions.
+    default_constraints:
+      max_cost_usd: 0.30
+      max_llm_calls: 15
+      max_tool_calls: 30
+      max_runtime_s: 180
+      write_paths:
+        - workspace/research-vault/
+      allowed_capabilities:
+        - fetch_url
+        - search_web
+        - llm_call
+        - write_jsonl
+        - write_markdown
+      allow_write_build_intent: false
+      freshness_threshold_h: 720
+    default_context:
+      topic: ""
+      since: null
+      urls: []
+      questions: []
+
+  build-intent-research:
+    mode: build-intent-research
+    description: Deep-dive research authorized to produce build intents.
+    default_constraints:
+      max_cost_usd: 1.00
+      max_llm_calls: 50
+      max_tool_calls: 100
+      max_runtime_s: 600
+      write_paths:
+        - workspace/research-vault/
+      allowed_capabilities:
+        - rss_fetch
+        - fetch_url
+        - github_read
+        - search_web
+        - llm_call
+        - emit_signal
+        - write_jsonl
+        - write_markdown
+      allow_write_build_intent: true
+      freshness_threshold_h: 168
+    default_context:
+      topic: ""
+      since: null
+      urls: []
+      questions: []

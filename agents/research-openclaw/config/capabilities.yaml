@@ -1,0 +1,73 @@
+# capabilities.yaml
+# Allowed tool calls and write paths per execution mode.
+# This is the runtime guardrail config. The broker enforces these
+# by setting constraints in the job payload.
+
+capabilities:
+  rss_fetch:
+    description: Fetch and parse RSS/Atom feeds.
+    modes:
+      - bootstrap
+      - refresh
+      - build-intent-research
+
+  fetch_url:
+    description: Fetch a single URL via HTTP GET.
+    modes:
+      - bootstrap
+      - refresh
+      - targeted-query
+      - build-intent-research
+
+  github_read:
+    description: Read GitHub API endpoints (releases, issues, repo contents).
+    modes:
+      - bootstrap
+      - refresh
+      - build-intent-research
+
+  search_web:
+    description: Perform web search queries.
+    modes:
+      - targeted-query
+      - build-intent-research
+
+  llm_call:
+    description: Call LLM for claim extraction, summarization, or analysis.
+    modes:
+      - bootstrap
+      - refresh
+      - targeted-query
+      - build-intent-research
+
+  emit_signal:
+    description: Write signal events to workspace/research-vault/signals/.
+    modes:
+      - refresh
+      - targeted-query
+      - build-intent-research
+
+  write_jsonl:
+    description: Append records to JSONL ledger files.
+    modes:
+      - bootstrap
+      - refresh
+      - targeted-query
+      - build-intent-research
+
+  write_markdown:
+    description: Write markdown artifacts (dossiers, briefs, build intents).
+    modes:
+      - bootstrap
+      - refresh
+      - targeted-query
+      - build-intent-research
+
+write_paths:
+  # All modes share the same write surface, but individual files
+  # are restricted by capability (e.g., emit_signal only writes to signals/)
+  all_modes:
+    - workspace/research-vault/knowledge/
+    - workspace/research-vault/output/
+    - workspace/research-vault/state/
+    - workspace/research-vault/signals/

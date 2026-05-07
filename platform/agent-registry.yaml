@@ -1,0 +1,357 @@
+version: "0.2.0"
+generated_from:
+  - orchestrator.yaml
+  - routing.yaml
+
+agents:
+  main-hermes:
+    agent_id: main-hermes
+    enabled: true
+    runtime: hermes
+    role: supervisor
+    capabilities:
+      - approve
+      - reject
+      - delegate
+      - plan
+      - escalate
+      - monitor
+      - interpret
+      - route_handoff
+    model_profile: reasoning_primary
+    limits:
+      max_parallel_jobs: 4
+      default_timeout_s: 900
+      default_cost_limit_usd: 5.00
+    palace_wings:
+      - hermes
+      - broker
+    write_scope: []
+    notes: >-
+      Hermes is the only agent authorized to submit broker jobs and the only
+      persistent reasoning layer. It does not execute shell commands directly.
+
+  research-openclaw:
+    agent_id: research-openclaw
+    enabled: true
+    runtime: openclaw
+    role: evidence-operator
+    capabilities:
+      - collect
+      - normalize
+      - validate
+      - score
+      - preserve
+      - health_report
+    model_bindings:
+      bootstrap: reasoning_primary
+      refresh: extraction_fast
+      validation: extraction_fast
+      daily_summary: synthesis_mid
+      midday_focus: synthesis_mid
+      recover: reasoning_strong
+    limits:
+      default_timeout_s: 3600
+      default_cost_limit_usd: 2.00
+    palace_wings:
+      - research-vault
+    write_scope:
+      - workspace/research-vault
+    notes: >-
+      Extraction engine. Writes findings, claims, sources, and run receipts
+      to the research vault. Cannot publish, execute external actions, or
+      touch secrets.
+
+  subconscious-openclaw:
+    agent_id: subconscious-openclaw
+    enabled: true
+    runtime: openclaw
+    role: pattern-noticer
+    capabilities:
+      - walk
+      - digest
+      - signal_filter
+      - board_rebuild
+      - intent_draft
+      - memory_bridge_sync
+    model_bindings:
+      drift_from_research: local_drift
+      continue_project: local_drift
+      pure_tangent: local_drift
+      tend_the_room: local_drift
+      digest: synthesis_mid
+      elaborate_intent: synthesis_mid
+    limits:
+      default_timeout_s: 1800
+      default_cost_limit_usd: 0.75
+    palace_wings:
+      - subconscious-room
+    write_scope:
+      - workspace/subconscious-room
+      - workspace/shared-handoffs/build
+    notes: >-
+      Pattern-noticing layer. Consumes research snapshots and room memory,
+      emits signal events and intent drafts. Cannot code, self-approve, or
+      change its own thresholds.
+
+  coder:
+    agent_id: coder
+    enabled: true
+    runtime: hermes
+    role: builder
+    capabilities:
+      - plan_draft
+      - implement
+      - self_verify
+      - handoff_prep
+      - artifact_publish_internal
+    model_profile: reasoning_primary
+    limits:
+      default_timeout_s: 2400
+      default_cost_limit_usd: 3.00
+    palace_wings:
+      - coder-jobs
+    write_scope:
+      - workspace/coder-jobs
+    notes: >-
+      Builder lane. Receives approved handoffs from Hermes. Writes artifacts
+      to coder-jobs workspace. Cannot self-start from raw research or
+      subconscious signals.
+
+  qa:
+    agent_id: qa
+    enabled: true
+    runtime: hermes
+    role: auditor
+    capabilities:
+      - schema_check
+      - contradiction_check
+      - policy_check
+      - test_execution
+      - verdict_draft
+      - release_gate
+    model_profile: reasoning_primary
+    limits:
+      default_timeout_s: 1800
+      default_cost_limit_usd: 2.00
+    palace_wings:
+      - qa-reports
+    write_scope:
+      - workspace/qa-reports
+    notes: >-
+      Release gate. Audits build artifacts against evidence, schema, and
+      policy. Can block progression. Cannot waive gates based solely on
+      agent confidence.
+
+routing:
+  main-hermes:
+    override_rules:
+      - rule_id: critical-health-escalation
+        worker_id: main-hermes
+        trigger_conditions:
+          - signal_type: worker_health_critical
+          - signal_type: broker_stall_detected
+          - signal_type: schema_violation_blocking
+        payload_defaults:
+          sandbox_mode: true
+          require_human_approval: true
+          model_profile: reasoning_strong
+          timeout_s: 600
+          max_cost_usd: 1.00
+          priority: critical
+        approval_required: true
+        priority: critical
+        timeout_s: 600
+        cost_limit_usd: 1.00
+        halt_other_jobs: true
+        notes: >-
+          Critical health events route back to Hermes for immediate escalation.
+          New job dispatch is paused until the escalation is resolved.
+    fallback:
+      worker_id: main-hermes
+      action: escalate_to_operator
+      payload_schema: contracts/handoffs/broker-job.schema.json
+      approval_required: true
+      priority: high
+      timeout_s: 600
+      cost_limit_usd: 1.00
+      notes: >-
+        If no rule matches a signal, the fallback routes it back to Hermes
+        for manual triage and operator escalation if needed.
+
+  research-openclaw:
+    default_rule:
+      worker_id: research-openclaw
+      trigger_conditions:
+        - signal_type: scheduled_refresh
+        - signal_type: manual_refresh
+        - signal_type: event_driven_snapshot_request
+      payload_schema: contracts/handoffs/broker-job.schema.json
+      payload_defaults:
+        sandbox_mode: true
+        require_human_approval: false
+        model_profile: extraction_fast
+        timeout_s: 3600
+        max_cost_usd: 2.00
+        priority: normal
+      approval_required: false
+      priority: normal
+      timeout_s: 3600
+      cost_limit_usd: 2.00
+      notes: >-
+        Default research dispatch. Scope approval happens inside the
+        research-refresh workflow at the pending_approval gate.
+    override_rules:
+      - rule_id: research-recovery
+        worker_id: research-openclaw
+        trigger_conditions:
+          - signal_type: recovery_required
+          - signal_type: data_loss_detected
+        payload_schema: contracts/handoffs/broker-job.schema.json
+        payload_defaults:
+          sandbox_mode: true
+          require_human_approval: true
+          model_profile: reasoning_strong
+          timeout_s: 3600
+          max_cost_usd: 3.00
+          priority: high
+        approval_required: true
+        priority: high
+        timeout_s: 3600
+        cost_limit_usd: 3.00
+        notes: >-
+          Recovery jobs use the strong reasoning profile and require explicit
+          Hermes approval due to elevated cost and potential data impact.
+
+  subconscious-openclaw:
+    default_rule:
+      worker_id: subconscious-openclaw
+      trigger_conditions:
+        - signal_type: scheduled_walk
+        - signal_type: manual_walk
+        - signal_type: research_snapshot_ready
+        - signal_type: drift_check
+      payload_schema: contracts/handoffs/broker-job.schema.json
+      payload_defaults:
+        sandbox_mode: true
+        require_human_approval: false
+        model_profile: local_drift
+        timeout_s: 1800
+        max_cost_usd: 0.75
+        priority: background
+      approval_required: false
+      priority: background
+      timeout_s: 1800
+      cost_limit_usd: 0.75
+      notes: >-
+        Default subconscious dispatch. Walk mode and snapshot set are approved
+        by Hermes before the job leaves pending_approval in the workflow.
+    override_rules:
+      - rule_id: high-priority-signal
+        worker_id: subconscious-openclaw
+        trigger_conditions:
+          - signal_type: high_severity_signal
+          - signal_type: sprint_lock_override_request
+        payload_schema: contracts/handoffs/broker-job.schema.json
+        payload_defaults:
+          sandbox_mode: true
+          require_human_approval: false
+          model_profile: local_drift
+          timeout_s: 1200
+          max_cost_usd: 1.00
+          priority: high
+        approval_required: false
+        priority: high
+        timeout_s: 1200
+        cost_limit_usd: 1.00
+        notes: >-
+          High-severity subconscious signals bypass background priority.
+          Hermes must still approve walk mode before job leaves pending_approval.
+
+  coder:
+    default_rule:
+      worker_id: coder
+      trigger_conditions:
+        - signal_type: build_plan_approved
+        - signal_type: next_phase_execution
+        - signal_type: scheduled_maintenance_approved
+      payload_schema: contracts/handoffs/broker-job.schema.json
+      payload_defaults:
+        sandbox_mode: true
+        require_human_approval: true
+        model_profile: reasoning_primary
+        timeout_s: 2400
+        max_cost_usd: 3.00
+        priority: high
+      approval_required: true
+      priority: high
+      timeout_s: 2400
+      cost_limit_usd: 3.00
+      notes: >-
+        Coder only receives approved handoffs. Intent promotion and plan
+        approval are gated by Hermes Main inside build-promotion workflow.
+    override_rules:
+      - rule_id: build-promotion-fast-track
+        worker_id: coder
+        trigger_conditions:
+          - signal_type: security_patch_approved
+          - signal_type: hotfix_approved
+        payload_schema: contracts/handoffs/broker-job.schema.json
+        payload_defaults:
+          sandbox_mode: true
+          require_human_approval: true
+          model_profile: reasoning_primary
+          timeout_s: 1800
+          max_cost_usd: 2.50
+          priority: critical
+        approval_required: true
+        priority: critical
+        timeout_s: 1800
+        cost_limit_usd: 2.50
+        notes: >-
+          Security patches and hotfixes are still approval-gated, but receive
+          critical priority and a dedicated cost ceiling.
+
+  qa:
+    default_rule:
+      worker_id: qa
+      trigger_conditions:
+        - signal_type: build_awaiting_validation
+        - signal_type: manual_validation_request
+        - signal_type: scheduled_validation_sweep
+      payload_schema: contracts/handoffs/broker-job.schema.json
+      payload_defaults:
+        sandbox_mode: true
+        require_human_approval: false
+        model_profile: reasoning_primary
+        timeout_s: 1800
+        max_cost_usd: 2.00
+        priority: high
+      approval_required: false
+      priority: high
+      timeout_s: 1800
+      cost_limit_usd: 2.00
+      notes: >-
+        QA is dispatched when build-promotion reaches awaiting_qa. Validation
+        scope is approved by Hermes or operator at pending_approval.
+
+integrity:
+  no_bypass:
+    description: >-
+      A build intent MUST pass through build-promotion and release-validation
+      before any production merge or deploy. There is no fast path.
+    enforced_by: router_block_list
+    block_direct_coder_from:
+      - raw_research_output
+      - raw_subconscious_signal
+  evidence_linkage:
+    description: >-
+      Every build-promotion handoff MUST reference research vault artifacts
+      and subconscious signal IDs that justified it.
+    enforced_by: payload_schema_validation
+    schema: contracts/handoffs/build-plan.schema.json
+  state_isolation:
+    description: >-
+      Workflow state transitions are owned by the broker. Agents report
+      outcomes; they do not directly mutate workflow state.
+    enforced_by: broker_event_log

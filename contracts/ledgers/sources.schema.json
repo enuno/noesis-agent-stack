@@ -16,7 +16,6 @@
     "fetched_at",
     "trust_level"
   ],
-  "additionalProperties": false,
   "properties": {
     "schema_version": { "type": "string", "const": "1.0" },
     "source_id": { "type": "string", "format": "uuid", "description": "Stable UUIDv4. Deterministically derived from URL + fetched_at for deduplication." },
@@ -72,7 +71,9 @@
       "enum": ["ok", "partial", "failed", "blocked", "too_large"],
       "default": "ok"
     },
-    "fetch_error": { "type": "string", "maxLength": 500, "description": "Error message if fetch_status is not 'ok'." }
+    "fetch_error": { "type": "string", "maxLength": 500, "description": "Error message if fetch_status is not 'ok'." },
+    "content": { "type": "string", "description": "Fetched content (truncated to 10000 chars)." },
+    "metadata": { "type": "object", "description": "Collector-specific metadata." }
   },
   "examples": [{
     "schema_version": "1.0",

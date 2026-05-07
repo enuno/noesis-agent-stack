@@ -1,0 +1,111 @@
+project: noesis-agent-stack
+phase: 2
+description: >-
+  Hermes Supervisor Profile — routing, approval gates, workflow bindings.
+  Implements the functional specification in agents/main-hermes/SPEC.md
+  and the policy in agents/main-hermes/POLICY.md as executable Python code.
+output_dir: agents/main-hermes
+review_policy:
+  gate: pre_merge
+  reviewers: [hermes]
+  auto_approve: false
+agents:
+  - ref: architect
+    task: >
+      Design the main-hermes supervisor runtime architecture.
+
+      Read first:
+      - agents/main-hermes/SPEC.md (all sections, especially Interfaces and Data Model)
+      - agents/main-hermes/POLICY.md (authority matrix, cost controls, safety invariants)
+      - agents/main-hermes/systemprompt.md (runtime authorities and dispatch defaults)
+      - platform/routing.yaml (default_rules, override_rules, fallback, integrity)
+      - platform/workflows/*.yaml (all 4 workflow state machines)
+      - contracts/handoffs/broker-job.schema.json (payload schema)
+      - orchestration/broker/app/schemas.py (broker models)
+      - orchestration/broker/app/main.py (broker API endpoints)
+
+      Produce in agents/main-hermes/:
+      1. ARCHITECTURE.md — design doc with:
+         - Module boundaries (routing, approval, workflow bindings, broker client, state)
+         - Data flow diagram (text): signal → router → approval → broker → callback → state update
+         - Hermes workspace layout (workspace/hermes/)
+         - Routing decision algorithm (override_rules → default_rules → fallback)
+         - Approval gate implementation plan (authority matrix as code)
+         - Workflow state transition bindings (how Hermes issues approve/reject/cancel to broker)
+         - Error handling and escalation paths
+      2. scripts/__init__.py — package init
+      3. scripts/lib/__init__.py — package init
+      4. scripts/lib/routing.py — skeleton with full docstrings:
+         - load_routing_table(path) → RoutingTable
+         - resolve_route(signal_type, context) → RouteDecision
+         - apply_override_rules(signal, overrides) → RouteDecision | None
+         - apply_default_rules(signal, defaults) → RouteDecision
+         - validate_payload_shape(payload, schema_path) → list[str]
+      5. scripts/lib/approval.py — skeleton with full docstrings:
+         - AuthorityMatrix class with autonomous/escalate/forbidden actions
+         - evaluate_approval(action, context, cost_proj) → ApprovalDecision
+         - check_cost_limits(job, daily_spend) → CostCheckResult
+         - escalate(reason, severity, context) → EscalationRecord
+      6. scripts/lib/workflows.py — skeleton with full docstrings:
+         - WorkflowState class (idle, pending_approval, queued, ...)
+         - transition(state, event, actor) → new_state | error
+         - list_pending_approvals() → list[PendingApproval]
+         - approve_transition(job_id, actor, reason)
+         - reject_transition(job_id, actor, reason)
+         - cancel_job(job_id, actor, reason)
+      7. scripts/lib/broker_client.py — skeleton with full docstrings:
+         - BrokerClient class wrapping broker REST API
+         - submit_job(payload) → JobReceipt
+         - get_job_status(job_id) → JobStatus
+         - cancel_job(job_id, reason) → CancelResult
+         - list_jobs(filters) → list[JobSummary]
+      8. scripts/lib/state.py — skeleton with full docstrings:
+         - SprintState class (load/save sprint-state.json)
+         - DecisionLog class (append-only decision-log.jsonl)
+         - CostLedger class (append-only cost-ledger.jsonl with cumulative tracking)
+         - SignalInbox class (read/acknowledge signals in signal-inbox/)
+      9. scripts/init_state.py — skeleton: initialize workspace/hermes/ with empty state files
+      10. scripts/hermes_cycle.py — skeleton: main planning loop (read signals → route → approve → dispatch → monitor)
+
+  - ref: developer
+    task: >
+      Implement the main-hermes supervisor Python scripts based on the architect's design.
+
+      Read first:
+      - The architect's output (ARCHITECTURE.md and all script skeletons)
+      - agents/main-hermes/SPEC.md
+      - agents/main-hermes/POLICY.md
+      - platform/routing.yaml
+      - contracts/handoffs/broker-job.schema.json
+      - orchestration/broker/app/main.py (broker API)
+      - orchestration/broker/app/schemas.py (broker models)
+
+      Implement fully working code for:
+      1. scripts/lib/routing.py — parse routing.yaml, resolve routes, validate payloads
+      2. scripts/lib/approval.py — authority matrix, cost checks, escalation
+      3. scripts/lib/workflows.py — workflow state machine bindings
+      4. scripts/lib/broker_client.py — typed broker REST client
+      5. scripts/lib/state.py — sprint state, decision log, cost ledger, signal inbox
+      6. scripts/init_state.py — CLI to init workspace/hermes/
+      7. scripts/hermes_cycle.py — main Hermes planning/dispatch loop
+      8. scripts/lib/schemas.py — JSON schema validation (stdlib only, reuse pattern from research-openclaw)
+
+      All scripts must:
+      - Be runnable from CLI with argparse
+      - Use type hints and docstrings
+      - Validate outputs against schemas before write
+      - Enforce safety invariants from POLICY.md
+      - Handle broker errors and retries with exponential backoff
+      - Log structured events
+      - Use only Python stdlib (no jsonschema, no requests — use urllib)
+
+      Run scripts/init_state.py to create the workspace/hermes/ structure.
+      Then run python -m py_compile on all .py files.
+
+merge_strategy: |
+  1. Architect and developer work in parallel.
+  2. Architect output is merged first (design establishes structure).
+  3. Developer output is merged second (implementation fills skeletons).
+  4. After each merge, run: python -m py_compile on all .py files.
+  5. Final validation: run scripts/init_state.py and verify workspace/hermes/ state files.
+  6. Hermes (supervisor) reviews before final merge to main.

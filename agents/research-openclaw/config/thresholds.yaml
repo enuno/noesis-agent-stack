@@ -1,0 +1,80 @@
+# thresholds.yaml
+# Promotion, signal evaluation, and confidence scoring parameters
+# for research-openclaw. Loaded at the start of each run.
+
+promotion:
+  # Minimum confidence to promote a claim cluster to a finding
+  min_confidence: medium
+
+  # Minimum number of non-superseded claims in a cluster to form a finding
+  min_claims_per_finding: 2
+
+  # Minimum source trust level required for promotion
+  min_source_trust: provisional
+
+  # Maximum age of sources (in hours) for a finding to be considered fresh
+  freshness_threshold_h: 168
+
+  # Require at least one source with this trust level for high-confidence findings
+  high_confidence_min_trust: trusted
+
+signal_evaluation:
+  # Conditions that trigger a signal event
+  triggers:
+    breaking_change:
+      keywords: ["breaking", "deprecated", "removed", "changed behavior"]
+      min_confidence: medium
+    security:
+      keywords: ["CVE", "vulnerability", "exploit", "patch", "security advisory"]
+      min_confidence: low
+    contradiction:
+      # Triggered when a new finding directly contradicts an existing high-confidence finding
+      enabled: true
+      min_existing_confidence: high
+
+  # Signal value assignment
+  value_rules:
+    - condition: "breaking_change AND confidence >= high"
+      value: high
+    - condition: "security AND confidence >= medium"
+      value: high
+    - condition: "contradiction"
+      value: high
+    - condition: "breaking_change AND confidence == medium"
+      value: medium
+    - condition: "confidence == speculative"
+      value: low
+    - condition: "default"
+      value: noise
+
+confidence_scoring:
+  # Source trust level weights
+  trust_weights:
+    trusted: 1.0
+    provisional: 0.7
+    low_trust: 0.3
+    social_signal: 0.1
+
+  # Minimum weighted score for each confidence level
+  level_thresholds:
+    high: 1.5      # Requires at least 2 trusted sources (2 * 1.0) or equivalent
+    medium: 0.7    # Requires at least 1 trusted source or 2 provisional
+    low: 0.3       # Requires at least 1 provisional source
+    speculative: 0.0
+
+  # Independent source requirement for high confidence
+  high_confidence_min_sources: 2
+
+  # Deductions
+  deductions:
+    stale_source: 0.2   # Deduct if any source exceeds freshness_threshold_h
+    single_source: 0.3  # Deduct if only one source supports the claim cluster
+
+claim_extraction:
+  # LLM extraction parameters
+  max_claims_per_source: 20
+  min_claim_length: 10
+  max_claim_length: 2000
+
+  # Deduplication
+  dedup_similarity_threshold: 0.85  # Jaccard or cosine threshold for claim dedup

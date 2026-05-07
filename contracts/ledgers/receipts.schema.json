@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RunReceipt",
+  "description": "Execution receipt for a single research-openclaw run",
+  "type": "object",
+  "required": ["run_id", "job_id", "mode", "status", "artifacts_written", "metrics", "guardrail_breaches", "started_at", "completed_at"],
+  "properties": {
+    "run_id":    { "type": "string", "format": "uuid" },
+    "job_id":    { "type": "string" },
+    "mode":      { "type": "string", "enum": ["bootstrap", "refresh", "targeted-query", "build-intent-research"] },
+    "status":    { "type": "string", "enum": ["completed", "partial", "failed"] },
+    "artifacts_written": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "started_at":          { "type": "string", "format": "date-time" },
+        "source_count":        { "type": "integer", "minimum": 0 },
+        "claim_count":         { "type": "integer", "minimum": 0 },
+        "finding_count":       { "type": "integer", "minimum": 0 },
+        "signal_count":        { "type": "integer", "minimum": 0 },
+        "build_intent_count":  { "type": "integer", "minimum": 0 }
+      }
+    },
+    "guardrail_breaches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "rule":      { "type": "string" },
+          "severity":  { "type": "string", "enum": ["warning", "fatal"] },
+          "details":   { "type": "string" }
+        }
+      }
+    },
+    "interrupted_at_step": { "type": ["string", "null"] },
+    "started_at":   { "type": "string", "format": "date-time" },
+    "completed_at": { "type": "string", "format": "date-time" }
+  }
+}

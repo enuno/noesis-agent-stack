@@ -1,0 +1,65 @@
+agent:
+  id: research-openclaw
+  version: "1.0.0"
+  name: Research OpenClaw
+  description: >
+    Stateless evidence collection and knowledge extraction worker.
+    Fetches sources, extracts claims, promotes findings, and writes
+    all artifacts to the research vault. Does not strategize or approve.
+  type: openclaw-worker
+  stack_position: stateless-worker
+
+  # Broker registration
+  broker:
+    register_endpoint: /v1/workers
+    heartbeat_interval_s: 60
+    capabilities:
+      - rss_fetch
+      - fetch_url
+      - github_read
+      - search_web
+      - llm_call
+      - emit_signal
+      - write_jsonl
+      - write_markdown
+
+  # Default job constraints (overridden per job)
+  default_constraints:
+    max_cost_usd: 0.50
+    max_llm_calls: 20
+    max_tool_calls: 50
+    max_runtime_s: 300
+    write_paths:
+      - workspace/research-vault/
+    allowed_capabilities:
+      - rss_fetch
+      - fetch_url
+      - github_read
+      - search_web
+      - llm_call
+      - emit_signal
+      - write_jsonl
+      - write_markdown
+    freshness_threshold_h: 168
+
+  # Modes this agent supports
+  modes:
+    - bootstrap
+    - refresh
+    - targeted-query
+    - build-intent-research
+
+  # Schema validation
+  schemas:
+    findings: contracts/ledgers/findings.schema.json
+    claims: contracts/ledgers/claims.schema.json
+    sources: contracts/ledgers/sources.schema.json
+    run_receipt: contracts/ledgers/run-receipt.schema.json
+    health_report: contracts/ledgers/health-report.schema.json
+    build_intent: contracts/handoffs/build-intent.schema.json
+
+  # Logging
+  logging:
+    level: INFO
+    format: structured-json
+    output: stderr

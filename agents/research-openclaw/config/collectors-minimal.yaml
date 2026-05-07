@@ -1,0 +1,16 @@
+global:
+  request_timeout_s: 10
+  retry_attempts: 1
+  retry_backoff_s: 2
+  default_max_entries: 3
+
+collectors:
+  - key: example-page
+    enabled: true
+    type: web_page
+    url: https://example.com
+    notes: "Example page for testing"
+    trust_level: provisional
+    topic: test
+    timeout_s: 10
+    retry_attempts: 1

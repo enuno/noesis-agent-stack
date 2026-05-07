@@ -19,6 +19,11 @@
 #   enabled:        Whether this collector is active (true/false)
 #   max_entries:    Max entries to process per run (rate limiting)
 #   notes:          Operational notes
+#
+# ── Runtime parameters (added in this file, not in workspace copy) ──
+#   batch_size:     Number of parallel fetches per collector
+#   timeout_s:      Per-request timeout override
+#   retry_attempts: Override global retry count for this collector
 
 collectors:
 
@@ -32,6 +37,9 @@ collectors:
     freshness_h: 168
     enabled: true
     max_entries: 10
+    batch_size: 2
+    timeout_s: 30
+    retry_attempts: 2
     notes: LangChain release notes and changelogs.
 
   - key: crewai_releases
@@ -42,6 +50,9 @@ collectors:
     freshness_h: 168
     enabled: true
     max_entries: 10
+    batch_size: 2
+    timeout_s: 30
+    retry_attempts: 2
     notes: CrewAI release notes.
 
   - key: elizaos_releases
@@ -52,6 +63,9 @@ collectors:
     freshness_h: 168
     enabled: true
     max_entries: 10
+    batch_size: 2
+    timeout_s: 30
+    retry_attempts: 2
     notes: ElizaOS release feed.
 
   - key: mcp_registry_releases
@@ -62,6 +76,9 @@ collectors:
     freshness_h: 72
     enabled: true
     max_entries: 10
+    batch_size: 2
+    timeout_s: 30
+    retry_attempts: 3
     notes: MCP registry releases. High-priority — protocol changes affect broker and tool trust.
 
   - key: mcp_spec_repo
@@ -72,6 +89,9 @@ collectors:
     freshness_h: 168
     enabled: true
     max_entries: 5
+    batch_size: 1
+    timeout_s: 30
+    retry_attempts: 2
     notes: MCP spec repo for watching spec PRs and issues.
 
   - key: a2a_project_releases
@@ -82,6 +102,9 @@ collectors:
     freshness_h: 168
     enabled: true
     max_entries: 10
+    batch_size: 2
+    timeout_s: 30
+    retry_attempts: 2
     notes: A2A protocol releases.
 
   # ── Observability ─────────────────────────────────────────
@@ -94,6 +117,9 @@ collectors:
     freshness_h: 168
     enabled: true
     max_entries: 5
+    batch_size: 1
+    timeout_s: 30
+    retry_attempts: 2
     notes: OTel specification releases.
 
   - key: otel_collector_releases
@@ -104,6 +130,9 @@ collectors:
     freshness_h: 72
     enabled: true
     max_entries: 5
+    batch_size: 1
+    timeout_s: 30
+    retry_attempts: 2
     notes: OTel Collector releases. Relevant for broker and worker span export config.
 
   - key: w3c_trace_context
@@ -114,6 +143,9 @@ collectors:
     freshness_h: 720
     enabled: true
     max_entries: 1
+    batch_size: 1
+    timeout_s: 30
+    retry_attempts: 2
     notes: W3C Trace Context spec. Fetch monthly or on breaking_change signal.
 
   # ── Web3 / DePIN ──────────────────────────────────────────
@@ -126,6 +158,9 @@ collectors:
     freshness_h: 168
     enabled: true
     max_entries: 10
+    batch_size: 2
+    timeout_s: 30
+    retry_attempts: 2
     notes: Virtuals Protocol smart contract releases.
 
   - key: bitcoin_core_releases
@@ -136,6 +171,9 @@ collectors:
     freshness_h: 168
     enabled: true
     max_entries: 5
+    batch_size: 1
+    timeout_s: 30
+    retry_attempts: 2
     notes: Bitcoin Core releases. Relevant for mining node compatibility.
 
   - key: ans_registry_releases
@@ -146,6 +184,9 @@ collectors:
     freshness_h: 168
     enabled: true
     max_entries: 5
+    batch_size: 1
+    timeout_s: 30
+    retry_attempts: 2
     notes: Agent Name Service releases. Tracks ANS identity framework changes.
 
   # ── Noesis Stack (self-monitoring) ────────────────────────
@@ -158,6 +199,9 @@ collectors:
     freshness_h: 24
     enabled: true
     max_entries: 20
+    batch_size: 2
+    timeout_s: 30
+    retry_attempts: 2
     notes: >-
       Self-monitoring collector. Tracks open issues in this repo.
       Enables research-openclaw to surface schema or contract issues
@@ -171,6 +215,9 @@ collectors:
     freshness_h: 72
     enabled: true
     max_entries: 10
+    batch_size: 2
+    timeout_s: 30
+    retry_attempts: 2
     notes: OpenClaw worker runtime releases. Breaking changes require broker-job schema review.
 
   # ── Security / CVE ────────────────────────────────────────
@@ -183,6 +230,9 @@ collectors:
     freshness_h: 24
     enabled: true
     max_entries: 20
+    batch_size: 5
+    timeout_s: 30
+    retry_attempts: 2
     notes: GitHub Security Advisories for Python ecosystem. Triggers cve_detected signals.
 
   - key: github_advisory_js
@@ -193,6 +243,9 @@ collectors:
     freshness_h: 24
     enabled: true
     max_entries: 20
+    batch_size: 5
+    timeout_s: 30
+    retry_attempts: 2
     notes: GitHub Security Advisories for npm ecosystem.
 
 # ─────────────────────────────────────────────────────────────
@@ -201,6 +254,7 @@ collectors:
 global:
   default_freshness_h: 168
   default_max_entries: 10
+  default_batch_size: 2
   request_timeout_s: 30
   retry_attempts: 2
   retry_backoff_s: 5
