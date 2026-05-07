@@ -23,15 +23,17 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# Add lib/ to path
+# Add lib/, tools/, and project root to path
 _SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(_SCRIPT_DIR / "lib"))
+sys.path.insert(0, str(_SCRIPT_DIR.parent))  # agents/main-hermes/ contains tools/
 
 from approval import ApprovalEngine, AuthorityLevel
 from broker_client import BrokerClient, BrokerJob
 from routing import load_routing_table, RoutingTable
 from state import StateManager
 from workflows import load_workflow, WorkflowBinding, WorkflowDef
+from tools.palace_query import enrich_signal_with_palace
 
 
 DEFAULT_WORKSPACE = "workspace/hermes"
@@ -87,15 +89,20 @@ class HermesCycle:
         objective = sig.payload.get("objective", sig.event_type)
         payload = sig.payload
 
+        # MemPalace pre-flight query before routing/approval decisions
+        enriched_payload = enrich_signal_with_palace(payload)
+        if "_palace_context" in enriched_payload:
+            print(f"  Palace context: {enriched_payload['_palace_context']['findings_count']} findings for '{enriched_payload['_palace_context']['query']}'")
+
         # Route resolution
-        route = self.routing.resolve(objective, payload)
+        route = self.routing.resolve(objective, enriched_payload)
         print(f"  Route: {route.target_agent} mode={route.mode} approval={route.approval_required}")
 
         # Authority evaluation
         action = f"{sig.source}.{sig.event_type}"
-        operator_override = payload.get("operator_override", False)
-        est_cost = payload.get("estimated_cost_usd", 0.0)
-        est_tokens = payload.get("estimated_tokens", 0)
+        operator_override = enriched_payload.get("operator_override", False)
+        est_cost = enriched_payload.get("estimated_cost_usd", 0.0)
+        est_tokens = enriched_payload.get("estimated_tokens", 0)
 
         # Hard cap from routing table
         if est_cost > route.cost_limit_usd:
@@ -110,7 +117,7 @@ class HermesCycle:
 
         level, reason = self.approval.evaluate(
             action,
-            payload=payload,
+            payload=enriched_payload,
             estimated_cost_usd=est_cost,
             estimated_tokens=est_tokens,
             operator_override=operator_override,
@@ -157,7 +164,7 @@ class HermesCycle:
         if sprint.sprint_lock_on_subconscious:
             if route.target_agent == "research-openclaw" and not operator_override:
                 # Critical/high signals may still pass
-                severity = payload.get("severity", "low")
+                severity = enriched_payload.get("severity", "low")
                 if severity not in ("critical", "high"):
                     print(f"  SUPPRESSED: research-openclaw blocked by sprint lock")
                     decision = self.approval.log_decision(
@@ -174,19 +181,19 @@ class HermesCycle:
         job = BrokerJob(
             job_id=sig.signal_id,
             correlation_id=sig.signal_id,
-            traceparent=payload.get("traceparent", ""),
+            traceparent=enriched_payload.get("traceparent", ""),
             target_agent=route.target_agent,
             mode=route.mode,
             objective=objective,
-            context=payload.get("context", {}),
-            allowed_capabilities=payload.get("allowed_capabilities", []),
-            denied_capabilities=payload.get("denied_capabilities", []),
-            workspace=payload.get("workspace", {}),
-            constraints=payload.get("constraints", {}),
-            callback=payload.get("callback", {}),
-            priority=payload.get("priority", "normal"),
-            idempotency_key=payload.get("idempotency_key", f"{route.target_agent}:{route.mode}:{objective}"),
-            hermes_notes=payload.get("hermes_notes", ""),
+            context=enriched_payload.get("context", {}),
+            allowed_capabilities=enriched_payload.get("allowed_capabilities", []),
+            denied_capabilities=enriched_payload.get("denied_capabilities", []),
+            workspace=enriched_payload.get("workspace", {}),
+            constraints=enriched_payload.get("constraints", {}),
+            callback=enriched_payload.get("callback", {}),
+            priority=enriched_payload.get("priority", "normal"),
+            idempotency_key=enriched_payload.get("idempotency_key", f"{route.target_agent}:{route.mode}:{objective}"),
+            hermes_notes=enriched_payload.get("hermes_notes", ""),
         )
 
         resp = self.broker.submit_job(job)

@@ -1,3 +1,16 @@
+<p align="center">
+  <img src="assets/logo/NoesisPraxis-Logo.png" alt="NoesisPraxis Logo" width="420"/>
+</p>
+
+<p align="center">
+  <a href="#"><img src="https://img.shields.io/badge/status-active-brightgreen?style=flat-square" alt="Status: Active"/></a>
+  <a href="#"><img src="https://img.shields.io/badge/agents-Hermes%20%2B%20OpenClaw-3b82f6?style=flat-square" alt="Agents: Hermes + OpenClaw"/></a>
+  <a href="#"><img src="https://img.shields.io/badge/architecture-supervisor--worker-f97316?style=flat-square" alt="Architecture: Supervisor-Worker"/></a>
+  <a href="#"><img src="https://img.shields.io/badge/license-proprietary-lightgrey?style=flat-square" alt="License: Proprietary"/></a>
+</p>
+
+---
+
 # Hermes–OpenClaw Multi-Agent System
 
 A production-oriented multi-agent architecture that uses **Hermes Agent** as the primary supervisor and decision layer, while delegating specialized deep-work loops to **OpenClaw** workers for Research and Subconscious functions.

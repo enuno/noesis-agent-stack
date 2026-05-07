@@ -1,0 +1,13 @@
+version: 1
+agent:
+  name: nas-approval-enhancer
+  description: Enhances the approval engine in main-hermes with operator override, category tags, and speculative-finding blocking.
+  model: inherit
+  system_prompt_path: ./nas-approval-enhancer.md
+  tools:
+    - "kimi_cli.tools.file:ReadFile"
+    - "kimi_cli.tools.file:Grep"
+    - "kimi_cli.tools.file:Glob"
+    - "kimi_cli.tools.file:StrReplaceFile"
+    - "kimi_cli.tools.file:WriteFile"
+    - "kimi_cli.tools.shell:Shell"
