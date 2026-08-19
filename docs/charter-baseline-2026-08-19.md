@@ -63,8 +63,8 @@ Present:
 
 | # | Gap | Impact | Resolution |
 |---|-----|--------|------------|
-| G1 | Bitwarden project ID mismatch: charter `72974d0e-…` vs ansible `7173d0ef-…` (3 configs + 2 module defaults) | Secret fetches may target wrong project | **Operator decision required** — confirm which project is authoritative; update all refs + verify with bws |
-| G2 | `BWS_ACCESS_TOKEN` unavailable in shell | Cannot verify Bitwarden secret presence/rotation | Operator to export token or configure bws profile |
+| G1 | Bitwarden project ID mismatch: charter `72974d0e-…` vs ansible `7173d0ef-…` (3 configs + 2 module defaults) | Secret fetches may target wrong project | **RESOLVED 2026-08-19** (operator decision: charter wins). All 5 refs updated to `72974d0e`; project name corrected to `noosphere` (verified via `bws project list`); bws CLI path corrected to `/usr/local/bin/bws` |
+| G2 | `BWS_ACCESS_TOKEN` unavailable in shell | Cannot verify Bitwarden secret presence/rotation | **RESOLVED 2026-08-19** — token exists in `~/.zshrc`; verified access to project `72974d0e` (93 secrets, incl. TAILSCALE_AUTH_KEY, MISTRAL_API_KEY, NOUS_API_KEY, VENICE_API_KEY, KIMI_API_KEY) |
 | G3 | `shared/POLICY.global.md` + `shared/GUARDRAILS.global.yaml` referenced but missing | config/stack.yaml broken reference | Author canonical files (this session) |
 | G4 | No `platform/profiles.yaml`, `risk-tiers.yaml`, `approval-manifest.schema.json` | No machine-readable risk/approval contract | Author (this session) |
 | G5 | No `agents/noesis-clawdev/` | Charter's second persistent agent undefined in repo | Author policy/config/runbook (this session) |
