@@ -1,0 +1,225 @@
+# shared/provider-policies.yaml
+# Data, spend, privacy, and eligibility rules per provider for the Noesis stack.
+# Charter: "Prioritize subscription-backed capacity before metered providers
+# while preserving capability fit, reliability, privacy, and operational safety."
+#
+# These rules are inputs to model scoring, routing, and guardrail enforcement.
+# They are NOT secrets; auth credentials live in Bitwarden (project 72974d0e).
+
+version: "1.0.0"
+updated: 2026-08-19
+
+policy_principles:
+  - subscription_first: "Use subscription capacity as the normal pool; metered only for explicit gaps."
+  - no_silent_downgrade: "Never silently downgrade privacy, capability, quality, approval, or risk controls."
+  - route_by_profile: "Route by task profile + required capability, not one global default."
+  - privacy_lane_isolation: "Private analysis never auto-falls back to standard cloud routes."
+  - trace_preserved: "Task ID, route ID, policy version, catalog version, grant ID, idempotency key survive retries/fallback."
+
+# ---------------------------------------------------------------------------
+# Provider registry
+# ---------------------------------------------------------------------------
+providers:
+  claude:
+    class: subscription
+    display_name: Claude subscription
+    capability: frontier reasoning, systems architecture, long-context synthesis, adversarial review, critical planning, R3 plan/review
+    data_policy:
+      classification_allowed: [public, internal, confidential_redacted]
+      private_analysis: false
+      retention: provider-managed
+    spend_policy:
+      model: fixed_subscription
+      burst_guardrail_usd_per_job: 10.00
+    eligibility:
+      default_routes: [supervisor_reasoning, r3_planner, r3_reviewer, research_synthesis]
+      requires_human_review_for: [r3_model_changes]
+    health: [latency, quota, cooldown, outage]
+
+  codex:
+    class: subscription
+    display_name: ChatGPT/Codex subscription
+    capability: primary coding, debugging, repository modification, implementation, tool-oriented engineering, test repair
+    data_policy:
+      classification_allowed: [public, internal]
+      private_analysis: false
+    spend_policy:
+      model: fixed_subscription
+      burst_guardrail_usd_per_job: 5.00
+    eligibility:
+      default_routes: [code_primary]
+      requires_human_review_for: []
+    health: [latency, quota, cooldown, outage]
+
+  kimi:
+    class: subscription
+    display_name: Kimi Code subscription
+    capability: parallel coding, repository exploration, refactoring, implementation support, independent code review
+    data_policy:
+      classification_allowed: [public, internal]
+      private_analysis: false
+    spend_policy:
+      model: fixed_subscription
+      burst_guardrail_usd_per_job: 5.00
+    eligibility:
+      default_routes: [code_parallel, code_primary_fallback]
+      requires_human_review_for: []
+    health: [latency, quota, cooldown, outage]
+
+  nous:
+    class: subscription
+    display_name: Nous (Hermes-native)
+    capability: Hermes-native inference, routing, evaluation, model experimentation, classification, approved fallback
+    data_policy:
+      classification_allowed: [public, internal]
+      private_analysis: false
+    spend_policy:
+      model: fixed_subscription
+      burst_guardrail_usd_per_job: 5.00
+    eligibility:
+      default_routes: [cheap_router, eval_judge, research_synthesis]
+      requires_human_review_for: []
+    health: [latency, quota, cooldown, outage]
+
+  openrouter:
+    class: metered
+    display_name: OpenRouter
+    capability: controlled exception path for missing capabilities, approved specialized models, provider outage fallback, evaluation, limited burst
+    data_policy:
+      classification_allowed: [public, internal]
+      private_analysis: false
+      redaction_required: true  # local extraction/redaction before external inference
+    spend_policy:
+      model: per_token
+      daily_cap_usd: 10.00
+      per_job_hard_limit_usd: 2.00
+      alert_threshold_usd: 5.00
+    eligibility:
+      default_routes: []
+      allowed_when: [explicit_capability_gap, approved_experiment, provider_outage_recovery, documented_performance_advantage]
+      requires_human_review_for: [route_addition, budget_increase]
+    health: [latency, cost, quota, cooldown, outage]
+
+  venice:
+    class: privacy
+    display_name: Venice.ai (privacy-qualified)
+    capability: isolated private-analysis inference lane
+    data_policy:
+      classification_allowed: [confidential]
+      private_analysis: true
+      tee_or_e2ee_required: true
+      metadata_only_logging: true
+      local_redaction_before_inference: true
+      never_log_prompts_or_responses: true
+    spend_policy:
+      model: per_token (privacy-qualified)
+      daily_cap_usd: 5.00
+      per_job_hard_limit_usd: 1.00
+    eligibility:
+      default_routes: [private_analysis]
+      allowed_profiles: [private_analysis]
+      r3_authority: "Venice may assist R3 planning/review only; NO R3 execution authority"
+      fail_closed_on_unavailable: true
+      never_fallback_to: [openrouter, claude, codex, kimi, nous, standard_cloud]
+      fallback_allowed: [self_hosted]
+    health: [privacy_mode, latency, quota]
+
+  self_hosted:
+    class: privacy
+    display_name: Approved self-hosted local inference
+    capability: local private analysis, offline extraction, drift
+    data_policy:
+      classification_allowed: [confidential, internal]
+      private_analysis: true
+      no_external_egress: true
+    spend_policy:
+      model: local_capacity
+    eligibility:
+      default_routes: [private_analysis, cheap_router]
+      requires_human_review_for: [model_approval]
+    health: [local_uptime, latency]
+
+# ---------------------------------------------------------------------------
+# Routing rules
+# ---------------------------------------------------------------------------
+routing_rules:
+  hard_filters:
+    - risk_tier
+    - data_classification
+    - context_window
+    - tool_support
+    - schema_reliability
+    - approved_provider_status
+    - privacy_mode
+    - provider_health
+    - quota_headroom
+    - budget
+    - model_allowlist
+
+  subscription_preference_bonus: strong
+
+  metered_allowed_only_for:
+    - explicit_capability_gap
+    - approved_experiments
+    - privacy_qualified_work (venice only)
+    - outage_recovery
+    - documented_performance_advantage
+
+  no_silent_downgrade: true
+
+  preserve_across_retries:
+    - task_id
+    - route_id
+    - policy_version
+    - catalog_version
+    - prompt_version
+    - grant_id
+    - idempotency_key
+
+# ---------------------------------------------------------------------------
+# Circuit breakers
+# ---------------------------------------------------------------------------
+circuit_breakers:
+  trip_on:
+    - provider_outage_or_repeated_throttling
+    - invalid_tool_calls_or_structured_output_failures
+    - safety_or_policy_violation
+    - privacy_capability_regression
+    - unexpected_metered_spend
+    - material_eval_or_test_pass_rate_regression
+    - latency_beyond_profile_slo
+  action: "Mark route unavailable; switch to last-known-good signed config; notify supervisor."
+  recovery: "Manual or canary re-validate before re-adding route."
+
+# ---------------------------------------------------------------------------
+# Rotation & audit
+# ---------------------------------------------------------------------------
+rotation:
+  schedule_days: 90
+  rotate_on_suspected_exposure: true
+  scope: [provider_keys, webhook_secrets, signing_keys, service_credentials]
+  metadata_record: "Secret identifier + rotation status only; NEVER values."
+
+audit:
+  log: structured_telemetry
+  fields:
+    - task_id
+    - trace_id
+    - profile
+    - risk_tier
+    - route_id
+    - provider
+    - model
+    - catalog_version
+    - policy_version
+    - provider_health
+    - latency
+    - token_use
+    - cost
+    - error_class
+    - retries
+    - tool_calls
+    - tool_denials
+    - approval_id
+    - grant_id
+    - rollback_state

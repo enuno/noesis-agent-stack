@@ -1,0 +1,58 @@
+# agents/noesis-clawdev/config/clawdev.yaml
+# OpenClaw runtime config template for Noesis ClawDev.
+# Values injected by noesis-ansible at deploy time from Bitwarden Secrets
+# Manager (project 72974d0e-81af-4678-bab7-b46000985859).
+# NO PLAINTEXT SECRETS IN THIS FILE.
+
+identity:
+  agent_id: noesis-clawdev
+  role: development-worker
+  parent_agent: noesis-praxis
+  # authority: signed grants only
+
+runtime:
+  mode: persistent
+  restart_policy: always
+  workdir: /workspace/clawdev   # ephemeral, recreated per job
+  log_level: info
+  telemetry_enabled: true
+
+# Route assignment is set per delegated job by Noesis Praxis.
+# ClawDev has no independent provider/routing authority.
+route:
+  profile: null                 # assigned per job
+  risk_tier: null               # assigned per job
+  provider_class: subscription  # default
+
+# Injected env (values from Bitwarden, never committed):
+# environment:
+#   CLAWDEV_LLM_GATEWAY: <gateway_url>
+#   CLAWDEV_POLICY_ENDPOINT: <policy_enforcement_url>
+#   CLAWDEV_SIGNING_PUBKEY: <praxis_public_key>   # for grant verification
+
+sandbox:
+  runtime: rootless_docker
+  non_root: true
+  read_only_rootfs: true
+  no_new_privileges: true
+  seccomp: restricted
+  network_policy: deny_all
+  allowed_egress:
+    - llm_gateway
+    - policy_enforcement_endpoint
+    - approved_target_endpoints
+  mounts: encrypted_task_volumes_only
+  destroy_on_completion: true
+
+limits:
+  cpu_quota: 50
+  memory_mb: 2048
+  pids_limit: 256
+  default_timeout_s: 3600
+  max_cost_usd: 5.00
+
+capability_grants:
+  source: noesis-praxis
+  verify: signature_expiry_nonce_scope
+  single_use: true
+  expiry_max_hours: 24

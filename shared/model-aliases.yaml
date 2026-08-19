@@ -1,0 +1,130 @@
+# shared/model-aliases.yaml
+# Stable internal capability aliases for the Noesis agent stack.
+# Task profiles and routing reference these aliases, NOT vendor model IDs.
+# Provider-specific model names live only in shared/models.yaml + catalog/.
+#
+# Charter: "Use stable capability profiles rather than hard-coding vendor
+# model IDs throughout the system."
+#
+# Aliases are stability contracts. Changing the model behind an alias is a
+# catalog version bump; changing the alias itself is a breaking change.
+
+version: "1.0.0"
+updated: 2026-08-19
+
+# ---------------------------------------------------------------------------
+# Capability aliases
+# ---------------------------------------------------------------------------
+# Each alias names a *capability* the stack needs. The active binding is a
+# profile in shared/models.yaml or a catalog-approved route; see platform/profiles.yaml
+# for which alias each task profile requires.
+capability_aliases:
+  # Frontier reasoning, planning, architecture, long-context synthesis.
+  frontier_reasoning:
+    description: >-
+      Highest-assurance reasoning for architecture, adversarial review,
+      critical planning, and long-context synthesis. Used by R3 planner/reviewer
+      and supervisor escalation.
+    preferred_provider_class: subscription
+    candidates: [claude, codex, kimi, nous]
+    fallback_policy: subscription-only; OpenRouter only for approved gap
+
+  # Primary implementation and tool-oriented engineering.
+  code_implementation:
+    description: >-
+      Primary coding, debugging, repository modification, test repair,
+      tool-oriented engineering.
+    preferred_provider_class: subscription
+    candidates: [codex, kimi, claude]
+    fallback_policy: subscription-only
+
+  # Independent code review, exploration, refactoring, test generation.
+  code_review_parallel:
+    description: >-
+      Parallel/independent review lanes. Must be distinct from the
+      implementation route for separation of duties.
+    preferred_provider_class: subscription
+    candidates: [kimi, codex, claude]
+    fallback_policy: subscription-only; must differ from code_implementation route
+
+  # Cheap, fast classification/extraction/triage/routing.
+  cheap_router:
+    description: >-
+      Classification, extraction, triage, routing, structured parsing.
+      Low cost, high throughput, deterministic output preferred.
+    preferred_provider_class: subscription
+    candidates: [nous, kimi, codex]
+    fallback_policy: allow openrouter for approved low-risk fallback
+
+  # Research organization and evidence synthesis.
+  research_synthesis:
+    description: >-
+      Organize research, synthesize evidence, produce structured summaries.
+    preferred_provider_class: subscription
+    candidates: [claude, kimi, nous]
+    fallback_policy: subscription-only
+
+  # Privacy-qualified analysis. Venice Private or approved self-hosted only.
+  private_analysis:
+    description: >-
+      Confidential analysis. Isolated inference lane. NEVER auto-fall back to
+      a standard cloud route.
+    preferred_provider_class: privacy
+    candidates: [venice, self_hosted]
+    fallback_policy: fail closed; approved self-hosted local model only
+
+  # R3 high-impact planning (production/financial/security/wallet/destructive).
+  r3_planning:
+    description: >-
+      High-impact plan authoring for R3 operations. Requires human-reviewable
+      manifest output.
+    preferred_provider_class: subscription
+    candidates: [claude, codex]
+    fallback_policy: subscription-only; no auto-promotion of R3 model changes
+
+  # Independent R3 review (scope/safety/rollback).
+  r3_review:
+    description: >-
+      Independent reviewer for R3 manifests. MUST use a different route than
+      the planner for separation of duties.
+    preferred_provider_class: subscription
+    candidates: [claude, kimi]
+    fallback_policy: subscription-only
+
+  # Bounded output evaluation (safety/routing/tool quality).
+  eval_judge:
+    description: >-
+      Bounded-output evaluation: safety, routing, tool quality, schema validity.
+    preferred_provider_class: subscription
+    candidates: [nous, claude]
+    fallback_policy: allow openrouter for approved eval bursts
+
+# ---------------------------------------------------------------------------
+# Provider class definitions (see shared/provider-policies.yaml for rules)
+# ---------------------------------------------------------------------------
+provider_classes:
+  subscription:
+    description: Subscription-backed capacity pools (normal default).
+    providers: [claude, codex, kimi, nous]
+    spend_model: fixed subscription; no per-token meter
+    priority_bonus: strong
+
+  metered:
+    description: Metered pay-per-token providers (exception path only).
+    providers: [openrouter]
+    allowed_when:
+      - explicit capability gap
+      - approved experiment
+      - provider outage recovery
+      - documented performance advantage
+
+  privacy:
+    description: Privacy-qualified isolated inference lanes.
+    providers: [venice, self_hosted]
+    allowed_profiles: [private_analysis]
+    metadata_only_logging: true
+
+  local:
+    description: Self-hosted local inference (no external egress).
+    providers: [ollama, local]
+    allowed_profiles: [private_analysis, cheap_router, research_synthesis]

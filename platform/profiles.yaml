@@ -1,0 +1,170 @@
+# platform/profiles.yaml
+# Canonical stable task profiles for the Noesis agent stack.
+# Charter: "Use stable capability profiles rather than hard-coding vendor
+# model IDs throughout the system."
+#
+# Profiles bind a task class to: required capability alias (shared/model-aliases.yaml),
+# risk envelope, provider preference class, budget, timeout, and guardrail hooks.
+# Provider-specific model names never appear here — they live in shared/models.yaml
+# and catalog/.
+
+version: "1.0.0"
+updated: 2026-08-19
+
+profiles:
+
+  # -------------------------------------------------------------------------
+  # Supervisor / planning / architecture
+  # -------------------------------------------------------------------------
+  supervisor_reasoning:
+    description: Planning, decomposition, architecture, synthesis, critical analysis
+    capability_alias: frontier_reasoning
+    provider_class: subscription
+    preferred_providers: [claude, codex, kimi, nous]
+    default_risk_tier: r0
+    max_risk_tier: r2
+    timeout_s: 1800
+    budget_usd: 5.00
+    context_requirement: long
+    requires_tool_use: true
+    notes: Default master-agent reasoning profile.
+
+  # -------------------------------------------------------------------------
+  # Primary implementation
+  # -------------------------------------------------------------------------
+  code_primary:
+    description: Implementation, debugging, test repair, repository changes
+    capability_alias: code_implementation
+    provider_class: subscription
+    preferred_providers: [codex, kimi, claude]
+    default_risk_tier: r1
+    max_risk_tier: r2
+    timeout_s: 3600
+    budget_usd: 5.00
+    requires_tool_use: true
+    workspace: isolated_ephemeral
+    notes: Primary coding lane. External mutation requires approval (R1+).
+
+  # -------------------------------------------------------------------------
+  # Independent code review / parallel
+  # -------------------------------------------------------------------------
+  code_parallel:
+    description: Independent code review, exploration, refactoring, test generation
+    capability_alias: code_review_parallel
+    provider_class: subscription
+    preferred_providers: [kimi, codex, claude]
+    default_risk_tier: r0
+    max_risk_tier: r1
+    timeout_s: 2400
+    budget_usd: 3.00
+    requires_tool_use: true
+    separation_of_duties: must_use_different_route_than_code_primary
+    notes: Parallel review lane; route separation enforced.
+
+  # -------------------------------------------------------------------------
+  # Cheap routing / classification
+  # -------------------------------------------------------------------------
+  cheap_router:
+    description: Classification, extraction, triage, routing, structured parsing
+    capability_alias: cheap_router
+    provider_class: subscription
+    preferred_providers: [nous, kimi, codex]
+    default_risk_tier: r0
+    max_risk_tier: r0
+    timeout_s: 300
+    budget_usd: 0.50
+    requires_tool_use: false
+    notes: Low-cost deterministic output preferred; OpenRouter allowed only for approved fallback.
+
+  # -------------------------------------------------------------------------
+  # Research synthesis
+  # -------------------------------------------------------------------------
+  research_synthesis:
+    description: Research organization, evidence synthesis, structured summaries
+    capability_alias: research_synthesis
+    provider_class: subscription
+    preferred_providers: [claude, kimi, nous]
+    default_risk_tier: r0
+    max_risk_tier: r1
+    timeout_s: 1800
+    budget_usd: 3.00
+    requires_tool_use: false
+    notes: Evidence synthesis; requires citation/artifact linkage.
+
+  # -------------------------------------------------------------------------
+  # Private analysis (Venice / self-hosted only)
+  # -------------------------------------------------------------------------
+  private_analysis:
+    description: Confidential analysis using Venice Private or approved self-hosted local inference
+    capability_alias: private_analysis
+    provider_class: privacy
+    preferred_providers: [venice, self_hosted]
+    default_risk_tier: r0
+    max_risk_tier: r2
+    timeout_s: 1200
+    budget_usd: 1.00
+    requires_tool_use: false
+    privacy_mode: required
+    fail_closed_on_unavailable: true
+    never_fallback_to: [openrouter, claude, codex, kimi, nous, standard_cloud]
+    metadata_only_logging: true
+    notes: Isolated privacy lane. Local redaction before inference.
+
+  # -------------------------------------------------------------------------
+  # R3 planning
+  # -------------------------------------------------------------------------
+  r3_planner:
+    description: High-impact production, financial, security, wallet, or destructive-change planning
+    capability_alias: r3_planning
+    provider_class: subscription
+    preferred_providers: [claude, codex]
+    default_risk_tier: r3
+    max_risk_tier: r3
+    timeout_s: 3600
+    budget_usd: 10.00
+    requires_tool_use: false
+    approval_required: true
+    output: canonical_action_manifest
+    notes: Planning only. Execution requires independent review + human approval + grant.
+
+  # -------------------------------------------------------------------------
+  # R3 review
+  # -------------------------------------------------------------------------
+  r3_reviewer:
+    description: Independent plan, scope, safety, and rollback review
+    capability_alias: r3_review
+    provider_class: subscription
+    preferred_providers: [claude, kimi]
+    default_risk_tier: r3
+    max_risk_tier: r3
+    timeout_s: 3600
+    budget_usd: 10.00
+    requires_tool_use: false
+    approval_required: true
+    separation_of_duties: must_use_different_route_than_r3_planner
+    notes: Independent reviewer; route separation enforced.
+
+  # -------------------------------------------------------------------------
+  # Evaluation judge
+  # -------------------------------------------------------------------------
+  eval_judge:
+    description: Bounded output, safety, routing, and tool-quality evaluation
+    capability_alias: eval_judge
+    provider_class: subscription
+    preferred_providers: [nous, claude]
+    default_risk_tier: r0
+    max_risk_tier: r1
+    timeout_s: 600
+    budget_usd: 1.00
+    requires_tool_use: false
+    output: bounded_structured
+    notes: Used by evals/ suites; deterministic scoring preferred.
+
+# ---------------------------------------------------------------------------
+# Profile selection defaults
+# ---------------------------------------------------------------------------
+selection:
+  rule: "Route by task profile and required capability; apply hard filters before scoring."
+  unknown_task_action: fallback_to_supervisor_reasoning
+  profile_override: supervisor_only
+  override_requires: documented_reason

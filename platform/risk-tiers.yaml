@@ -1,0 +1,133 @@
+# platform/risk-tiers.yaml
+# R0-R3 risk classification and policy requirements for the Noesis agent stack.
+# Classify based on: requested effect, target, data classification, reversibility,
+# blast radius, credentials involved, financial exposure, operational impact.
+#
+# Enforcement hooks: shared/GUARDRAILS.global.yaml (risk_gates),
+# platform/approval-manifest.schema.json (R3 binding).
+
+version: "1.0.0"
+updated: 2026-08-19
+
+classification_factors:
+  - requested_effect
+  - target
+  - data_classification
+  - reversibility
+  - blast_radius
+  - credentials_involved
+  - financial_exposure
+  - operational_impact
+
+tiers:
+
+  # -------------------------------------------------------------------------
+  # R0 — Observe
+  # -------------------------------------------------------------------------
+  r0:
+    name: Observe
+    description: Read-only retrieval, classification, analysis, monitoring, drafting.
+    allowed:
+      - read_only_tools
+      - retrieval
+      - classification
+      - analysis
+      - monitoring
+      - drafting
+    forbidden:
+      - shell_execution
+      - writes
+      - external_posting
+      - secret_export
+      - wallet_access
+      - production_mutation
+    approval: none
+    example: "Query model catalog; read logs; draft analysis."
+
+  # -------------------------------------------------------------------------
+  # R1 — Propose
+  # -------------------------------------------------------------------------
+  r1:
+    name: Propose
+    description: Sandboxed implementation, temporary file writes, simulations, test execution, non-production artifact generation.
+    requirements:
+      - isolated_ephemeral_workspace
+      - checkpoint_or_disposable_filesystem
+    approval:
+      external_mutation: required
+      sandboxed_local_work: none
+    forbidden:
+      - production_credentials
+      - unrestricted_egress
+    example: "Run tests in sandbox; generate PR draft; simulate migration."
+
+  # -------------------------------------------------------------------------
+  # R2 — Controlled execution
+  # -------------------------------------------------------------------------
+  r2:
+    name: Controlled execution
+    description: Bounded CI operations, staging deployment, approved idempotent remediation, scoped record updates.
+    requirements:
+      - explicit_resource_scope
+      - timeout
+      - budget
+      - idempotency_key
+      - rollback_plan
+      - short_lived_scoped_credentials
+      - supervisor_owned_retries_and_fallback
+    approval: policy_approval_or_per_action_approval_based_on_blast_radius
+    example: "Deploy to staging; run approved remediation with rollback."
+
+  # -------------------------------------------------------------------------
+  # R3 — High impact
+  # -------------------------------------------------------------------------
+  r3:
+    name: High impact
+    description: >-
+      Production mutation, destructive actions, financial operations, wallet
+      signing, credential rotation, DNS/firewall changes, irreversible data
+      operations, or broad security changes.
+    default_authority: none
+    approval:
+      human_approval: mandatory_canonical_action_manifest
+      independent_model_review: required
+      deterministic_policy_validation: required
+      dual_approval_for:
+        - financial_actions
+        - wallet_operations
+        - credential_rotation
+        - destructive_database_work
+        - high_blast_radius_production_changes
+    manifest_required_fields:
+      - preflight
+      - target_scope
+      - expected_effect
+      - action_patch_digest
+      - rollback_plan
+      - runtime_image_digest
+      - expiry
+      - budget
+    execution_grant:
+      type: single_use_short_lived
+      bound_to: manifest
+    invalidation:
+      - "Any target, parameter, image, model route, tool scope, or digest change invalidates approval and requires a new approval."
+    example: "Production migration; wallet sign; rotate root credential; firewall policy change."
+
+# ---------------------------------------------------------------------------
+# Classification guidance
+# ---------------------------------------------------------------------------
+classification_guidance:
+  when_ambiguous: classify_to_higher_tier
+  r3_triggers:
+    - production_mutation
+    - destructive_action
+    - financial_operation
+    - wallet_signing
+    - credential_rotation
+    - dns_or_firewall_change
+    - irreversible_data_operation
+    - broad_security_change
+  approval_never_vague:
+    - "Never ask for or accept vague approval such as 'fix production'."
+    - "Approval must bind exact action and rollback parameters."

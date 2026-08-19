@@ -1,0 +1,260 @@
+# shared/GUARDRAILS.global.yaml
+# Machine-enforced global rules for the Noesis agent stack.
+# Consumed by Noesis Praxis (Hermes supervisor), the broker/policy-enforcement
+# point, and host-side policy validation. Human-readable policy: shared/POLICY.global.md.
+#
+# These are ENFORCEMENT rules — hard stops, not recommendations.
+
+version: "1.0.0"
+updated: 2026-08-19
+enforcement: policy_enforcement_point
+fail_mode: block_and_notify_supervisor
+
+# ---------------------------------------------------------------------------
+# Persistent agent identity
+# ---------------------------------------------------------------------------
+persistent_agents:
+  allowlist:
+    - noesis-praxis      # Hermes — master/supervisor
+    - noesis-clawdev     # OpenClaw — local dev/execution worker
+  rule: "All other agents are ephemeral and MUST carry task/trace/parent IDs, expiry, and a capability grant."
+
+ephemeral_agent_requirements:
+  - one_bounded_task
+  - explicit_success_criteria
+  - task_id
+  - trace_id
+  - parent_agent_id
+  - expiry_time
+  - explicit_model_route
+  - risk_tier
+  - tool_allowlist
+  - cost_limit
+  - timeout
+  - capability_grant
+  - minimal_context
+  - no_long_lived_credentials
+  - no_provider_secrets
+  - isolated_runtime
+  - temp_workdir
+  - automatic_teardown
+  - structured_output_and_artifact_refs
+
+# ---------------------------------------------------------------------------
+# Authority boundaries (no worker may change these)
+# ---------------------------------------------------------------------------
+praxis_exclusive_authority:
+  - global_routing
+  - risk_policy
+  - provider_configuration
+  - persistent_secrets
+  - budget_policy
+  - approval_requirements
+
+clawdev_forbidden_authority:
+  - independent_external_side_effects
+  - durable_configuration_modifications
+  - provider_switching
+  - r2_or_r3_execution_without_grant
+
+# ---------------------------------------------------------------------------
+# Secrets guardrails
+# ---------------------------------------------------------------------------
+secrets:
+  source_of_truth_project: "72974d0e-81af-4678-bab7-b46000985859"
+  plaintext_forbidden_in:
+    - git_repos
+    - prompts
+    - logs
+    - markdown
+    - yaml
+    - shell_history
+    - task_artifacts
+    - container_images
+    - chat_transcripts
+  stack_reference_style: env_var_or_abstract_identifier_only
+  ephemeral_worker_credentials: short_lived_task_scoped_or_signed_grant
+  ephemeral_bitwarden_access: denied
+  missing_secret_action: ask_operator_to_create_or_update_in_project
+  inventing_secrets: forbidden
+  rotation_schedule_days: 90
+  rotate_on_suspected_exposure: true
+
+# ---------------------------------------------------------------------------
+# Provider guardrails
+# ---------------------------------------------------------------------------
+providers:
+  subscription_defaults: [claude, codex, kimi, nous]
+  metered_exception: openrouter
+  privacy_lane: venice
+  routing_rule: route_by_task_profile_and_capability
+  hard_filters:
+    - risk_tier
+    - data_classification
+    - context_window
+    - tool_support
+    - schema_reliability
+    - approved_provider_status
+    - privacy_mode
+    - provider_health
+    - quota_headroom
+    - budget
+    - model_allowlist
+  subscription_preference_bonus: strong
+  silent_downgrade: forbidden
+  openrouter_allowed_only_for:
+    - explicit_capability_gap
+    - approved_experiment
+    - provider_outage_recovery
+    - documented_performance_advantage
+  openrouter_daily_cap_usd: 10.00
+  openrouter_per_job_hard_limit_usd: 2.00
+  openrouter_route_addition_requires: human_review
+
+# ---------------------------------------------------------------------------
+# Venice private-analysis lane guardrails (hard)
+# ---------------------------------------------------------------------------
+venice:
+  allowed_profiles: [private_analysis]
+  model_class_required: private
+  tee_or_e2ee_required: true
+  local_redaction_before_inference: true
+  disabled_by_default_tools: [browser, shell, email, cloud_upload, wallet, production, external_tools]
+  metadata_only_logging: true
+  log_never: [confidential_prompts, responses]
+  fail_closed_on_unavailable: true
+  never_fallback_to: [openrouter, claude, codex, kimi, nous, standard_cloud]
+  fallback_allowed: [self_hosted]
+  r3_execution_authority: false
+  r3_planning_or_review_only: true
+
+# ---------------------------------------------------------------------------
+# Worker isolation guardrails (container/runtime)
+# ---------------------------------------------------------------------------
+worker_isolation:
+  default_runtime: rootless_docker
+  alternate_runtime: apptainer_singularity
+  alternate_only_for: bounded_shared_hpc_work
+  run_as: non_root
+  root_fs: read_only
+  capabilities: dropped
+  no_new_privileges: true
+  seccomp: restricted
+  pids_limit: enforced
+  cpu_limit: enforced
+  memory_limit: enforced
+  task_expiry: enforced
+  forbidden:
+    - privileged_containers
+    - docker_socket_access
+    - host_networking
+    - host_pid_access
+    - broad_host_mounts
+    - home_directory_mounts
+    - cloud_credential_mounts
+    - ssh_agent_mounts
+    - kubeconfig_mounts
+    - wallet_material_mounts
+  network_default: deny_all
+  network_allow:
+    - llm_gateway
+    - policy_enforcement_endpoint
+    - approved_target_endpoints
+  encrypted_io_volumes: where_practical
+  destroy_state_after_completion: true
+
+# ---------------------------------------------------------------------------
+# Risk tier gates (R0-R3). See platform/risk-tiers.yaml for detail.
+# ---------------------------------------------------------------------------
+risk_gates:
+  r0: { approval: none, tools: read_only_only, shell: forbidden, external_post: forbidden, secrets_export: forbidden, wallet: forbidden, production_mutation: forbidden }
+  r1: { approval: none_for_sandbox, workspace: isolated_ephemeral, fs: checkpoint_or_disposable, external_mutation: approval_required, prod_credentials: forbidden, unrestricted_egress: forbidden }
+  r2: { approval: policy_or_per_action_by_blast_radius, scope: explicit, timeout: explicit, budget: explicit, idempotency_key: required, rollback_plan: required, credentials: short_lived_scoped, retries: supervisor_owned, fallback: supervisor_owned }
+  r3:
+    default_authority: none
+    human_approval: mandatory_canonical_action_manifest
+    independent_model_review: required
+    deterministic_policy_validation: required
+    required_fields: [preflight, target_scope, expected_effect, action_digest, rollback_plan, runtime_image_digest, expiry, budget]
+    execution_grant: single_use_short_lived
+    dual_approval_for: [financial_actions, wallet_operations, credential_rotation, destructive_database_work, high_blast_radius_production_changes]
+    invalidation: any_target_parameter_image_route_tool_scope_or_digest_change
+
+# ---------------------------------------------------------------------------
+# Model catalog lifecycle guardrails
+# ---------------------------------------------------------------------------
+catalog:
+  auto_promotion: forbidden
+  candidate_validation_required:
+    - capability
+    - privacy
+    - provider_policy
+    - authentication
+    - tool_schema
+    - safety
+    - quality
+    - latency
+    - budget
+  r0_r1_canary: shadow_and_gradual
+  r3_model_changes: never_auto_promote
+  human_review_required_for:
+    - r3_eligibility
+    - security_sensitive_routing
+    - privacy_policy_changes
+    - provider_policy_exceptions
+  rollback: last_known_good_signed_config
+
+# ---------------------------------------------------------------------------
+# Circuit breakers
+# ---------------------------------------------------------------------------
+circuit_breakers:
+  trip_on:
+    - provider_outage_or_repeated_throttling
+    - invalid_tool_calls_or_structured_output_failures
+    - safety_or_policy_violation
+    - privacy_capability_regression
+    - unexpected_metered_spend
+    - material_eval_or_test_pass_rate_regression
+    - latency_beyond_profile_slo
+  action: mark_route_unavailable_and_use_last_known_good
+  notify: supervisor
+
+# ---------------------------------------------------------------------------
+# Telemetry fields (structured)
+# ---------------------------------------------------------------------------
+telemetry:
+  required_fields:
+    - task_id
+    - trace_id
+    - parent_agent_id
+    - worker_id
+    - sub_agent_id
+    - task_profile
+    - risk_tier
+    - route_id
+    - provider
+    - model
+    - catalog_version
+    - policy_version
+    - provider_health
+    - quota_cooldown
+    - latency
+    - token_use
+    - cost
+    - error_class
+    - retries
+    - tool_calls
+    - tool_denials
+    - worker_lifecycle
+    - host_policy_decisions
+    - approval_id
+    - approver_identity
+    - action_digest
+    - grant_id
+    - image_digest
+    - rollback_state
+    - eval_score
+    - test_pass_rate
+    - schema_validity
+    - safety_failures
+    - quality_drift

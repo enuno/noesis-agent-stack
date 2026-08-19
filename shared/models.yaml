@@ -50,6 +50,72 @@ providers:
       High-throughput local endpoint for fast extraction tasks.
       Point api_base at your vLLM or llama.cpp server.
 
+  # --- Charter v1.0 provider set (2026-08-19) ---
+  # Subscription-first: claude, codex, kimi, nous.
+  # Metered exception: openrouter. Privacy lane: venice.
+  # Policy: shared/provider-policies.yaml; aliases: shared/model-aliases.yaml.
+  claude:
+    display_name: Claude subscription
+    api_base: https://api.anthropic.com/v1
+    auth_env: ANTHROPIC_API_KEY
+    provider_class: subscription
+    enabled: true
+    notes: Frontier reasoning, systems architecture, long-context synthesis, R3 plan/review.
+
+  codex:
+    display_name: ChatGPT/Codex subscription
+    api_base: https://api.openai.com/v1
+    auth_env: OPENAI_API_KEY
+    provider_class: subscription
+    enabled: true
+    notes: Primary coding, debugging, repo modification, tool-oriented engineering, test repair.
+
+  kimi:
+    display_name: Kimi Code subscription
+    api_base: https://api.kimi.com/coding/v1
+    auth_env: KIMI_API_KEY
+    provider_class: subscription
+    enabled: true
+    notes: Parallel coding, repo exploration, refactoring, independent code review.
+
+  nous:
+    display_name: Nous (Hermes-native)
+    api_base: https://inference.nousresearch.com/v1
+    auth_env: NOUS_API_KEY
+    provider_class: subscription
+    enabled: true
+    notes: Hermes-native inference, routing, evaluation, classification, approved fallback.
+
+  openrouter:
+    display_name: OpenRouter (metered exception)
+    api_base: https://openrouter.ai/api/v1
+    auth_env: OPENROUTER_API_KEY
+    provider_class: metered
+    enabled: false
+    notes: >-
+      Controlled exception path for missing capabilities, approved specialized
+      models, provider outage fallback, evaluation, limited burst.
+      Requires human review for route addition / budget increase.
+
+  venice:
+    display_name: Venice.ai (privacy-qualified)
+    api_base: https://api.venice.ai/api/v1
+    auth_env: VENICE_API_KEY
+    provider_class: privacy
+    enabled: true
+    notes: >-
+      Isolated privacy-qualified inference lane for private_analysis ONLY.
+      TEE/E2EE required for stronger privacy; metadata-only logging;
+      fail closed; never auto-fallback to standard cloud routes.
+
+  self_hosted:
+    display_name: Approved self-hosted local inference
+    api_base: http://127.0.0.1:11434/v1
+    auth_env: null
+    provider_class: privacy
+    enabled: true
+    notes: Approved local models for private analysis fallback and offline extraction.
+
 # ---------------------------------------------------------------------------
 # Model Profiles
 # ---------------------------------------------------------------------------
@@ -178,6 +244,85 @@ profiles:
       - fast
       - offline
       - schema
+
+# ---------------------------------------------------------------------------
+# Charter v1.0 task profile → concrete model bindings
+# ---------------------------------------------------------------------------
+# These map the stable task profiles (platform/profiles.yaml) to concrete
+# model IDs for the current approved catalog. Provider-specific names belong
+# ONLY here and in catalog/approved/routing-catalog.yaml. Alias contracts live
+# in shared/model-aliases.yaml. Values are placeholders pending catalog
+# validation — update via the model-governance loop, never ad hoc.
+
+charter_profiles:
+  supervisor_reasoning:
+    provider: claude
+    model: claude-sonnet-4-5
+    temperature: 0.2
+    max_tokens: 12000
+    context_window_k: 200
+
+  code_primary:
+    provider: codex
+    model: gpt-4.1
+    temperature: 0.1
+    max_tokens: 16000
+    context_window_k: 1000
+
+  code_parallel:
+    provider: kimi
+    model: kimi-k2-thinking
+    temperature: 0.2
+    max_tokens: 12000
+    context_window_k: 256
+
+  cheap_router:
+    provider: nous
+    model: nous-router-default
+    temperature: 0.0
+    max_tokens: 2000
+    context_window_k: 128
+
+  research_synthesis:
+    provider: claude
+    model: claude-sonnet-4-5
+    temperature: 0.3
+    max_tokens: 12000
+    context_window_k: 200
+
+  private_analysis:
+    provider: venice
+    model: venice-private-default
+    temperature: 0.1
+    max_tokens: 8000
+    context_window_k: 128
+    privacy_mode: required
+    metadata_only_logging: true
+
+  r3_planner:
+    provider: claude
+    model: claude-opus-4-5
+    temperature: 0.1
+    max_tokens: 16000
+    context_window_k: 200
+    approval_required: true
+
+  r3_reviewer:
+    provider: claude
+    model: claude-sonnet-4-5
+    temperature: 0.1
+    max_tokens: 16000
+    context_window_k: 200
+    approval_required: true
+    separation_of_duties: different_route_from_r3_planner
+
+  eval_judge:
+    provider: nous
+    model: nous-eval-default
+    temperature: 0.0
+    max_tokens: 4000
+    context_window_k: 128
+    output: bounded_structured
 
 # ---------------------------------------------------------------------------
 # Agent → Profile Bindings (reference)

@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noesis.local/schemas/approval-manifest.schema.json",
+  "title": "Canonical Approval Action Manifest (R3)",
+  "description": "Canonical binding format for R3 high-impact operations. A human operator approves the EXACT manifest; Noesis Praxis issues a single-use signed execution grant bound to this manifest. Any material deviation invalidates the approval.",
+  "type": "object",
+  "required": [
+    "manifest_version",
+    "approval_id",
+    "created_at",
+    "expires_at",
+    "policy_version",
+    "catalog_version",
+    "task_id",
+    "trace_id",
+    "risk_tier",
+    "profile",
+    "operator",
+    "target",
+    "expected_effect",
+    "action",
+    "action_digest",
+    "rollback",
+    "scope",
+    "preflight",
+    "budget",
+    "reviews",
+    "grants"
+  ],
+  "properties": {
+    "manifest_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "approval_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique approval identifier."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Approval expiry; execution after this time requires a new approval."
+    },
+    "policy_version": {
+      "type": "string"
+    },
+    "catalog_version": {
+      "type": "string",
+      "description": "Signed model-catalog version at approval time."
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "trace_id": {
+      "type": "string"
+    },
+    "parent_agent_id": {
+      "type": "string",
+      "default": "noesis-praxis"
+    },
+    "risk_tier": {
+      "type": "string",
+      "const": "r3"
+    },
+    "profile": {
+      "type": "string",
+      "description": "Task profile (platform/profiles.yaml)."
+    },
+    "operator": {
+      "type": "object",
+      "required": ["id", "channel"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Operator identifier."
+        },
+        "channel": {
+          "type": "string",
+          "description": "Authenticated approval channel (e.g. telegram, cli)."
+        },
+        "approved_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "approval_sig": {
+          "type": "string",
+          "description": "Operator signature or reference to authenticated approval record."
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "required": ["host", "resource", "environment"],
+      "properties": {
+        "host": { "type": "string" },
+        "resource": { "type": "string" },
+        "environment": { "type": "string", "enum": ["staging", "production", "local"] },
+        "additionalProperties": true
+      }
+    },
+    "expected_effect": {
+      "type": "string",
+      "description": "What will change after execution."
+    },
+    "action": {
+      "type": "object",
+      "required": ["type", "parameters"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "production_mutation",
+            "destructive_action",
+            "financial_operation",
+            "wallet_signing",
+            "credential_rotation",
+            "dns_or_firewall_change",
+            "irreversible_data_operation",
+            "broad_security_change",
+            "other"
+          ]
+        },
+        "command": {
+          "type": "string",
+          "description": "Exact command/operation to execute."
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Exact parameters; each is bound by approval."
+        },
+        "runtime_image_digest": {
+          "type": "string",
+          "description": "Runtime image digest the operation executes under."
+        }
+      }
+    },
+    "action_digest": {
+      "type": "string",
+      "description": "SHA-256 digest of the exact action definition (canonical, immutable)."
+    },
+    "rollback": {
+      "type": "object",
+      "required": ["plan", "command", "expected_effect"],
+      "properties": {
+        "plan": { "type": "string" },
+        "command": { "type": "string" },
+        "expected_effect": { "type": "string" },
+        "test_command": { "type": "string" }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "required": ["target_scope", "tool_allowlist", "timeout_s"],
+      "properties": {
+        "target_scope": { "type": "string" },
+        "tool_allowlist": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "timeout_s": { "type": "integer", "minimum": 1 },
+        "idempotency_key": { "type": "string" }
+      }
+    },
+    "preflight": {
+      "type": "object",
+      "required": ["checks"],
+      "properties": {
+        "checks": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "passed": {
+          "type": "boolean",
+          "default": false
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "required": ["max_usd"],
+      "properties": {
+        "max_usd": { "type": "number", "minimum": 0 },
+        "currency": { "type": "string", "default": "USD" }
+      }
+    },
+    "reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["reviewer", "verdict", "reviewed_at"],
+        "properties": {
+          "reviewer": { "type": "string" },
+          "verdict": { "type": "string", "enum": ["approve", "reject", "request_changes"] },
+          "notes": { "type": "string" },
+          "reviewed_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "description": "Independent model review results."
+    },
+    "grants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["grant_id", "issued_at", "expires_at", "nonce", "signature", "bound_approval_id", "bound_action_digest"],
+        "properties": {
+          "grant_id": { "type": "string", "format": "uuid" },
+          "issued_at": { "type": "string", "format": "date-time" },
+          "expires_at": { "type": "string", "format": "date-time" },
+          "nonce": { "type": "string", "description": "Single-use nonce." },
+          "signature": { "type": "string", "description": "Signed by Noesis Praxis key." },
+          "bound_approval_id": { "type": "string", "format": "uuid" },
+          "bound_action_digest": { "type": "string" },
+          "status": { "type": "string", "enum": ["issued", "used", "revoked", "expired"] }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "properties": {
+        "executed_at": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["success", "failed", "rolled_back", "cancelled"] },
+        "target_response": { "type": "string" },
+        "rollback_status": { "type": "string" },
+        "audit_metadata": { "type": "object" },
+        "artifacts": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
