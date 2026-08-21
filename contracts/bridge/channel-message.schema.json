@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/bridge/channel-message.schema.json",
+  "title": "BridgeChannelMessage",
+  "description": "One line of the bridge channel.jsonl file. Written by both Noesis Praxis (supervisor) and Claude Code (worker).",
+  "type": "object",
+  "required": ["from", "to", "timestamp", "type", "message"],
+  "properties": {
+    "from": {
+      "type": "string",
+      "enum": ["noesis-praxis", "evey", "hermes", "claude-code", "mother"],
+      "description": "Sender identity. Supervisor: noesis-praxis (legacy evey/hermes). Worker: claude-code (legacy mother)."
+    },
+    "to": {
+      "type": "string",
+      "description": "Intended recipient (informational).",
+      "examples": ["claude-code", "noesis-praxis"]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp. Used for read cursors."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["message", "ack", "milestone", "summary"],
+      "default": "message"
+    },
+    "message": {
+      "type": "string",
+      "maxLength": 5000,
+      "description": "Message body."
+    }
+  },
+  "additionalProperties": false
+}

@@ -33,6 +33,16 @@ approval requirements.
 **Noesis ClawDev must not independently authorize** external side effects,
 durable configuration modifications, provider switching, or R2/R3 execution.
 
+**Claude Code bridge lane.** Noesis Praxis may delegate bounded development
+tasks to on-demand Claude Code sessions through the Claude Code bridge
+(`agents/claude-code-worker`, `contracts/bridge/`). Bridge sessions are
+ephemeral: one bounded task per inbox task file, explicit scope, structured
+result in `outbox/`, no standing authority. The bridge does **not** add a third
+persistent agent and does not change ClawDev's role; it is an alternative
+on-demand transport for subscription-frontier development work. Claude Code
+sessions must not self-authorize external side effects, durable configuration,
+provider changes, or R2/R3 execution (same hard boundary as ClawDev).
+
 ## 2. Governance ownership
 
 - `noesis-agent-stack` owns policy: models.yaml, model-aliases.yaml,

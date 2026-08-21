@@ -25,6 +25,7 @@ The core pattern is:
 - **OpenClaw Research Agent** as the evidence service that gathers signals, preserves source trails, and produces structured operator-facing artifacts.
 - **OpenClaw Subconscious Agent** as the bounded pattern-noticer that explores ideas, maintains a room of ongoing thoughts, and emits build signals without gaining execution authority.
 - **Hermes execution profiles** such as Coder, QA, Content, Ops, and other downstream agents that consume approved handoffs rather than raw external noise.
+- **Claude Code bridge** as an on-demand development lane: Noesis Praxis writes bounded dev tasks into the bridge `inbox/`, a Claude Code session ("Mother" role) executes and returns structured results to `outbox/`. See `agents/claude-code-worker/` and `contracts/bridge/`.
 
 ## Design principles
 
@@ -43,6 +44,7 @@ The core pattern is:
 | Research | OpenClaw | Collect, score, structure, and route evidence | Source plan, prior vault state, shared workspace context | Findings, claims, sources, dossiers, operator briefs, handoffs |
 | Subconscious | OpenClaw | Notice recurring patterns, maintain idea room, emit build signals | Research snapshots, lessons, retrospectives, room memory | Walk notes, signal logs, signal board, intent drafts |
 | Coder | Hermes Agent | Implement approved work | Approved plan, build handoff, verified context | Code, services, scripts, integrations |
+| Claude Code Worker | Claude Code (bridge) | On-demand bounded dev: code changes, patches, reviews, new files | Bridge task (`inbox/`) | Bridge result (`outbox/`) |
 | QA | Hermes Agent | Validate builds and evidence-linked outputs | Build artifacts, validation rules, evidence trails | Audit notes, test results, release gates |
 | Content / Ops / Treasury | Hermes Agent | Act on approved domain handoffs | Approved dossiers and lane-specific handoffs | Domain outputs, reports, operational actions |
 
@@ -87,6 +89,7 @@ This repository is intended to hold:
 - Shared policies, schemas, and handoff contracts.
 - OpenClaw worker definitions for Research and Subconscious.
 - Hermes profile configurations for Main, Coder, QA, and downstream execution lanes.
+- A Claude Code worker profile (`agents/claude-code-worker/`) and bridge protocol (`contracts/bridge/`) for on-demand development delegation.
 - Vault and room layouts for durable state.
 - Scheduling, validation, health checks, and recovery procedures.
 - Broker or protocol glue for typed interaction between Hermes and OpenClaw workers.

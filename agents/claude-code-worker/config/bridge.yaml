@@ -1,0 +1,68 @@
+# Claude Code Bridge — Configuration Reference
+# Canonical bridge layout for the Noesis stack. Deployment is owned by
+# noesis-ansible (role claude_code_bridge); this file documents the contract so
+# the agent-stack policy and the deployed role stay in sync.
+#
+# Version: 1.0.0 · Updated: 2026-08-21
+
+bridge:
+  # Hermes-side default: $HERMES_HOME/claude-bridge -> ~/.hermes/claude-bridge
+  dir: "~/.hermes/claude-bridge"
+  dirs:
+    - inbox        # tasks written by Noesis Praxis for Claude Code
+    - outbox       # results written by Claude Code for Noesis Praxis
+    - active       # processed outbox files (consumed by Hermes)
+    - archive      # compressed channel history (gz, 7-day retention)
+  files:
+    - channel.jsonl        # messages both directions (append-only JSONL)
+    - .last_read           # Hermes read cursor (ISO-8601 UTC timestamp)
+    - .mother_last_read    # Claude Code read cursor
+  channel:
+    max_lines: 200         # compress when channel exceeds this
+    keep_recent_lines: 50
+    archive_retention_days: 7
+  from_ids:
+    supervisor: [noesis-praxis, evey, hermes]   # accepted sender identifiers
+    worker: [claude-code, mother]               # accepted Claude Code identifiers
+
+message_format:
+  from: string          # noesis-praxis | evey | claude-code | mother
+  to: string
+  timestamp: ISO8601_UTC
+  type: message
+  message: string
+
+task_format:            # inbox/{task_id}.yaml
+  type: enum            # code-change | review | research | patch | new-file
+  priority: enum        # low | normal | high
+  created_by: string    # evey (current plugin) | noesis-praxis (canonical)
+  created_at: ISO8601_UTC
+  description: string   # required objective
+  context: string       # optional: file paths, errors, constraints
+
+result_format:          # outbox/{task_id}.result.yaml
+  task_id: string
+  status: enum          # completed | failed | blocked | needs_clarification
+  completed_at: ISO8601_UTC
+  summary: string
+  artifacts: list       # paths to files created/changed
+  test_results:         # {passed, failed, skipped}
+    passed: int
+    failed: int
+    skipped: int
+  failure_classification: enum  # none | timeout | credential | tool_error | policy_block | validation | other
+  notes: string
+
+hermes_side:
+  plugin_dir: "~/.hermes/plugins/evey-bridge"
+  tools:
+    - claude_bridge_task      # write task YAML into inbox/
+    - claude_bridge_message   # append message to channel.jsonl
+    - claude_bridge_check     # read outbox/ (move to active/) + new channel messages
+
+claude_code_side:
+  hook: "~/.claude/hooks/noesis-bridge-check.py"
+  hook_events: [UserPromptSubmit, Stop]
+  skills:
+    - "~/.claude/skills/noesis-loop"
+    - "~/.claude/skills/noesis-status"

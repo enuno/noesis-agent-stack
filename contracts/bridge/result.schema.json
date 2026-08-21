@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/bridge/result.schema.json",
+  "title": "BridgeTaskResult",
+  "description": "Result file written by the Claude Code worker into the bridge outbox/ directory, named {task_id}.result.yaml. Collected by Noesis Praxis via claude_bridge_check and moved to active/.",
+  "type": "object",
+  "required": ["task_id", "status", "completed_at", "summary"],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "description": "Task identifier, matching the inbox task file name."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["completed", "failed", "blocked", "needs_clarification"]
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 5000,
+      "description": "What was done, in plain language."
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Paths to files created or changed."
+    },
+    "test_results": {
+      "type": "object",
+      "properties": {
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "failure_classification": {
+      "type": "string",
+      "enum": ["none", "timeout", "credential", "tool_error", "policy_block", "validation", "other"],
+      "default": "none"
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 5000,
+      "description": "Anything the supervisor must know."
+    }
+  },
+  "additionalProperties": false
+}

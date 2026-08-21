@@ -24,7 +24,7 @@
     "worker": {
       "type": "string",
       "description": "Target worker profile.",
-      "enum": ["research-openclaw", "subconscious-openclaw", "coder", "qa", "content", "ops", "treasury"]
+      "enum": ["research-openclaw", "subconscious-openclaw", "coder", "qa", "content", "ops", "treasury", "claude-code-worker"]
     },
     "mode": {
       "type": "string",

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/bridge/task.schema.json",
+  "title": "BridgeTask",
+  "description": "Task file written by Noesis Praxis (Hermes, via claude_bridge_task) into the bridge inbox/ directory for the Claude Code development worker. One file per task, named {task_id}.yaml.",
+  "type": "object",
+  "required": ["type", "priority", "created_by", "created_at", "description"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["code-change", "review", "research", "patch", "new-file"],
+      "description": "Kind of development task."
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "normal", "high"],
+      "default": "normal"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Writing agent. Current deployed plugin emits 'evey'; canonical Noesis value is 'noesis-praxis'.",
+      "examples": ["evey", "noesis-praxis"]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC creation timestamp."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 5000,
+      "description": "Plain-language objective for the Claude Code worker. Must be specific and actionable."
+    },
+    "context": {
+      "type": "string",
+      "maxLength": 10000,
+      "description": "Optional structured context: file paths, error messages, constraints."
+    }
+  },
+  "additionalProperties": false
+}
