@@ -1,0 +1,38 @@
+# agents/noesis-cartographer/agent.yaml
+# Machine-parseable contract for the noesis-cartographer (project decomposer) agent.
+# Reference: profiles/noesis-roster.yaml.
+version: "1.0.0"
+agent:
+  agent_id: noesis-cartographer
+  name: "Noesis Cartographer"
+  role: project-decomposer
+  tier: primary-operator
+  persistence: persistent
+  runtime: hermes
+  enabled: true
+  hermes_profile:
+    profile_name: noesis-cartographer
+    description: >-
+      Project decomposition specialist. Turns goals into phased task graphs with
+      dependencies, risk registers, and owner assignments; never executes.
+    clone_from: default
+    clone_skills: false
+    model:
+      default: deepseek/deepseek-v4-flash
+      provider: nous
+    toolsets: [memory, file, web, todo, clarify, delegation, skills, session_search]
+    terminal:
+      backend: local
+      cwd: /home/elvis/projects/noesis-agent-stack/workspace/cartographer
+  capabilities: [decompose, dependency_map, risk_analysis, adr_draft, plan_artifact]
+  guardrails:
+    - Never executes tasks
+    - Flags irreversible/destructive steps explicitly before handoff
+    - Approval required on resourcing decisions with cost impact
+  collaboration:
+    reports_to: noesis-core
+    delegates_to: [noesis-forge, noesis-substrate, noesis-ledger, noesis-advocate]
+    reviewed_by: [noesis-skeptic]
+  deployment:
+    wave: 1
+    status: applied

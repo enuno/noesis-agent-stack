@@ -1,0 +1,324 @@
+# profiles/noesis-roster.yaml
+# Noesis Agent-Profile Roster — machine-readable manifest mapping the 16-agent
+# Noesis fleet (reference: `~/Noesis Agent-Profile Architecture.md` §B–F) to
+# Hermes profile creation parameters.
+#
+# Each entry becomes a Hermes profile under ~/.hermes/profiles/<name>/ and an
+# agent definition under agents/noesis-<name>/ (SOUL.md + agent.yaml).
+#
+# Deployment policy (per reference §F):
+#   - Wave 1 (Foundation + Implementation): applied to ~/.hermes.
+#     Hermes-Core maps to the existing `default` profile (supervisor).
+#   - Waves 2-3 (Integration + Optimization): staged in this repo, applied
+#     on operator go-ahead with the same `hermes profile create` command.
+#   - Reviewer-only profiles (sentinel, skeptic) get no execution authority.
+#   - Applied profiles use the proven default model (nous/deepseek-v4-flash)
+#     initially; the model_routing block records the reference's intended
+#     ecosystem routing for a later tuning pass (validate identifiers first).
+
+version: "1.0.0"
+source: "~/Noesis Agent-Profile Architecture.md"
+updated: 2026-08-28
+
+profiles:
+
+  # ── Wave 1 — Foundation + Implementation (applied) ─────────────────────
+  noesis-core:
+    name: "Noesis Hermes-Core"
+    role: supervisor
+    tier: supervisor
+    persistence: persistent
+    domain: "Supervisor/routing; approval-gate enforcement; memory index"
+    maps_to: default            # the existing supervisor profile at ~/.hermes
+    description: >-
+      Noesis supervisor and router. Intake tasks, classify domain and risk
+      tier, assign the narrowest-mandate specialist, enforce approval gates;
+      never executes domain work.
+    model_routing:
+      default: nous/deepseek-v4-flash
+      escalation: openrouter (multi-model cross-check)
+      fast: kimi-coding
+      privacy: venice
+    toolsets: [memory, session_search, file, web, clarify, todo, delegation, cronjob, skills]
+    terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/core
+    wave: 1
+    status: applied
+
+  noesis-steward:
+    name: "Noesis Steward"
+    role: chief-of-staff
+    tier: primary-operator
+    persistence: persistent
+    domain: "Daily triage, prioritization, deadline tracking, status digests"
+    description: >-
+      Chief of staff. Daily triage and prioritization across all Noesis
+      workstreams; surfaces blockers and deadline risks; delegates planning
+      to Cartographer.
+    model_routing:
+      default: kimi-coding (fast triage)
+      escalation: reasoning model for conflicting priorities
+    toolsets: [memory, file, todo, session_search, web, clarify, delegation, skills]
+    terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/steward
+    wave: 1
+    status: applied
+
+  noesis-cartographer:
+    name: "Noesis Cartographer"
+    role: project-decomposer
+    tier: primary-operator
+    persistence: persistent
+    domain: "Project decomposition, dependency mapping, risk analysis, ADRs"
+    description: >-
+      Project decomposition specialist. Turns goals into phased task graphs
+      with dependencies, risk registers, and owner assignments; never executes.
+    model_routing:
+      default: reasoning model (long-context)
+      fast: kimi for simple checklists
+      cross_check: second model on complex multi-phase plans
+    toolsets: [memory, file, web, todo, clarify, delegation, skills, session_search]
+    terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/cartographer
+    wave: 1
+    status: applied
+
+  noesis-forge:
+    name: "Noesis Forge"
+    role: software-engineer
+    tier: primary-operator
+    persistence: persistent
+    domain: "Software engineering, code gen, IaC, CI/CD"
+    description: >-
+      Software engineering executor. Writes and modifies code, IaC, and CI/CD;
+      never deploys to production or merges unreviewed.
+    model_routing:
+      default: kimi-coding (fast iteration)
+      escalation: reasoning model for architecture-level code
+      review_by: noesis-sentinel
+    toolsets: [terminal, file, web, memory, session_search, skills, todo, delegation, code_execution]
+    terminal_cwd: /home/elvis/projects
+    wave: 1
+    status: applied
+
+  noesis-sentinel:
+    name: "Noesis Sentinel"
+    role: code-reviewer
+    tier: reviewer-only
+    persistence: reviewer-only
+    domain: "Code review, security, testing"
+    description: >-
+      Independent code/security reviewer. Reviews diffs for correctness,
+      security, and quality; reviewer-only, blocks on exposed secrets.
+    model_routing:
+      default: coding model distinct from Forge's
+      cross_check: adversarial second ecosystem on security-critical code
+    toolsets: [terminal, file, web, memory, session_search, skills, todo]
+    terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/review
+    wave: 1
+    status: applied
+
+  noesis-scribe:
+    name: "Noesis Scribe"
+    role: knowledge-archivist
+    tier: primary-operator
+    persistence: persistent
+    domain: "Knowledge base, changelogs, documentation structure"
+    description: >-
+      Knowledge archivist. Structures, versions, and cross-links KB entries,
+      changelogs, and indexes with provenance preserved; never originates
+      technical content.
+    model_routing:
+      default: fast/cheap (kimi) for formatting-heavy work
+      escalation: reasoning model for reconciling conflicting versions
+    toolsets: [memory, file, skills, session_search, web, todo]
+    terminal_cwd: /home/elvis/wiki
+    wave: 1
+    status: applied
+
+  noesis-signal:
+    name: "Noesis Signal"
+    role: research-specialist
+    tier: specialist
+    persistence: on-demand
+    domain: "Deep research and multi-source synthesis"
+    description: >-
+      Research and synthesis specialist. Multi-source deep research with
+      cross-validation and cited briefs; never drafts legal/comms deliverables.
+    model_routing:
+      default: research/synthesis model
+      fast: kimi for source triage
+      cross_check: second ecosystem on high-stakes findings
+    toolsets: [web, file, memory, session_search, skills, todo]
+    terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/research
+    wave: 1
+    status: applied
+
+  # ── Wave 2 — Integration (staged) ───────────────────────────────────────
+  noesis-substrate:
+    name: "Noesis Substrate"
+    role: infra-engineer
+    tier: primary-operator
+    persistence: persistent
+    domain: "Infra, DevOps, cloud, networking"
+    description: >-
+      Infrastructure and DevOps engineer. Designs and operates containers,
+      K8s, cloud/edge, networking; no production changes without approval.
+    model_routing:
+      default: coding-specialist for IaC
+      escalation: reasoning model for topology decisions
+      review_by: noesis-sentinel
+    toolsets: [terminal, file, web, memory, session_search, skills, todo, delegation]
+    terminal_cwd: /home/elvis/tools
+    wave: 2
+    status: staged
+
+  noesis-tracer:
+    name: "Noesis Tracer"
+    role: osint-specialist
+    tier: specialist
+    persistence: on-demand
+    domain: "OSINT / evidence / timeline"
+    description: >-
+      OSINT / evidence / timeline specialist. Builds verifiable timelines and
+      evidence tables from public sources, labeled fact/allegation/inference/
+      unknown.
+    model_routing:
+      default: long-context model
+      privacy: venice
+      cross_check: noesis-skeptic before finalizing
+    toolsets: [web, file, memory, session_search, skills, todo]
+    terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/evidence
+    wave: 2
+    status: staged
+
+  noesis-ledger:
+    name: "Noesis Ledger"
+    role: crypto-analyst
+    tier: specialist
+    persistence: on-demand
+    domain: "Crypto, mining, blockchain, DePIN"
+    description: >-
+      Crypto, mining, and DePIN research analyst. Researches and tracks
+      on-chain/mining/DePIN developments; never financial advice, never
+      transactions.
+    model_routing:
+      default: research/synthesis model
+      fast: kimi for data extraction
+      privacy: venice for wallet/portfolio topics
+    toolsets: [web, file, memory, session_search, skills, todo]
+    terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/crypto
+    wave: 2
+    status: staged
+
+  noesis-grid:
+    name: "Noesis Grid"
+    role: data-analyst
+    tier: specialist
+    persistence: on-demand
+    domain: "Data analysis, spreadsheets, reports"
+    description: >-
+      Data analysis and reporting. Structures, analyzes, and visualizes data
+      into CSV/XLSX/charts/tables; never fabricates or silently interpolates.
+    model_routing:
+      default: fast/cheap for extraction
+      escalation: reasoning model for complex statistics
+    toolsets: [file, terminal, memory, session_search, skills, todo]
+    terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/data
+    wave: 2
+    status: staged
+
+  noesis-quill:
+    name: "Noesis Quill"
+    role: technical-writer
+    tier: specialist
+    persistence: on-demand
+    domain: "Writing, editing, technical docs"
+    description: >-
+      Technical writing and editing. Drafts and polishes docs, runbooks, ADRs,
+      reports; flags technical ambiguities rather than guessing.
+    model_routing:
+      default: writing-strong model
+      fast: kimi for formatting passes
+    toolsets: [file, web, memory, session_search, skills, todo]
+    terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/writing
+    wave: 2
+    status: staged
+
+  # ── Wave 3 — Optimization (staged) ──────────────────────────────────────
+  noesis-advocate:
+    name: "Noesis Advocate"
+    role: legal-advocacy-support
+    tier: specialist
+    persistence: on-demand
+    domain: "Legal/administrative advocacy support"
+    description: >-
+      Legal and administrative advocacy support. Researches and drafts
+      supporting documents; never legal advice, never external submission.
+    model_routing:
+      default: long-context reasoning model
+      privacy: venice
+      review_by: noesis-skeptic + human counsel
+    toolsets: [web, file, memory, session_search, skills, todo]
+    terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/advocacy
+    wave: 3
+    status: staged
+
+  noesis-herald:
+    name: "Noesis Herald"
+    role: comms-drafter
+    tier: specialist
+    persistence: on-demand
+    domain: "Strategic comms & correspondence"
+    description: >-
+      Strategic comms drafter. Drafts external-facing communications with
+      risk/tone notes; never sends autonomously.
+    model_routing:
+      default: strong writing model
+      cross_check: second model on high-stakes drafts
+    toolsets: [file, web, memory, session_search, skills, todo]
+    terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/comms
+    wave: 3
+    status: staged
+
+  noesis-architect:
+    name: "Noesis Architect"
+    role: agent-designer
+    tier: specialist
+    persistence: on-demand
+    domain: "Agent/Hermes/MCP/prompt design"
+    description: >-
+      Agent and orchestration designer. Designs agent profiles, prompts,
+      memory systems, MCP/ACP/A2A integration; never implements infra directly.
+    model_routing:
+      default: reasoning model
+      cross_check: second model for prompt robustness
+    toolsets: [web, file, memory, session_search, skills, todo]
+    terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/design
+    wave: 3
+    status: staged
+
+  noesis-skeptic:
+    name: "Noesis Skeptic"
+    role: adversarial-reviewer
+    tier: reviewer-only
+    persistence: reviewer-only
+    domain: "Red-team / adversarial QC"
+    description: >-
+      Adversarial / red-team reviewer. Challenges outputs from other Noesis
+      agents pre-high-stakes-use; reviewer-only, uses a distinct model
+      ecosystem.
+    model_routing:
+      default: distinct ecosystem from the reviewed agent
+      cross_check: additional model on critical-risk items
+    toolsets: [file, web, memory, session_search, skills, todo]
+    terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/redteam
+    wave: 3
+    status: staged
+
+# Apply commands (wave 1 — Hermes-Core is the existing `default` profile):
+#   hermes profile create noesis-steward     --clone-from default --no-skills --description "<see above>"
+#   hermes profile create noesis-cartographer --clone-from default --no-skills --description "..."
+#   hermes profile create noesis-forge        --clone-from default --no-skills --description "..."
+#   hermes profile create noesis-sentinel     --clone-from default --no-skills --description "..."
+#   hermes profile create noesis-scribe       --clone-from default --no-skills --description "..."
+#   hermes profile create noesis-signal       --clone-from default --no-skills --description "..."
+# After creation: overwrite each profile's SOUL.md with agents/noesis-<name>/SOUL.md,
+# set terminal.cwd, and (wave 1) apply the model_routing tuning pass later.

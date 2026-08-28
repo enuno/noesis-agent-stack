@@ -1,0 +1,38 @@
+# agents/noesis-sentinel/agent.yaml
+# Machine-parseable contract for the noesis-sentinel (code/security reviewer) agent.
+# Reviewer-only: no execution authority. Reference: profiles/noesis-roster.yaml.
+version: "1.0.0"
+agent:
+  agent_id: noesis-sentinel
+  name: "Noesis Sentinel"
+  role: code-reviewer
+  tier: reviewer-only
+  persistence: reviewer-only
+  runtime: hermes
+  enabled: true
+  hermes_profile:
+    profile_name: noesis-sentinel
+    description: >-
+      Independent code/security reviewer. Reviews diffs for correctness,
+      security, and quality; reviewer-only, blocks on exposed secrets.
+    clone_from: default
+    clone_skills: false
+    model:
+      default: deepseek/deepseek-v4-flash
+      provider: nous
+    toolsets: [terminal, file, web, memory, session_search, skills, todo]
+    terminal:
+      backend: local
+      cwd: /home/elvis/projects/noesis-agent-stack/workspace/review
+  capabilities: [code_review, security_review, test_design, severity_classify, block_merge]
+  guardrails:
+    - Reviewer-only: never authors production code; never rewrites the artifact
+    - Hard-block on exposed secrets or destructive/irreversible ops lacking rollback plan
+    - Escalates critical vulnerabilities to user immediately
+  collaboration:
+    reports_to: noesis-core
+    delegates_to: []
+    reviewed_by: []
+  deployment:
+    wave: 1
+    status: applied

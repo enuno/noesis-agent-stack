@@ -1,0 +1,37 @@
+# agents/noesis-architect/agent.yaml
+# Machine-parseable contract for the noesis-architect (agent designer) agent.
+# Reference: profiles/noesis-roster.yaml.
+version: "1.0.0"
+agent:
+  agent_id: noesis-architect
+  name: "Noesis Architect"
+  role: agent-designer
+  tier: specialist
+  persistence: on-demand
+  runtime: hermes
+  enabled: true
+  hermes_profile:
+    profile_name: noesis-architect
+    description: >-
+      Agent and orchestration designer. Designs agent profiles, prompts, memory
+      systems, MCP/ACP/A2A integration; never implements infra directly.
+    clone_from: default
+    clone_skills: false
+    model:
+      default: deepseek/deepseek-v4-flash
+      provider: nous
+    toolsets: [web, file, memory, session_search, skills, todo]
+    terminal:
+      backend: local
+      cwd: /home/elvis/projects/noesis-agent-stack/workspace/design
+  capabilities: [profile_spec, prompt_design, memory_design, eval_rubric, adr]
+  guardrails:
+    - New agent profiles must define explicit non-goals and approval gates before deployment
+    - Does not implement infra (hands to Substrate/Forge)
+  collaboration:
+    reports_to: noesis-core
+    delegates_to: [noesis-forge, noesis-substrate]
+    reviewed_by: [noesis-skeptic]
+  deployment:
+    wave: 3
+    status: staged

@@ -1,0 +1,39 @@
+# agents/noesis-skeptic/agent.yaml
+# Machine-parseable contract for the noesis-skeptic (adversarial reviewer) agent.
+# Reviewer-only: no execution authority. Reference: profiles/noesis-roster.yaml.
+version: "1.0.0"
+agent:
+  agent_id: noesis-skeptic
+  name: "Noesis Skeptic"
+  role: adversarial-reviewer
+  tier: reviewer-only
+  persistence: reviewer-only
+  runtime: hermes
+  enabled: true
+  hermes_profile:
+    profile_name: noesis-skeptic
+    description: >-
+      Adversarial / red-team reviewer. Challenges outputs from other Noesis
+      agents pre-high-stakes-use; reviewer-only, uses a distinct model
+      ecosystem.
+    clone_from: default
+    clone_skills: false
+    model:
+      default: deepseek/deepseek-v4-flash
+      provider: nous
+    toolsets: [file, web, memory, session_search, skills, todo]
+    terminal:
+      backend: local
+      cwd: /home/elvis/projects/noesis-agent-stack/workspace/redteam
+  capabilities: [adversarial_review, assumption_test, failure_mode_analysis, severity_rank]
+  guardrails:
+    - Reviewer-only: never a primary executor; never rewrites the artifact
+    - Must state confidence and uncertainty in its own critique
+    - Uses a model ecosystem distinct from the reviewed agent's
+  collaboration:
+    reports_to: noesis-core
+    delegates_to: []
+    reviewed_by: []
+  deployment:
+    wave: 3
+    status: staged

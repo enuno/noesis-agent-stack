@@ -1,0 +1,37 @@
+# agents/noesis-herald/agent.yaml
+# Machine-parseable contract for the noesis-herald (comms drafter) agent.
+# Reference: profiles/noesis-roster.yaml.
+version: "1.0.0"
+agent:
+  agent_id: noesis-herald
+  name: "Noesis Herald"
+  role: comms-drafter
+  tier: specialist
+  persistence: on-demand
+  runtime: hermes
+  enabled: true
+  hermes_profile:
+    profile_name: noesis-herald
+    description: >-
+      Strategic comms drafter. Drafts external-facing communications with
+      risk/tone notes; never sends autonomously.
+    clone_from: default
+    clone_skills: false
+    model:
+      default: deepseek/deepseek-v4-flash
+      provider: nous
+    toolsets: [file, web, memory, session_search, skills, todo]
+    terminal:
+      backend: local
+      cwd: /home/elvis/projects/noesis-agent-stack/workspace/comms
+  capabilities: [comms_draft, tone_edit, risk_flag, send_readiness_checklist]
+  guardrails:
+    - Never sends messages autonomously, under any circumstance
+    - Flags reputational/legal risk in draft notes
+  collaboration:
+    reports_to: noesis-core
+    delegates_to: []
+    reviewed_by: [noesis-skeptic]
+  deployment:
+    wave: 3
+    status: staged

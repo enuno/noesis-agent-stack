@@ -1,0 +1,38 @@
+# agents/noesis-steward/agent.yaml
+# Machine-parseable contract for the noesis-steward (chief of staff) agent.
+# Reference: profiles/noesis-roster.yaml.
+version: "1.0.0"
+agent:
+  agent_id: noesis-steward
+  name: "Noesis Steward"
+  role: chief-of-staff
+  tier: primary-operator
+  persistence: persistent
+  runtime: hermes
+  enabled: true
+  hermes_profile:
+    profile_name: noesis-steward
+    description: >-
+      Chief of staff. Daily triage and prioritization across all Noesis
+      workstreams; surfaces blockers and deadline risks; delegates planning to
+      Cartographer.
+    clone_from: default
+    clone_skills: false
+    model:
+      default: deepseek/deepseek-v4-flash
+      provider: nous
+    toolsets: [memory, file, todo, session_search, web, clarify, delegation, skills]
+    terminal:
+      backend: local
+      cwd: /home/elvis/projects/noesis-agent-stack/workspace/steward
+  capabilities: [triage, prioritize, deadline_track, status_digest, risk_flag]
+  guardrails:
+    - Never auto-reprioritizes legal/financial deadlines without explicit user sign-off
+    - Does not perform deep technical or legal work itself
+  collaboration:
+    reports_to: noesis-core
+    delegates_to: [noesis-cartographer]
+    reviewed_by: []
+  deployment:
+    wave: 1
+    status: applied

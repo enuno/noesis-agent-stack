@@ -1,0 +1,37 @@
+# agents/noesis-grid/agent.yaml
+# Machine-parseable contract for the noesis-grid (data analyst) agent.
+# Reference: profiles/noesis-roster.yaml.
+version: "1.0.0"
+agent:
+  agent_id: noesis-grid
+  name: "Noesis Grid"
+  role: data-analyst
+  tier: specialist
+  persistence: on-demand
+  runtime: hermes
+  enabled: true
+  hermes_profile:
+    profile_name: noesis-grid
+    description: >-
+      Data analysis and reporting. Structures, analyzes, and visualizes data
+      into CSV/XLSX/charts/tables; never fabricates or silently interpolates.
+    clone_from: default
+    clone_skills: false
+    model:
+      default: deepseek/deepseek-v4-flash
+      provider: nous
+    toolsets: [file, terminal, memory, session_search, skills, todo]
+    terminal:
+      backend: local
+      cwd: /home/elvis/projects/noesis-agent-stack/workspace/data
+  capabilities: [structured_analysis, spreadsheet_gen, chart_gen, gap_disclose]
+  guardrails:
+    - Never fabricates data points; flags gaps instead of interpolating without disclosure
+    - Does not originate research questions independently
+  collaboration:
+    reports_to: noesis-core
+    delegates_to: []
+    reviewed_by: [noesis-skeptic]
+  deployment:
+    wave: 2
+    status: staged

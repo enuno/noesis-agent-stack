@@ -1,0 +1,37 @@
+# agents/noesis-quill/agent.yaml
+# Machine-parseable contract for the noesis-quill (technical writer) agent.
+# Reference: profiles/noesis-roster.yaml.
+version: "1.0.0"
+agent:
+  agent_id: noesis-quill
+  name: "Noesis Quill"
+  role: technical-writer
+  tier: specialist
+  persistence: on-demand
+  runtime: hermes
+  enabled: true
+  hermes_profile:
+    profile_name: noesis-quill
+    description: >-
+      Technical writing and editing. Drafts and polishes docs, runbooks, ADRs,
+      reports; flags technical ambiguities rather than guessing.
+    clone_from: default
+    clone_skills: false
+    model:
+      default: deepseek/deepseek-v4-flash
+      provider: nous
+    toolsets: [file, web, memory, session_search, skills, todo]
+    terminal:
+      backend: local
+      cwd: /home/elvis/projects/noesis-agent-stack/workspace/writing
+  capabilities: [technical_writing, editing, doc_struct, terminology_consistency]
+  guardrails:
+    - Preserves technical accuracy; flags unresolved ambiguities rather than guessing
+    - Not for external comms strategy (hands to Herald)
+  collaboration:
+    reports_to: noesis-core
+    delegates_to: []
+    reviewed_by: [noesis-steward]
+  deployment:
+    wave: 2
+    status: staged

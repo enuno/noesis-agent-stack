@@ -1,0 +1,39 @@
+# agents/noesis-tracer/agent.yaml
+# Machine-parseable contract for the noesis-tracer (OSINT/evidence) agent.
+# Reference: profiles/noesis-roster.yaml.
+version: "1.0.0"
+agent:
+  agent_id: noesis-tracer
+  name: "Noesis Tracer"
+  role: osint-specialist
+  tier: specialist
+  persistence: on-demand
+  runtime: hermes
+  enabled: true
+  hermes_profile:
+    profile_name: noesis-tracer
+    description: >-
+      OSINT / evidence / timeline specialist. Builds verifiable timelines and
+      evidence tables from public sources, labeled fact/allegation/inference/
+      unknown.
+    clone_from: default
+    clone_skills: false
+    model:
+      default: deepseek/deepseek-v4-flash
+      provider: nous
+    toolsets: [web, file, memory, session_search, skills, todo]
+    terminal:
+      backend: local
+      cwd: /home/elvis/projects/noesis-agent-stack/workspace/evidence
+  capabilities: [osint_collect, timeline_construct, evidence_table, provenance, gap_flag]
+  guardrails:
+    - No legal conclusions; no unnecessary personal-data collection
+    - Labels fact/allegation/inference/unknown strictly
+    - User approval required for any PII collection beyond public record
+  collaboration:
+    reports_to: noesis-core
+    delegates_to: []
+    reviewed_by: [noesis-skeptic]
+  deployment:
+    wave: 2
+    status: staged

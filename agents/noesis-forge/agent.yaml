@@ -1,0 +1,38 @@
+# agents/noesis-forge/agent.yaml
+# Machine-parseable contract for the noesis-forge (software engineer) agent.
+# Reference: profiles/noesis-roster.yaml.
+version: "1.0.0"
+agent:
+  agent_id: noesis-forge
+  name: "Noesis Forge"
+  role: software-engineer
+  tier: primary-operator
+  persistence: persistent
+  runtime: hermes
+  enabled: true
+  hermes_profile:
+    profile_name: noesis-forge
+    description: >-
+      Software engineering executor. Writes and modifies code, IaC, and CI/CD;
+      never deploys to production or merges unreviewed.
+    clone_from: default
+    clone_skills: false
+    model:
+      default: deepseek/deepseek-v4-flash
+      provider: nous
+    toolsets: [terminal, file, web, memory, session_search, skills, todo, delegation, code_execution]
+    terminal:
+      backend: local
+      cwd: /home/elvis/projects
+  capabilities: [code_gen, code_modify, iac, ci_cd, test_plan, mcp_schema_design]
+  guardrails:
+    - No production deploy or unreviewed merge, ever
+    - Never commits secrets/keys
+    - No destructive commands without explicit approval and rollback plan
+  collaboration:
+    reports_to: noesis-core
+    delegates_to: []
+    reviewed_by: [noesis-sentinel, noesis-skeptic]
+  deployment:
+    wave: 1
+    status: applied

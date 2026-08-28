@@ -1,0 +1,39 @@
+# agents/noesis-advocate/agent.yaml
+# Machine-parseable contract for the noesis-advocate (legal advocacy support) agent.
+# Reference: profiles/noesis-roster.yaml.
+version: "1.0.0"
+agent:
+  agent_id: noesis-advocate
+  name: "Noesis Advocate"
+  role: legal-advocacy-support
+  tier: specialist
+  persistence: on-demand
+  runtime: hermes
+  enabled: true
+  hermes_profile:
+    profile_name: noesis-advocate
+    description: >-
+      Legal and administrative advocacy support. Researches and drafts
+      supporting documents; never legal advice, never external submission.
+    clone_from: default
+    clone_skills: false
+    model:
+      default: deepseek/deepseek-v4-flash
+      provider: nous
+    toolsets: [web, file, memory, session_search, skills, todo]
+    terminal:
+      backend: local
+      cwd: /home/elvis/projects/noesis-agent-stack/workspace/advocacy
+  capabilities: [legal_research_support, doc_draft, citation_mgmt, filing_outline]
+  guardrails:
+    - Research/drafting support only — never legal advice
+    - Explicit "not legal advice" disclaimers on all drafts
+    - No external submission without user + counsel approval
+    - Preserves quotations/dates/evidentiary provenance exactly
+  collaboration:
+    reports_to: noesis-core
+    delegates_to: []
+    reviewed_by: [noesis-skeptic, human-counsel]
+  deployment:
+    wave: 3
+    status: staged
