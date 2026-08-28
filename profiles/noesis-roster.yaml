@@ -168,7 +168,7 @@ profiles:
     toolsets: [terminal, file, web, memory, session_search, skills, todo, delegation]
     terminal_cwd: /home/elvis/tools
     wave: 2
-    status: staged
+    status: applied
 
   noesis-tracer:
     name: "Noesis Tracer"
@@ -187,7 +187,7 @@ profiles:
     toolsets: [web, file, memory, session_search, skills, todo]
     terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/evidence
     wave: 2
-    status: staged
+    status: applied
 
   noesis-ledger:
     name: "Noesis Ledger"
@@ -206,7 +206,7 @@ profiles:
     toolsets: [web, file, memory, session_search, skills, todo]
     terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/crypto
     wave: 2
-    status: staged
+    status: applied
 
   noesis-grid:
     name: "Noesis Grid"
@@ -223,7 +223,7 @@ profiles:
     toolsets: [file, terminal, memory, session_search, skills, todo]
     terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/data
     wave: 2
-    status: staged
+    status: applied
 
   noesis-quill:
     name: "Noesis Quill"
@@ -240,7 +240,7 @@ profiles:
     toolsets: [file, web, memory, session_search, skills, todo]
     terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/writing
     wave: 2
-    status: staged
+    status: applied
 
   # ── Wave 3 — Optimization (staged) ──────────────────────────────────────
   noesis-advocate:
@@ -259,7 +259,7 @@ profiles:
     toolsets: [web, file, memory, session_search, skills, todo]
     terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/advocacy
     wave: 3
-    status: staged
+    status: applied
 
   noesis-herald:
     name: "Noesis Herald"
@@ -276,7 +276,7 @@ profiles:
     toolsets: [file, web, memory, session_search, skills, todo]
     terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/comms
     wave: 3
-    status: staged
+    status: applied
 
   noesis-architect:
     name: "Noesis Architect"
@@ -293,7 +293,7 @@ profiles:
     toolsets: [web, file, memory, session_search, skills, todo]
     terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/design
     wave: 3
-    status: staged
+    status: applied
 
   noesis-skeptic:
     name: "Noesis Skeptic"
@@ -311,7 +311,7 @@ profiles:
     toolsets: [file, web, memory, session_search, skills, todo]
     terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/redteam
     wave: 3
-    status: staged
+    status: applied
 
 # Apply commands (wave 1 — Hermes-Core is the existing `default` profile):
 #   hermes profile create noesis-steward     --clone-from default --no-skills --description "<see above>"
