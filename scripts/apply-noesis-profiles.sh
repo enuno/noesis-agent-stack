@@ -106,8 +106,11 @@ DESC_noesis_architect="Agent and orchestration designer. Designs agent profiles,
 DESC_noesis_skeptic="Adversarial / red-team reviewer. Challenges outputs from other Noesis agents pre-high-stakes-use; reviewer-only, uses a distinct model ecosystem."
 
 # ---- path token expansion ---------------------------------------------------
-WS="$HERMES_HOME/../projects/noesis-agent-stack/workspace"
-[[ -d "$WS" ]] || WS="$HOME/projects/noesis-agent-stack/workspace"
+# Prefer the canonical workspace under $HOME; fall back to a sibling of HERMES_HOME.
+WS="$HOME/projects/noesis-agent-stack/workspace"
+if [[ ! -d "$WS" ]]; then
+  WS="$(cd "$HERMES_HOME/.." 2>/dev/null && pwd)/projects/noesis-agent-stack/workspace"
+fi
 PROJECTS="$HOME/projects"
 WIKI="$HOME/wiki"
 TOOLS="$HOME/tools"
