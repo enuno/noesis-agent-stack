@@ -189,6 +189,63 @@ After any override:
 
 ---
 
+## NoesisLab Task Delegation
+
+NoesisLab is an OpenClaw worker agent that handles stateless execution of browser, file, and system-level tasks. NoesisPraxis (Hermes) acts as the supervisor, coordinating context and memory.
+
+### Delegation Flow
+
+```
+User -> NoesisPraxis (Hermes)
+         |
+         v
+   delegate_to_openclaw(task="...", context="...")
+         |
+         v
+   HTTP POST -> OpenClaw Gateway (NoesisLab)
+         |
+         v
+   NoesisLab executes browser / shell / canvas tools
+         |
+         v
+   Returns result JSON -> NoesisPraxis
+         |
+         v
+   NoesisPraxis synthesizes final response -> User
+```
+
+### Telegram Integration
+
+NoesisLab is reachable via Telegram for bidirectional messaging:
+
+| Field | Value |
+|---|---|
+| Group Chat ID | `4862326518` |
+| NoesisLab Peer ID | `8534098707` |
+
+Configuration in `~/.hermes/config.yaml`:
+
+```yaml
+telegram:
+  allowed_chats:
+    - "4862326518"
+  allow_from:
+    - "8534098707"
+```
+
+- `allowed_chats` restricts the bot to respond only in group `4862326518`.
+- `allow_from` authorizes peer `8534098707` for DMs and group interactions.
+- Mention `@NoesisLab` or the bot handle in the group to invoke it.
+
+### Delegation Guidelines
+
+1. **Task Scope.** Keep delegated tasks bounded and stateless. Provide full context in the `context` parameter so NoesisLab does not need prior session memory.
+2. **No Self-Approval.** NoesisPraxis must never delegate safety-critical or financial actions to NoesisLab without operator approval.
+3. **Result Verification.** Treat NoesisLab outputs as untrusted until checked. Validate file paths, command outputs, and browser results before acting on them.
+4. **Failure Handling.** If NoesisLab returns an error or incomplete result, NoesisPraxis retries once with clarified instructions. Persistent failures escalate to the operator.
+
+---
+
 ## VALIDATION
 
 - [ ] You can start a sprint and verify `sprint-state.json` reflects the lock.
