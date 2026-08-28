@@ -1,0 +1,81 @@
+version: 1
+workflow:
+  name: noesis-praxis-job-application-pipeline
+  schedule:
+    - cron: "15 07 * * 1-5"
+    - cron: "15 16 * * 1-5"
+  description: >-
+    Human-in-the-loop pipeline for discovering, deduplicating, scoring, and
+    preparing job applications while keeping submission and PII disclosure
+    behind explicit per-application approval.
+
+supervisor:
+  name: Hermes-Noesis
+  duties:
+    - load_candidate_profile
+    - dispatch_discovery_workers
+    - normalize_and_deduplicate
+    - score_and_rank
+    - enforce_policy
+    - publish_digest
+    - await_human_decision
+
+workers:
+  - name: Praxis-Discovery
+    tools: [web_search, ats_fetcher, company_watchlist]
+    output: staging/job_raw.jsonl
+    permissions:
+      source_access: read_only
+      external_write: false
+  - name: Praxis-Extraction
+    tools: [job_parser, salary_parser, canonicalizer]
+    output: staging/job_normalized.jsonl
+    permissions:
+      source_access: read_only
+      external_write: false
+  - name: Praxis-Qualification
+    tools: [profile_matcher, scoring_engine]
+    output: staging/job_scored.jsonl
+    permissions:
+      source_access: read_only
+      external_write: false
+  - name: Praxis-ApplicationKit
+    tools: [resume_rag, company_research, document_renderer]
+    output: staging/application_packets/
+    permissions:
+      source_access: read_only
+      external_write: draft_only
+
+artifacts:
+  review_queue_csv: jobs_YYYY-MM-DD.csv
+  canonical_store: staging/job_canonical.jsonl
+  audit_log: staging/job_audit.jsonl
+  decisions_log: staging/job_decisions.jsonl
+
+actions:
+  export_csv:
+    requires_approval: false
+  draft_cover_letter:
+    requires_approval: false
+  draft_resume_delta:
+    requires_approval: false
+  draft_application_answers:
+    requires_approval: false
+  draft_outreach_message:
+    requires_approval: false
+  send_recruiter_message:
+    requires_approval: true
+  upload_resume:
+    requires_approval: true
+  submit_application:
+    requires_approval: true
+
+guardrails:
+  no_auto_submission: true
+  no_pii_disclosure_without_approval: true
+  redact_pii_from_logs: true
+  prohibit_salary_claims_without_source: true
+  never_fabricate_experience: true
+  require_job_url_and_description_for_drafts: true
+  require_human_approval_for_external_writes: true
+  keep_submission_endpoints_disabled: true

@@ -1,0 +1,66 @@
+version: 1
+candidate:
+  target_titles:
+    - VP Infrastructure
+    - VP Engineering
+    - Head of Infrastructure
+    - Director of AI Platform
+    - Director of AI Infrastructure
+    - Head of Agentic Systems
+    - Director of Blockchain Infrastructure
+    - VP Network Engineering
+    - CTO
+    - COO
+  target_industries:
+    - AI infrastructure
+    - agent platforms
+    - blockchain infrastructure
+    - DePIN
+    - cybersecurity
+    - edge computing
+    - distributed systems
+  compensation:
+    minimum_base_usd: 200000
+    preferred_total_comp_usd: 275000
+    allow_equity_to_bridge_gap: true
+  geography:
+    preferred:
+      - Remote US
+      - Colorado
+      - Denver metro
+    acceptable:
+      - Remote Americas
+      - Hybrid
+  hard_skills:
+    - AI agents
+    - multi-agent orchestration
+    - LLM infrastructure
+    - Kubernetes
+    - Docker
+    - cloud and edge infrastructure
+    - network architecture
+    - fiber topology
+    - blockchain
+    - DePIN
+    - Python
+    - Node.js
+    - Terraform
+    - Ansible
+    - Temporal
+    - MCP leadership
+  leadership_signals:
+    - technical strategy
+    - infrastructure ownership
+    - team leadership
+    - architecture
+    - operational excellence
+  exclusions:
+    - commission-only
+    - undisclosed contract rate
+    - mandatory relocation
+    - below-200k-base
+positioning:
+  statement: >-
+    Technical leader for AI-agent, distributed infrastructure, and blockchain / DePIN
+    systems, backed by senior telecom/network, cloud/edge, automation, and architecture
+    experience.
