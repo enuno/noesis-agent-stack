@@ -1,0 +1,11 @@
+environment: prod
+honcho:
+  workspace_id: noesis-prod
+  cloud_api:
+    enabled: true
+  reasoning:
+    queue_slo_minutes: 15
+  dreaming:
+    enabled: true
+  search:
+    workspace_search: false

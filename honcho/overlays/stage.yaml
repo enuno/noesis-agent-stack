@@ -1,0 +1,11 @@
+environment: stage
+honcho:
+  workspace_id: noesis-stage
+  cloud_api:
+    enabled: true
+  reasoning:
+    queue_slo_minutes: 15
+  dreaming:
+    enabled: true
+  search:
+    workspace_search: false

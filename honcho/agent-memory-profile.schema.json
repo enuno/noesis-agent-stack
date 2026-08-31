@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AgentMemoryProfile",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "metadata",
+    "spec"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "noesis.ai/v1alpha1"
+    },
+    "kind": {
+      "const": "AgentMemoryProfile"
+    },
+    "metadata": {
+      "type": "object",
+      "required": [
+        "name",
+        "environment",
+        "owner"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": [
+        "identity",
+        "honcho"
+      ],
+      "properties": {
+        "identity": {
+          "type": "object",
+          "required": [
+            "agent_id",
+            "peer_id",
+            "peer_type",
+            "role",
+            "peer_card"
+          ]
+        },
+        "honcho": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

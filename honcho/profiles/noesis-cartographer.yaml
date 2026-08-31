@@ -1,0 +1,98 @@
+apiVersion: noesis.ai/v1alpha1
+kind: AgentMemoryProfile
+metadata:
+  name: noesis-cartographer
+  environment: production
+  owner: hermes-supervisor
+spec:
+  identity:
+    agent_id: ans:noesis-cartographer
+    peer_id: agent:noesis-cartographer
+    peer_type: agent
+    role: project-decomposer
+    peer_card:
+      display_name: Project decomposer and planner
+      authority_boundary: "Turn scoped work into structured workstreams and deliverables."
+      operating_scope: "builder / noesis-prod"
+      source_of_truth: Git-backed Noesis profile
+  honcho:
+    workspace_id: noesis-prod
+    cloud_api:
+      enabled: true
+      endpoint_ref: secret://honcho/api-endpoint
+      api_key_ref: secret://honcho/noesis-cartographer
+    peer:
+      create_if_missing: true
+      metadata:
+        environment: prod
+        stack: noesis-agent-stack
+        memory_class: supervised-agent
+        data_classification_max: internal
+        owner: hermes-supervisor
+        source_of_truth: git
+    sessions:
+      strategy: deterministic
+      template: "agent:noesis-cartographer:task:{task_id}"
+      max_open_sessions: 25
+      retention_class: operational
+    context:
+      session_context:
+        enabled: true
+        max_tokens: 4500
+      representation:
+        enabled: true
+        scopes:
+          - self
+          - approved-project
+        max_tokens: 2200
+      conclusions:
+        enabled: true
+        top_k: 10
+        min_evidence_quality: attributed
+    reasoning:
+      enabled: true
+      conclusion_policy: evidence-linked
+      contradiction_policy: retain-and-supersede
+      queue_slo_minutes: 15
+    dreaming:
+      enabled: false
+      approval_required: true
+      collection_scope: self-and-approved-projects
+      schedule: "0 3 * * 0"
+      budget:
+        max_runs_per_week: 1
+        max_messages_per_run: 500
+    search:
+      peer_search: true
+      session_search: true
+      workspace_search: false
+      allowed_metadata_filters:
+        - project_id
+        - task_id
+        - classification
+        - source_system
+    chat:
+      enabled: false
+      allowed_callers:
+        - hermes-supervisor
+    files:
+      uploads_enabled: false
+      allow_mime_types: []
+      max_file_size_mb: 0
+    mcp:
+      mempalace:
+        enabled: true
+        tool_allowlist:
+          - memory.read_scoped
+          - memory.write_attributed
+          - memory.search_scoped
+          - memory.queue_status
+    security:
+      least_privilege: true
+      redact_secrets: true
+      write_audit_events: true
+      human_approval_for:
+        - cross_workspace_read
+        - external_data_ingest
+        - dream_schedule_change
+        - destructive_memory_action

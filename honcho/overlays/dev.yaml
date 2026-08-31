@@ -1,0 +1,11 @@
+environment: dev
+honcho:
+  workspace_id: noesis-dev
+  cloud_api:
+    enabled: true
+  reasoning:
+    queue_slo_minutes: 20
+  dreaming:
+    enabled: false
+  search:
+    workspace_search: false

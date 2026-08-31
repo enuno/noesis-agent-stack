@@ -1,0 +1,50 @@
+# Honcho topology for Noesis
+apiVersion: noesis.ai/v1alpha1
+kind: HonchoTopology
+metadata:
+  name: noesis-honcho-topology
+  environment: production
+  owner: hermes-supervisor
+spec:
+  workspaces:
+    - id: noesis-dev
+      purpose: development
+      retention: ephemeral
+      owner: hermes-supervisor
+    - id: noesis-stage
+      purpose: staging
+      retention: operational
+      owner: hermes-supervisor
+    - id: noesis-prod
+      purpose: production
+      retention: operational
+      owner: hermes-supervisor
+    - id: noesis-research
+      purpose: isolated research
+      retention: research
+      owner: noesis-signal
+    - id: noesis-sandbox
+      purpose: untrusted inputs and experiments
+      retention: ephemeral
+      owner: hermes-supervisor
+  peers:
+    - peer_id: human:elvis
+      peer_type: human
+      workspace_id: noesis-prod
+      owner: elvis
+    - peer_id: project:noesis-agent-stack
+      peer_type: project
+      workspace_id: noesis-prod
+      owner: hermes-supervisor
+    - peer_id: supervisor:noesis-core
+      peer_type: agent
+      workspace_id: noesis-prod
+      owner: hermes-supervisor
+  access:
+    private_agent_memory: true
+    shared_operational_memory: true
+    task_local_sessions: true
+    prohibited:
+      - fleet_wide_private_representation_sharing
+      - automatic_cross_workspace_reads
+      - unreviewed_research_promotion

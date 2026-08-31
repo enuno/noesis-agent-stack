@@ -1,0 +1,39 @@
+# Mempalace MCP policy for Noesis Honcho access
+apiVersion: noesis.ai/v1alpha1
+kind: MempalacePolicy
+metadata:
+  name: noesis-honcho-mcp
+  environment: production
+  owner: hermes-supervisor
+spec:
+  transport:
+    type: stdio
+    trust_boundary: local-host
+  honcho:
+    endpoint_ref: secret://honcho/api-endpoint
+    api_key_ref: secret://honcho/shared-gateway
+  tool_allowlist:
+    - memory.read_scoped
+    - memory.write_attributed
+    - memory.search_scoped
+    - memory.context
+    - memory.conclusion_search
+    - memory.queue_status
+    - memory.file_ingest
+    - memory.chat
+  agent_authorization:
+    hermes-supervisor:
+      can_read: [workspace, peer, session, conclusion, representation]
+      can_write: [session, conclusion, representation, peer_card]
+    noesis-scribe:
+      can_read: [peer, session, conclusion, representation]
+      can_write: [session, conclusion, representation]
+    noesis-workers:
+      can_read: [peer, session]
+      can_write: [session]
+  failure_modes:
+    - unauthorized_scope
+    - queue_backlog
+    - dream_failure
+    - upload_policy_violation
+    - transport_unavailable
