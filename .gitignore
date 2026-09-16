@@ -221,3 +221,6 @@ __marimo__/
 workspace/
 .omc/
 backups/
+
+# Agency integration: on-demand generated Tier A specs (never commit)
+/agency/.scratch/

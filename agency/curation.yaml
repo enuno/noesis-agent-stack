@@ -1,0 +1,224 @@
+# agency/curation.yaml — Tier A curation (the 18 live Agency profiles)
+# Consensus plan: .omh/plans/ralplan-agency-integration.md (Round 2).
+# This file is the SOLE roster source for converter, validator, apply script,
+# and Ansible. Do not add agents without a recorded routing smoke test
+# (ROUTING-SMOKE.md outcome + validator cosine < 0.85 vs existing profiles).
+#
+# Selection principles applied (operator-curated, 2026-09-16):
+#   1. One agent per division; exactly 18 total (8 wave-1 core, 10 wave-2).
+#   2. Advisory / reviewer-class picks only — no autonomous payment,
+#      execution, or outbound-action personas.
+#   3. Complement, not duplicate, the 16 noesis-* profiles (see rationale).
+#   4. `engineering-code-reviewer` was REJECTED despite being the division
+#      flagship: noesis-sentinel already holds the code-reviewer mandate.
+
+version: "1.0.0"
+updated: 2026-09-16
+pin: ad9264e309bd5e5422c04784372d7841b1e5d604
+
+profile_prefix: agency
+model_lane:
+  default: kimi-k2.7-code        # proven live lane (nous key dead 2026-09-16)
+  provider: kimi-coding
+
+# Shared advisory posture — every Tier A profile (open-questions.md ruling).
+risk_defaults: &risk_defaults
+  privileged_tools: false
+  secret_access: false
+  autonomous_execution: false
+  human_approval_required:
+    - production_changes
+    - credential_actions
+    - financial_actions
+    - external_communications
+
+reporting:
+  reports_to: noesis-core
+  delegates_to: []
+  reviewed_by: [noesis-skeptic]
+
+agents:
+
+  # ── Wave 1 — core operational divisions (8) ────────────────────────────
+
+  - slug: engineering-software-architect
+    source: engineering/engineering-software-architect.md
+    division: engineering
+    wave: 1
+    router_slug: software-architect
+    risk: *risk_defaults
+    rationale: >-
+      System design / DDD advisory. No noesis profile owns software
+      architecture review; noesis-architect designs *agents*, not systems.
+
+  - slug: research-synthesist
+    source: research/research-synthesist.md
+    division: research
+    wave: 1
+    router_slug: research-synthesist
+    risk: *risk_defaults
+    rationale: >-
+      Sole research-division agent (forced pick). Evidence synthesis and
+      literature review complements noesis-signal (signal recon / briefs).
+
+  - slug: security-architect
+    source: security/security-architect.md
+    division: security
+    wave: 1
+    router_slug: security-architect
+    risk: *risk_defaults
+    rationale: >-
+      Threat modeling / secure-by-design advisory. No noesis security-architect
+      role exists (sentinel = code review, tracer = OSINT, skeptic = red-team).
+
+  - slug: product-manager
+    source: product/product-manager.md
+    division: product
+    wave: 1
+    router_slug: product-manager
+    risk: *risk_defaults
+    rationale: >-
+      Full-lifecycle product advisory. Distinct from noesis-steward (internal
+      triage) and noesis-cartographer (plan decomposition).
+
+  - slug: finance-financial-analyst
+    source: finance/finance-financial-analyst.md
+    division: finance
+    wave: 1
+    router_slug: financial-analyst
+    risk: *risk_defaults
+    rationale: >-
+      Modeling / forecasting advisory. Deliberately NOT the bookkeeper or
+      CFO personas (autonomous finance actions rejected at curation).
+
+  - slug: project-manager-senior
+    source: project-management/project-manager-senior.md
+    division: project-management
+    wave: 1
+    router_slug: senior-project-manager
+    risk: *risk_defaults
+    rationale: >-
+      Spec-to-task delivery tracking. Overlap with noesis-cartographer is
+      decomposition-vs-delivery; flagged for the routing smoke test.
+
+  - slug: sales-deal-strategist
+    source: sales/sales-deal-strategist.md
+    division: sales
+    wave: 1
+    router_slug: deal-strategist
+    risk: *risk_defaults
+    rationale: >-
+      MEDDPICC qualification / positioning advisory. No outbound-execution
+      authority (noesis-herald drafts comms; nothing owns deal strategy).
+
+  - slug: marketing-seo-specialist
+    source: marketing/marketing-seo-specialist.md
+    division: marketing
+    wave: 1
+    router_slug: seo-specialist
+    risk: *risk_defaults
+    rationale: >-
+      Technical SEO advisory for stack/web properties. Complements, not
+      duplicates, noesis-herald (comms drafting).
+
+  # ── Wave 2 — remaining divisions (10) ──────────────────────────────────
+
+  - slug: academic-statistician
+    source: academic/academic-statistician.md
+    division: academic
+    wave: 2
+    router_slug: statistician
+    risk: *risk_defaults
+    rationale: >-
+      Quantitative methods / experimental design. Complements noesis-grid
+      (data analysis and reporting).
+
+  - slug: design-ui-finish-gate-reviewer
+    source: design/design-ui-finish-gate-reviewer.md
+    division: design
+    wave: 2
+    router_slug: ui-finish-gate-reviewer
+    risk: *risk_defaults
+    rationale: >-
+      Reviewer-class UI gate (anti-generic-UI). No design role in the noesis
+      fleet; matches the stack's reviewer-first posture.
+
+  - slug: game-designer
+    source: game-development/game-designer.md
+    division: game-development
+    wave: 2
+    router_slug: game-designer
+    risk: *risk_defaults
+    rationale: >-
+      Systems/mechanics design advisory; division flagship. No noesis overlap.
+
+  - slug: gis-technical-consultant
+    source: gis/gis-technical-consultant.md
+    division: gis
+    wave: 2
+    router_slug: technical-consultant
+    risk: *risk_defaults
+    rationale: >-
+      Strategic GIS advisory (gap analysis, solution shaping) over the
+      hands-on operator picks; advisory posture.
+
+  - slug: healthcare-clinical-evidence-agent
+    source: healthcare/healthcare-clinical-evidence-agent.md
+    division: healthcare
+    wave: 2
+    router_slug: clinical-evidence-agent
+    risk: *risk_defaults
+    rationale: >-
+      Clinical evidence-standards framework. Strongest healthcare pick for
+      an advisory fleet (not the sovereign-mandate or founder-strategy ones).
+
+  - slug: paid-media-auditor
+    source: paid-media/paid-media-auditor.md
+    division: paid-media
+    wave: 2
+    router_slug: paid-media-auditor
+    risk: *risk_defaults
+    rationale: >-
+      Auditor-class (reviewer posture) across Google/Microsoft/Meta ads.
+      No noesis overlap.
+
+  - slug: xr-interface-architect
+    source: spatial-computing/xr-interface-architect.md
+    division: spatial-computing
+    wave: 2
+    router_slug: xr-interface-architect
+    risk: *risk_defaults
+    rationale: >-
+      Spatial interaction strategy over the platform-specific engineers;
+      advisory posture.
+
+  - slug: specialized-codebase-archaeologist
+    source: specialized/specialized-codebase-archaeologist.md
+    division: specialized
+    wave: 2
+    router_slug: codebase-archaeologist
+    risk: *risk_defaults
+    rationale: >-
+      Multi-session drift detection across agent-touched codebases.
+      Complements noesis-scout (recon) and noesis-verifier.
+
+  - slug: support-infrastructure-maintainer
+    source: support/support-infrastructure-maintainer.md
+    division: support
+    wave: 2
+    router_slug: infrastructure-maintainer
+    risk: *risk_defaults
+    rationale: >-
+      Reliability/performance advisory. noesis-substrate builds infra;
+      this audits and recommends (advisory-vs-operator split).
+
+  - slug: testing-reality-checker
+    source: testing/testing-reality-checker.md
+    division: testing
+    wave: 2
+    router_slug: reality-checker
+    risk: *risk_defaults
+    rationale: >-
+      Evidence-based certification gate ("default NEEDS WORK"). Reinforces
+      the fleet's reviewer-first posture; distinct from noesis-skeptic
+      (adversarial reasoning, not QA evidence).
