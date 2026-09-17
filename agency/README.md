@@ -50,3 +50,77 @@ python3 agency/convert.py --check              # pin + drift + secret scan
 
 Applying to `~/.hermes/profiles/` is Phase 2 and gated behind the B2 commit
 review (operator sign-off of `curation.yaml`).
+
+## Applying profiles (Phase 2 script)
+
+```bash
+# Inspect first — never blind-apply.
+./scripts/apply-agency-profiles.sh --list
+./scripts/apply-agency-profiles.sh --home /tmp/probe --wave 1 --dry-run
+
+# Real apply (wave 1 = 8 agents). Idempotent; snapshots rollback state and
+# writes an audit record (roster/plugin sha256, rollback path).
+env HERMES_HOME=$HOME/.hermes ./scripts/apply-agency-profiles.sh \
+  --wave 1 --no-model-tuning --yes
+```
+
+Flags: `--home DIR` (default `$HERMES_HOME` or `~/.hermes`), `--list`,
+`--all`, `--wave N`, `--only SLUG[,SLUG...]`, `--dry-run`, `--no-model-tuning`,
+`--yes` (skip confirmation), `--check` (static preflight, exit 0/1).
+Wave membership comes from the roster rows (single source of truth —
+`curation.yaml` has no top-level `waves` key).
+
+## Applying via Ansible (Phase 3)
+
+The `hermes_profiles` role in `~/projects/noesis-ansible` drives both fleets
+from ONE var, `hermes_profiles_fleets` (see the role defaults):
+
+```bash
+ansible-playbook -i inventory/local/hosts.ini playbooks/hermes-profiles.yml --check
+ansible-playbook -i inventory/local/hosts.ini playbooks/hermes-profiles.yml
+```
+
+Agency is **default-OFF** (`noesispraxis_enable_agency_profiles: false` in
+both inventories' `group_vars/all.yml` and the role defaults). Enabling it
+asserts A7 (agency requires the noesis fleet). Role validate derives the
+expected profile set from the same fleet var (A5) and fails loudly on any
+configure-vs-validate disagreement, including a reintroduced hardcoded
+ROSTER (W1b — same pattern the pre-commit hook guards).
+
+## Maintenance cadence (O1)
+
+| Cadence | Action | Owner |
+|---------|--------|-------|
+| Every commit | Pre-commit hook: `agency/validate-specs.py` + W1b hardcoded-ROSTER grep. Install once with `./scripts/install-hooks.sh` (includes a negative self-test). | every committer |
+| Monthly, 1st, 09:00 local | Full verification: `convert.py --check`, `validate-specs.py`, apply-script `--check` on both fleets; open an issue on any non-green layer. | Elvis (operator); execution may be delegated to noesis-steward |
+
+## Re-pin estimate (W2)
+
+Bumping the pinned upstream commit takes **~30–45 minutes** end to end:
+update `SOURCE` → `convert.py --check` (drift report) → reconcile drifted
+personas against curation rationale → `validate-specs.py` → re-vendor plugin
+→ commit with the upstream compare link. Blocked automatically while any
+curated persona drifts (see Operating rule 5).
+
+## Rollback appendix (O3 / W4b)
+
+Numbered file-touch checklist — execute in order; stop at the first step
+whose precondition is not met and reassess.
+
+1. **Read the audit record.** `tail -1 $HERMES_HOME/logs/apply-audit.jsonl`
+   → note `rollback_path`, `roster_sha256`, `status`.
+2. **Freeze.** Do not re-run any apply script until rollback completes.
+3. **Snapshot current state** (paranoia, even mid-rollforward):
+   `cp -a $HERMES_HOME/profiles $HERMES_HOME/.profile-backups/pre-rollback-$(date +%Y%m%d-%H%M%S)`
+4. **Restore the snapshot** recorded in step 1:
+   `cp -a <rollback_path>/. $HERMES_HOME/profiles/`
+5. **Remove profiles created after the snapshot** (any dir in
+   `$HERMES_HOME/profiles` not present in the snapshot).
+6. **Verify fleet shape:** `hermes profile list` — expected names only
+   (noesis 15 + `default`; agency profiles only if wave apply was authorized).
+7. **Verify one canary profile loads:** `hermes profile use noesis-core`
+   (or `default`) then a trivial `hermes` command.
+8. **Record the rollback** in the audit log (append a JSONL line with
+   `status: "rollback"` and the same `roster_sha256`) and open an issue.
+9. **If the rollback was for a re-pin:** also `git revert` the pin-bump
+   commit and re-run `convert.py --check` to confirm clean state.

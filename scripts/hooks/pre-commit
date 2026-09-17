@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Pre-commit hook — agency/noseis integration guard (T16 / O1 cadence).
+#
+# Gate 1: three-layer validator (curation / generated specs / apply layer)
+#         + description-uniqueness cosine guard.
+# Gate 2: W1b — no hardcoded ROSTER array may reappear in any apply script
+#         (roster yaml files are the single declared source).
+#
+# Self-test:  scripts/hooks/pre-commit --self-test
+#   Plants a fixture containing a hardcoded ROSTER and verifies Gate 2
+#   rejects it (negative test). Exits 0 only when the guard fires.
+
+set -euo pipefail
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$REPO"
+
+W1B_PATTERN='^[[:space:]]*ROSTER=\('
+
+guard_hardcoded_roster() {
+    # Returns 0 when clean; prints offenders + returns 1 when found.
+    local offenders
+    offenders="$(grep -lE "$W1B_PATTERN" scripts/apply-*.sh 2>/dev/null || true)"
+    if [[ -n "$offenders" ]]; then
+        echo "pre-commit: FAIL — hardcoded ROSTER reintroduced (W1b):" >&2
+        echo "$offenders" >&2
+        echo "Declare profiles in a roster yaml; apply scripts read rosters." >&2
+        return 1
+    fi
+    return 0
+}
+
+self_test() {
+    local fixture="scripts/apply-hook-fixture.sh"
+    trap 'rm -f "$fixture"' EXIT
+    printf '# fixture\nROSTER=(bad-slug another-bad)\n' > "$fixture"
+    if guard_hardcoded_roster; then
+        echo "SELF-TEST FAIL: gate did not catch planted hardcoded ROSTER" >&2
+        exit 1
+    fi
+    echo "SELF-TEST PASS: planted hardcoded ROSTER rejected"
+    exit 0
+}
+
+[[ "${1:-}" == "--self-test" ]] && self_test
+
+guard_hardcoded_roster
+python3 agency/validate-specs.py
+echo "pre-commit: agency gates green"
