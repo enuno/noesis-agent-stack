@@ -190,3 +190,18 @@ validation, and an evidence-backed report. Guardrails baked in: Bitwarden-only
 secrets, hard approval gates, agency wave deployment stays behind the T17
 review gate (bootstrap deploys the noesis fleet + stack services only).
 Folded into T16 documentation scope; artifact committed with Phase 3.
+
+## 10. Filed follow-ups (post-deployment, 2026-09-17)
+
+Deployment scope of this ralplan is COMPLETE (Tier A 18/18 live, waves 1+2,
+canaries PASS — see `agency/REVIEW-GATE.md`). Filed as future to-do project
+items, in no priority order:
+
+| Item | Trigger | Notes |
+|------|---------|-------|
+| T18 — plugin materialization | When the lazy router is needed live on a host | Materialize `integrations/hermes-plugin` into `$HERMES_HOME` plugins dir + idempotent `plugins.enabled` update; extend `convert.py --check` to compare materialized output vs vendored+overlay; re-materialize after every re-pin |
+| C3 — routing smoke | Required BEFORE any expansion past 1 profile/division | Template: `ROUTING-SMOKE.md` (18 divisions × query rows + winner column); need ≥16/18 Tier A winners + cosine < 0.85 |
+| Ansible agency enablement on additional hosts | New host onboarding | Set `noesispraxis_enable_agency_profiles: true` (A7 requires noesis fleet) or use `templates/agent-install-prompt.md` bootstrap; A5/W1b validate automatically |
+| O1 — monthly verification cron | Standing cadence, 1st 09:00 local | `convert.py --check` + `validate-specs.py` + both apply scripts `--check`; owner Elvis, delegable to noesis-steward; pre-commit hook already covers every-commit layer |
+| Dependabot triage | Ad-hoc | 29 advisories on enuno/noesis-agent-stack (4 critical, 10 high) — separate from this plan |
+| noesis apply script `--check` mode | Parity gap (known validator warning) | `apply-noesis-profiles.sh` lacks the static `--check` the agency script has; planned parity gate, low urgency while W1b + validator L3 cover the regression class |
