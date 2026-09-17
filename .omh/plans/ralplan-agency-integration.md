@@ -178,3 +178,15 @@ August 2026 still point at those lanes and will fail until migrated.
 `~/.hermes/cache/delegation/subagent-summary-0-20260916_134049_064448.txt` (35.5 KB);
 Round 2 at `~/.hermes/cache/delegation/subagent-summary-0-20260916_140320_985068.txt` (55 KB).
 Review transcripts under `~/.hermes/cache/delegation/live/deleg_*/task-0.log`.*
+
+## 9. Amendment B — operator-directed, 2026-09-16 (Phase 3, in-flight)
+
+**Fresh-host bootstrap prompt.** `templates/agent-install-prompt.md` is a
+copy-paste-ready instruction block issuable to a freshly installed Hermes
+agent to perform a full Noesis stack deployment end to end: prerequisite
+checks, clone/update of `noesis-agent-stack` + `noesis-ansible`, roster-driven
+noesis profile apply, master-stack Ansible run (check-then-apply) with
+validation, and an evidence-backed report. Guardrails baked in: Bitwarden-only
+secrets, hard approval gates, agency wave deployment stays behind the T17
+review gate (bootstrap deploys the noesis fleet + stack services only).
+Folded into T16 documentation scope; artifact committed with Phase 3.
