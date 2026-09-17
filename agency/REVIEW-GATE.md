@@ -1,7 +1,8 @@
 # REVIEW GATE — Agency Tier A wave deployment (T17)
 
-> **Status: WAVE 1 DEPLOYED 2026-09-17 (operator GO). C2a canary PASS.
-> Wave 2 is unblocked pending operator soak judgment.**
+> **Status: TIER A FULLY DEPLOYED 2026-09-17 (waves 1+2, operator GO).
+> C2a canary PASS (wave 1 and whole-fleet). 18/18 curated agents live.
+> Expansion past 1/division still requires the C3 routing smoke.**
 >
 > Plan: `.omh/plans/ralplan-agency-integration.md` (§4 T-tasks, §8/§9
 > amendments). Rollback: `agency/README.md` § "Rollback appendix (O3)".
@@ -57,6 +58,12 @@ Current reading at gate preparation: **17 profiles, 0 agency, tree clean.**
   **`created=0 refreshed=0 skipped=8 failed=0`**. Live state unchanged (25
   profiles); validator exit 0 (cosine < 0.85, one known planned-parity-gate
   warning on the noesis script's `--check` mode).
+- **Wave 2 GO** (operator "run it", 2026-09-17): live apply
+  `created=10 refreshed=0 skipped=0 failed=0` → **35 profiles total (17
+  noesis/default + 18 agency = full Tier A)**. Validator exit 0.
+- **Whole-fleet canary PASS**: `apply-agency-profiles.sh --all` re-apply →
+  **`created=0 refreshed=0 skipped=18 failed=0`**. Tier A is idempotently
+  stable end to end.
 
 ## Checklist (operator)
 
@@ -84,9 +91,8 @@ Current reading at gate preparation: **17 profiles, 0 agency, tree clean.**
       `env HERMES_HOME=$HOME/.hermes ./scripts/apply-agency-profiles.sh --wave 1 --no-model-tuning --yes`
       (or via ansible: `-e noesispraxis_enable_agency_profiles=true` with the
       noesis fleet enabled, A7). **Executed 2026-09-17 — see Deployment record.**
-- [ ] **GO wave 2** (10 agents) — C2a recorded (PASS); awaiting operator soak
-      judgment. Command:
-      `env HERMES_HOME=$HOME/.hermes ./scripts/apply-agency-profiles.sh --wave 2 --no-model-tuning --yes`
+- [x] **GO wave 2** (10 agents) — C2a recorded (PASS); executed 2026-09-17.
+      Result: `created=10 failed=0`; whole-fleet canary `skipped=18`.
 - [ ] **NO-GO** → record reason: ______________________
 
 Operator: ____________   Date: ____________
