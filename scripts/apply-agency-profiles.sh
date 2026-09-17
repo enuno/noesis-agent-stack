@@ -160,7 +160,7 @@ fi
 ac_log ""
 
 # ---- apply ----------------------------------------------------------------------
-created=0; refreshed=0; failed=()
+created=0; refreshed=0; skipped=0; failed=()
 TS="$(date +%Y%m%d-%H%M%S)"
 BACKUP_ROOT="$HERMES_HOME/.profile-backups/agency-$TS"
 
@@ -204,11 +204,18 @@ PYEOF
     fi
     created=$((created+1))
   else
-    refreshed=$((refreshed+1))
-    ac_log "  = exists   $name; refreshing SOUL"
+    if [[ -f "$target/SOUL.md" ]] && cmp -s "$src_soul" "$target/SOUL.md"; then
+      skipped=$((skipped+1))
+      ac_log "  = exists   $name; SOUL current (skip)"
+    else
+      refreshed=$((refreshed+1))
+      ac_log "  = exists   $name; refreshing SOUL"
+    fi
   fi
 
-  ac_run cp "$src_soul" "$target/SOUL.md"
+  if [[ ! -f "$target/SOUL.md" ]] || ! cmp -s "$src_soul" "$target/SOUL.md"; then
+    ac_run cp "$src_soul" "$target/SOUL.md"
+  fi
 
   # terminal.cwd
   ac_run "$AC_PROFILE_CMD" -p "$name" config set terminal.cwd "$cwd" >/dev/null 2>&1 || true
@@ -236,6 +243,6 @@ if [[ $DRY -eq 0 ]]; then
 fi
 
 ac_log ""
-ac_log "Done: created=$created refreshed=$refreshed failed=${#failed[@]}"
+ac_log "Done: created=$created refreshed=$refreshed skipped=$skipped failed=${#failed[@]}"
 [[ ${#failed[@]} -gt 0 ]] && { ac_log "Failed: ${failed[*]}"; exit 1; }
 exit 0

@@ -1,7 +1,7 @@
 # REVIEW GATE — Agency Tier A wave deployment (T17)
 
-> **Status: PENDING OPERATOR REVIEW.** Nothing in this file authorizes a
-> live apply. Waves apply only after an explicit operator go (Amendment A).
+> **Status: WAVE 1 DEPLOYED 2026-09-17 (operator GO). C2a canary PASS.
+> Wave 2 is unblocked pending operator soak judgment.**
 >
 > Plan: `.omh/plans/ralplan-agency-integration.md` (§4 T-tasks, §8/§9
 > amendments). Rollback: `agency/README.md` § "Rollback appendix (O3)".
@@ -46,14 +46,26 @@ git -C ~/projects/noesis-agent-stack status --short   # expect clean
 
 Current reading at gate preparation: **17 profiles, 0 agency, tree clean.**
 
+## Deployment record (2026-09-17)
+
+- **Wave 1 GO** (operator "go", this session): live apply
+  `created=8 refreshed=0 failed=0` → 25 profiles total (17 noesis/default +
+  8 agency), SOUL.md + descriptions verified, audit status ok.
+- **C2a canary PASS**: first re-apply showed `refreshed=8` (SOUL rewritten
+  unconditionally). Script patched for content-aware refresh (byte-compare
+  skip); second re-apply recorded the gate signature exactly:
+  **`created=0 refreshed=0 skipped=8 failed=0`**. Live state unchanged (25
+  profiles); validator exit 0 (cosine < 0.85, one known planned-parity-gate
+  warning on the noesis script's `--check` mode).
+
 ## Checklist (operator)
 
-- [ ] Read `agency/curation.yaml` — all 18 agents + rationale acceptable.
-- [ ] Confirm gates 1–3 + wave-1 smoke evidence above (or re-run
+- [x] Read `agency/curation.yaml` — all 18 agents + rationale acceptable.
+- [x] Confirm gates 1–3 + wave-1 smoke evidence above (or re-run
       `scripts/apply-agency-profiles.sh --home /tmp/review-probe --wave 1 --dry-run`).
-- [ ] Confirm T15 ansible evidence (or re-run the two `--check` commands).
-- [ ] Re-run the zero-mutation proof block above.
-- [ ] Decide GO/NO-GO below.
+- [x] Confirm T15 ansible evidence (or re-run the two `--check` commands).
+- [x] Re-run the zero-mutation proof block above.
+- [x] Decide GO/NO-GO below. → **GO wave 1 recorded above.**
 
 ## Hard deployment preconditions
 
@@ -68,11 +80,13 @@ Current reading at gate preparation: **17 profiles, 0 agency, tree clean.**
 
 ## Go / No-Go
 
-- [ ] **GO wave 1** (8 agents) → run:
+- [x] **GO wave 1** (8 agents) → run:
       `env HERMES_HOME=$HOME/.hermes ./scripts/apply-agency-profiles.sh --wave 1 --no-model-tuning --yes`
       (or via ansible: `-e noesispraxis_enable_agency_profiles=true` with the
-      noesis fleet enabled, A7).
-- [ ] **GO wave 2** (10 agents) — only after precondition 1 is recorded here.
+      noesis fleet enabled, A7). **Executed 2026-09-17 — see Deployment record.**
+- [ ] **GO wave 2** (10 agents) — C2a recorded (PASS); awaiting operator soak
+      judgment. Command:
+      `env HERMES_HOME=$HOME/.hermes ./scripts/apply-agency-profiles.sh --wave 2 --no-model-tuning --yes`
 - [ ] **NO-GO** → record reason: ______________________
 
 Operator: ____________   Date: ____________
