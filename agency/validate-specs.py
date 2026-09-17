@@ -39,7 +39,10 @@ import secretscan  # noqa: E402
 CURATION = AGENCY / "curation.yaml"
 SCRATCH = AGENCY / ".scratch"
 NOESIS_ROSTER = ROOT / "profiles" / "noesis-roster.yaml"
-APPLY_SCRIPT = ROOT / "scripts" / "apply-agency-profiles.sh"
+AGENCY_SCRIPTS = [
+    ROOT / "scripts" / "apply-agency-profiles.sh",
+    ROOT / "scripts" / "apply-noesis-profiles.sh",
+]
 PLUGIN_DIR = AGENCY / "integrations" / "hermes-plugin" / "agency-agents-router"
 CONTRACT_MARKER = "## Noesis Integration Contract (appended)"
 
@@ -250,18 +253,21 @@ def layer3_apply(cur: dict, entries: list[dict]) -> None:
     prefix = cur.get("profile_prefix", "agency")
     live = [f"{prefix}-{e['slug']}" for e in entries]
 
-    if not APPLY_SCRIPT.is_file():
-        warn(layer, "scripts/apply-agency-profiles.sh not present yet "
-                    "(Phase 2, post-gate) — cannot verify roster derivation")
-    else:
-        script = APPLY_SCRIPT.read_text(encoding="utf-8")
+    for script_path in AGENCY_SCRIPTS:
+        if not script_path.is_file():
+            warn(layer, f"{script_path.name} not present yet "
+                        "(Phase 2, post-gate) — cannot verify roster derivation")
+            continue
+        script = script_path.read_text(encoding="utf-8")
+        tag = script_path.name
         if re.search(r"^\s*ROSTER=\s*\(", script, re.M):
-            fail(layer, "apply script hardcodes a ROSTER array — roster must be "
-                        "derived from agency/curation.yaml (generated roster.yaml)")
+            fail(layer, f"{tag} hardcodes a ROSTER array — roster must be "
+                        "derived from agency/curation.yaml / profiles yaml")
         if "--check" not in script:
-            warn(layer, "apply script has no --check mode (planned parity gate)")
-        if "secret" not in script.lower():
-            warn(layer, "apply script missing runtime secret assertion "
+            warn(layer, f"{tag} has no --check mode (planned parity gate)")
+        if script_path.name == "apply-agency-profiles.sh" \
+                and "secret" not in script.lower():
+            warn(layer, f"{tag} missing runtime secret assertion "
                         "(two-layer scan layer 3)")
 
     roster_yaml = SCRATCH / "roster.yaml"
