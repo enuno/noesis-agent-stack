@@ -225,3 +225,6 @@ backups/
 
 # Agency integration: on-demand generated Tier A specs (never commit)
 /agency/.scratch/
+
+# OMH runtime state (plan execution scratch — not source)
+.omh/state/
