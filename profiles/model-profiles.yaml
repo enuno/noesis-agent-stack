@@ -137,6 +137,14 @@ defaults:
     escalation:              reasoning_deep
     signal-triage:           reasoning_standard
 
+  noesis-orchestrator:
+    plan_task_graph:         reasoning_standard
+    dispatch_task:           extraction_fast     # deterministic gate evaluation
+    risk_classification:     reasoning_standard
+    risk_escalation:         reasoning_deep      # ambiguous r2/r3 boundary only
+    synthesize_results:      reasoning_standard
+    status_digest:           extraction_fast
+
 # ─────────────────────────────────────────────
 # Global cost guardrails
 # ─────────────────────────────────────────────

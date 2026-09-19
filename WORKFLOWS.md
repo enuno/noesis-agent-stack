@@ -10,6 +10,7 @@
 | `subconscious-walk` | Traverse room memory, emit signals, and update the signal board | Hermes Main, broker, Subconscious (OpenClaw) |
 | `build-promotion` | Advance an approved intent through plan, code, and artifact handoff | Hermes Main, broker, Coder, MemPalace |
 | `release-validation` | Verify build artifacts against evidence, schema, and policy before release | Hermes Main, broker, QA, MemPalace |
+| `orchestrated-task` | Run a graph of cross-profile work as durable task contracts with dependency, approval, timeout, and retry control | Noesis Orchestrator, assigned roster profiles, reviewers |
 
 ---
 
@@ -372,9 +373,171 @@ Audit build artifacts against evidence, schema, policy, and operational readines
 
 ---
 
+## 5. orchestrated-task (noesis-orchestrator)
+
+### Purpose
+Run a graph of cross-profile work as durable task contracts with dependency gating, human approval gates, timeouts, bounded retry, and evidence-backed completion. This is the control plane for work that spans several Noesis profiles.
+
+Implementation: `orchestration/orchestrator/`
+Contract schema: `contracts/orchestration/task-contract.schema.json`
+Durable ledger: `workspace/orchestrator/tasks.jsonl` (append-only, replayed on start)
+
+### Trigger
+- **Manual**: An operator or Hermes-Core hands the orchestrator a goal
+- **Event-driven**: An upstream task in the same correlation graph succeeds
+- **Scheduled**: A recurring supervision sweep for timeouts and stale leases
+
+### States
+
+```
+[ proposed ]
+  |
+  | human approval (only when required by risk tier)
+  v
+[ approved ]
+  |
+  | dependencies declared; enters the dispatch queue
+  v
+[ queued ]
+  |
+  | assignee claims its own task; lease starts
+  v
+[ claimed ]
+  |
+  | execution begins; retry attempt counted
+  v
+[ running ]
+  |
+  +--> [ awaiting_review ]  reviewer-only profile must sign off
+  +--> [ blocked ]          dependency or external blocker
+  +--> [ failed ]           error, or timeout swept
+  +--> [ succeeded ]        evidence verified, lease still valid
+  +--> [ cancelled ]        operator or approval denial
+```
+
+### Transitions
+
+| From | To | Condition | Auto or Gate |
+|---|---|---|---|
+| `proposed` | `approved` | Approval granted by a named human operator (r3 also requires a bound approval manifest id) | Approval gate: human operator |
+| `proposed` | `approved` | Risk tier r0/r1 with no irreversible operations | Auto |
+| `proposed` | `cancelled` | Approval denied | Approval gate: human operator |
+| `approved` | `queued` | Task admitted to the dispatch queue | Auto |
+| `queued` | `claimed` | Dependencies all `succeeded`, approval satisfied, breaker closed, claimant is the named assignee | Auto (gated) |
+| `queued` | `blocked` | Dependency failed or external blocker | Auto |
+| `claimed` | `running` | Assignee starts work; attempt counter incremented | Auto |
+| `running` | `awaiting_review` | Handoff submitted and a reviewer profile is set | Auto |
+| `running` | `succeeded` | Handoff verified, criteria met, lease valid, no reviewer required | Auto (gated) |
+| `awaiting_review` | `succeeded` | Reviewer accepts the handoff | Approval gate: reviewer profile |
+| `running`/`claimed` | `failed` | Error reported, or timeout sweep found an expired lease | Auto |
+| `failed` | `queued` | Retry budget remains | Auto (bounded) |
+| `blocked` | `queued` | Blocker cleared | Auto |
+| any active | `cancelled` | Operator cancel or emergency stop | Approval gate: operator |
+
+### Approval gates
+
+1. **Risk gate**: Every task at r2 or r3, and every task declaring an irreversible operation, requires `approval.required = true` and cannot leave `proposed` until a named human operator grants it. Agents never approve their own work.
+2. **Manifest binding (r3)**: r3 approval additionally requires an `approval_manifest_id` bound per `platform/approval-manifest.schema.json`. Approval without it is refused.
+3. **Executor privilege gate**: Irreversible operations may only be assigned to a profile that actually declares terminal authority. The orchestrator itself holds no `terminal` or `code_execution` toolset and can never be that executor.
+4. **Review gate**: When `reviewer_profile` is set, the task parks in `awaiting_review` and only a reviewer-only profile (Sentinel, Skeptic) may clear it.
+5. **Evidence gate**: Success requires a structured handoff with a passing `verification_result`, non-empty evidence, and no unmet acceptance criteria.
+
+### Capability boundaries
+
+| The orchestrator DOES | The orchestrator NEVER |
+|---|---|
+| Compose and persist task contracts | Execute domain work itself |
+| Assign work to a named roster profile | Invent a profile name |
+| Gate dispatch on dependencies and approval | Bypass or self-grant an approval |
+| Sweep timeouts, retry within budget, break the circuit | Retry without bound or loop silently |
+| Synthesize an evidence-linked result | Mark work succeeded without evidence |
+| Escalate to a human operator | Run production, financial, wallet, credential, or deletion operations |
+
+### Normal operation
+
+```python
+from app.control_plane import Orchestrator
+from app.models import Verification
+
+orch = Orchestrator("workspace/orchestrator/tasks.jsonl")
+
+task = orch.propose(
+    title="Cross-validate hashprice sources",
+    intent="Collect and cross-validate 2026 hashprice sources with explicit labels.",
+    assignee_profile="noesis-signal",          # must exist in the roster
+    required_capability="cross_validate",      # must be declared by that agent
+    acceptance_criteria=["At least three independent sources cited"],
+    verification=Verification(method="reviewer_signoff"),
+    idempotency_key="noesis-signal:cross_validate:hashprice:2026-09-18",
+    risk_tier="r0",
+    timeout_s=900,
+    max_attempts=2,
+)
+
+orch.enqueue(task.task_id)
+orch.claim(task.task_id, claimed_by="noesis-signal")
+orch.start(task.task_id)
+orch.submit_handoff(task.task_id, {
+    "summary": "Three independent sources cross-validated.",
+    "artifacts": [{"path": "workspace/research/brief.md"}],
+    "verification_result": {"passed": True, "evidence": "3 sources cited; all labelled."},
+    "unmet_criteria": [],
+})
+orch.succeed(task.task_id)
+```
+
+### Task inspection
+
+```python
+orch.store.get(task_id)                       # one task contract
+orch.store.list_by_state("queued")            # everything awaiting dispatch
+orch.store.list_by_correlation(correlation_id)# the whole graph
+orch.dispatchable(task_id)                    # why a task is or is not dispatchable
+orch.check_gate_blocked(task_id)              # held by an approval gate?
+orch.synthesize(correlation_id)               # rolled-up result with evidence
+```
+
+The ledger itself is inspectable without the code: every line of
+`workspace/orchestrator/tasks.jsonl` is one `{event, recorded_at, task}` record.
+
+### Approval and cancellation
+
+```python
+orch.approve(task_id, operator="elvis")                               # r0-r2
+orch.approve(task_id, operator="elvis", approval_manifest_id="<uuid>") # r3
+orch.deny(task_id, operator="elvis", reason="scope too broad")         # -> cancelled
+orch.cancel(task_id, reason="superseded by a newer plan")
+```
+
+`operator` must identify a human. An agent must never call `approve` on its own behalf.
+
+### Recovery
+
+- **After a restart**: construct `Orchestrator(ledger_path)`; state is replayed from the append-only ledger. No task is lost and no completed task is re-run.
+- **Stale or hung work**: `orch.sweep_timeouts()` fails every lease-expired task and re-queues it if retry budget remains. A stale task can never be completed silently — `succeed()` refuses it with `stale_task_cannot_succeed`.
+- **Exhausted retries**: the task stays `failed`. Use `orch.escalate(task_id, reason=...)` to produce an operator-facing record; the control plane will not invent another attempt.
+- **Blocked work**: fix the blocker, then re-queue.
+
+### Emergency stop and circuit break
+
+```python
+orch.emergency_stop(operator="elvis", reason="upstream provider outage")
+# -> breaker open: every dispatch decision is refused fleet-wide
+orch.resume(operator="elvis")
+# -> breaker reset, failure counter cleared
+```
+
+The breaker also opens automatically after `failure_threshold` consecutive
+failures (default 3). While it is open, no task may be claimed; work already
+running is left to its lease and handled by the normal timeout sweep. A single
+success resets the automatic failure counter; a manual stop clears only on an
+explicit operator `resume`.
+
+---
+
 ## Cross-workflow integrity rules
 
 1. **No bypass**: A build intent MUST pass through `build-promotion` and `release-validation` before any production merge or deploy. There is no fast path.
 2. **Evidence linkage**: Every `build-promotion` handoff MUST reference the research vault artifacts and subconscious signal IDs that justified it. QA validates this linkage.
-3. **State isolation**: Workflow state transitions are owned by the broker. Agents report outcomes; they do not directly mutate workflow state.
+3. **State isolation**: Workflow state transitions are owned by the broker, and orchestrated-task state transitions are owned by the noesis-orchestrator control plane. Agents report outcomes; they do not directly mutate workflow state.
 4. **Replayability**: Every transition MUST leave a receipt in the broker event log and a corresponding drawer in MemPalace.

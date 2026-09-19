@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/orchestration/task-contract.schema.json",
+  "title": "TaskContract",
+  "description": "Durable unit of supervised cross-profile work owned by the noesis-orchestrator control plane. Persisted append-only to workspace/orchestrator/tasks.jsonl. A TaskContract names exactly one assignee profile from profiles/noesis-roster.yaml, declares its dependencies, risk tier (platform/risk-tiers.yaml), acceptance criteria, verification plan, timeout, retry budget, and approval state. The orchestrator never executes the work described here; it plans, dispatches, supervises, and synthesizes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "task_id",
+    "correlation_id",
+    "title",
+    "intent",
+    "assignee_profile",
+    "required_capability",
+    "risk_tier",
+    "depends_on",
+    "idempotency_key",
+    "acceptance_criteria",
+    "verification",
+    "timeout_s",
+    "retry",
+    "approval",
+    "state",
+    "created_at",
+    "created_by"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+
+    "task_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Stable identity of this task contract across all state transitions."
+    },
+    "correlation_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Shared identifier binding every task in one orchestration graph."
+    },
+    "parent_task_id": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "Parent task when this contract was produced by decomposition."
+    },
+    "traceparent": {
+      "type": ["string", "null"],
+      "pattern": "^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$"
+    },
+
+    "title": { "type": "string", "minLength": 3, "maxLength": 200 },
+    "intent": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 4000,
+      "description": "What the assignee must accomplish, stated so a fresh session can act on it without chat history."
+    },
+
+    "assignee_profile": {
+      "type": "string",
+      "description": "Profile name that MUST exist in profiles/noesis-roster.yaml. Never a free-form agent label."
+    },
+    "required_capability": {
+      "type": "string",
+      "description": "Capability that the assignee must declare in agents/<assignee>/agent.yaml capabilities."
+    },
+    "reviewer_profile": {
+      "type": ["string", "null"],
+      "description": "Reviewer-only profile (noesis-sentinel / noesis-skeptic) that must accept the result before it may succeed."
+    },
+
+    "risk_tier": {
+      "type": "string",
+      "enum": ["r0", "r1", "r2", "r3"],
+      "description": "Risk classification per platform/risk-tiers.yaml. Ambiguity classifies to the higher tier."
+    },
+    "irreversible_operations": {
+      "type": "array",
+      "description": "Declared irreversible effect classes. Any non-empty value forces r3 and a narrowly privileged executor profile.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "production_mutation",
+          "financial_operation",
+          "wallet_signing",
+          "credential_rotation",
+          "dns_or_firewall_change",
+          "destructive_data_operation",
+          "external_publication"
+        ]
+      },
+      "default": []
+    },
+
+    "depends_on": {
+      "type": "array",
+      "description": "task_ids that MUST be in state 'succeeded' before this task may leave 'queued'.",
+      "items": { "type": "string", "format": "uuid" },
+      "default": []
+    },
+
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 200,
+      "description": "Stable dedupe key. Re-delivery of the same key returns the existing task instead of creating a duplicate."
+    },
+
+    "acceptance_criteria": {
+      "type": "array",
+      "description": "Objective, checkable conditions. A task cannot succeed with an empty acceptance list.",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 3, "maxLength": 500 }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "evidence_required"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["automated_test", "command_output", "reviewer_signoff", "schema_validation", "human_inspection"]
+        },
+        "command": { "type": ["string", "null"], "description": "Command or check the executor ran. Never contains credentials." },
+        "evidence_required": { "type": "boolean", "default": true }
+      }
+    },
+
+    "timeout_s": { "type": "integer", "minimum": 60, "maximum": 7200 },
+    "retry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_attempts", "attempts"],
+      "properties": {
+        "max_attempts": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "attempts": { "type": "integer", "minimum": 0, "default": 0 },
+        "backoff_s": { "type": "integer", "minimum": 0, "default": 30 }
+      }
+    },
+
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "state"],
+      "properties": {
+        "required": { "type": "boolean" },
+        "state": { "type": "string", "enum": ["not_required", "pending", "granted", "denied"] },
+        "approved_by": { "type": ["string", "null"], "description": "Human operator identifier. Never an agent." },
+        "approved_at": { "type": ["string", "null"], "format": "date-time" },
+        "approval_manifest_id": {
+          "type": ["string", "null"],
+          "format": "uuid",
+          "description": "For r3: the platform/approval-manifest.schema.json approval_id that binds this exact action."
+        }
+      }
+    },
+
+    "state": {
+      "type": "string",
+      "enum": [
+        "proposed", "approved", "queued", "claimed", "running",
+        "awaiting_review", "blocked", "failed", "succeeded", "cancelled"
+      ]
+    },
+
+    "handoff": {
+      "type": ["object", "null"],
+      "description": "Structured evidence returned by the assignee. Required before succeeded.",
+      "additionalProperties": false,
+      "required": ["summary", "artifacts", "verification_result"],
+      "properties": {
+        "summary": { "type": "string", "minLength": 10, "maxLength": 4000 },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path"],
+            "properties": {
+              "path": { "type": "string" },
+              "checksum": { "type": ["string", "null"] },
+              "kind": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "verification_result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["passed", "evidence"],
+          "properties": {
+            "passed": { "type": "boolean" },
+            "evidence": { "type": "string", "minLength": 3, "maxLength": 8000 }
+          }
+        },
+        "unmet_criteria": { "type": "array", "items": { "type": "string" }, "default": [] }
+      }
+    },
+
+    "claim": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["claimed_by", "claimed_at", "lease_expires_at"],
+      "properties": {
+        "claimed_by": { "type": "string" },
+        "claimed_at": { "type": "string", "format": "date-time" },
+        "lease_expires_at": { "type": "string", "format": "date-time" }
+      }
+    },
+
+    "created_at": { "type": "string", "format": "date-time" },
+    "created_by": { "type": "string", "description": "Originating profile; normally noesis-orchestrator." },
+    "updated_at": { "type": ["string", "null"], "format": "date-time" },
+    "terminal_reason": { "type": ["string", "null"], "maxLength": 1000 },
+    "labels": { "type": "array", "items": { "type": "string" }, "default": [] }
+  },
+
+  "examples": [{
+    "schema_version": "1.0",
+    "task_id": "6f1d2c3b-4a59-4e87-9b21-0c7d8e9f1a2b",
+    "correlation_id": "11112222-3333-4444-5555-666677778888",
+    "parent_task_id": null,
+    "traceparent": null,
+    "title": "Cross-validate mining-hashprice sources",
+    "intent": "Collect and cross-validate 2026 hashprice sources, labelling each claim verified/inference/unknown.",
+    "assignee_profile": "noesis-signal",
+    "required_capability": "cross_validate",
+    "reviewer_profile": null,
+    "risk_tier": "r0",
+    "irreversible_operations": [],
+    "depends_on": [],
+    "idempotency_key": "noesis-signal:cross_validate:hashprice:2026-09-18",
+    "acceptance_criteria": ["At least three independent sources cited", "Every claim labelled verified/inference/unknown"],
+    "verification": { "method": "reviewer_signoff", "command": null, "evidence_required": true },
+    "timeout_s": 900,
+    "retry": { "max_attempts": 2, "attempts": 0, "backoff_s": 30 },
+    "approval": { "required": false, "state": "not_required", "approved_by": null, "approved_at": null, "approval_manifest_id": null },
+    "state": "proposed",
+    "handoff": null,
+    "claim": null,
+    "created_at": "2026-09-18T12:00:00Z",
+    "created_by": "noesis-orchestrator",
+    "updated_at": null,
+    "terminal_reason": null,
+    "labels": ["research"]
+  }]
+}

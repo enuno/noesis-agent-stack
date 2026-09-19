@@ -35,12 +35,14 @@ The core pattern is:
 - **Promotion gates:** A finding is not a claim, a claim is not verified knowledge, and a signal is not an approved task.
 - **Explicit uncertainty:** Freshness, contradictions, degraded collectors, stale ideas, and blocked items must remain visible rather than being flattened into confident summaries.
 - **Separation of duties:** Research collects, Subconscious notices, Main decides, Coder builds, and QA audits.
+- **Least-privilege control plane:** The Orchestrator plans, dispatches, supervises, and synthesizes cross-profile work, but holds no execution authority. Irreversible operations are classified `r3`, held at a human approval gate, and routed to a narrowly privileged executor profile. See `orchestration/orchestrator/` and `WORKFLOWS.md` §5.
 
 ## Agent topology
 
 | Agent | Runtime | Primary role | Inputs | Outputs |
 |---|---|---|---|---|
 | Main | Hermes Agent | Global context, prioritization, routing, approvals | Operator goals, research briefs, signal boards, handoff queues | Decisions, delegations, approvals |
+| Orchestrator | Hermes Agent | Durable task contracts, dispatch, dependency and approval gating, synthesis | Operator goals, supervisor handoffs | Task contracts, dispatch decisions, escalations, synthesis reports |
 | Research | OpenClaw | Collect, score, structure, and route evidence | Source plan, prior vault state, shared workspace context | Findings, claims, sources, dossiers, operator briefs, handoffs |
 | Subconscious | OpenClaw | Notice recurring patterns, maintain idea room, emit build signals | Research snapshots, lessons, retrospectives, room memory | Walk notes, signal logs, signal board, intent drafts |
 | Coder | Hermes Agent | Implement approved work | Approved plan, build handoff, verified context | Code, services, scripts, integrations |

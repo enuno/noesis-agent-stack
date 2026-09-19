@@ -47,6 +47,29 @@ profiles:
     wave: 1
     status: applied
 
+  noesis-orchestrator:
+    name: "Noesis Orchestrator"
+    role: control-plane-orchestrator
+    tier: supervisor
+    persistence: persistent
+    domain: "Durable task contracts; dispatch, dependency gating, approval gates, synthesis"
+    description: >-
+      Noesis control-plane orchestrator. Plans, dispatches, supervises, and synthesizes cross-profile work through durable task contracts; holds no terminal or execution authority and never performs irreversible operations itself.
+    model_routing:
+      default: reasoning model (deterministic dispatch judgment)
+      fast: kimi for state inspection and status digests
+      escalation: second model on ambiguous risk classification
+    apply_model:
+      model: anthropic/claude-sonnet-5
+      provider: openrouter
+    # Deliberately excludes terminal and code_execution: the orchestrator is a
+    # least-privilege supervisor, not an executor. Irreversible work is routed
+    # to a narrowly privileged executor behind a human approval gate.
+    toolsets: [memory, file, todo, clarify, delegation, session_search, skills]
+    terminal_cwd: /home/elvis/projects/noesis-agent-stack/workspace/orchestrator
+    wave: 3
+    status: staged
+
   noesis-steward:
     name: "Noesis Steward"
     role: chief-of-staff

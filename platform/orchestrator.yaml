@@ -83,6 +83,40 @@ agents:
       Hermes is the only agent authorized to submit broker jobs and the only
       persistent reasoning layer. It does not execute shell commands directly.
 
+  noesis-orchestrator:
+    agent_id: noesis-orchestrator
+    enabled: true
+    runtime: hermes
+    role: control-plane-orchestrator
+    capabilities:
+      - plan_task_graph
+      - dispatch_task
+      - dependency_gate
+      - enforce_approval_gate
+      - supervise_timeout
+      - bounded_retry
+      - circuit_break
+      - escalate
+      - synthesize_results
+    model_profile: reasoning_standard
+    max_parallel_jobs: 8
+    default_timeout_s: 900
+    default_cost_limit_usd: 2.00
+    schedules: []
+    palace_wings:
+      - hermes
+      - broker
+    write_scope:
+      - workspace/orchestrator
+    notes: >-
+      Control-plane orchestrator. Owns durable task contracts in
+      workspace/orchestrator/tasks.jsonl and enforces the task state machine,
+      dependency gating, approval gates, timeouts, bounded retry, and the
+      circuit breaker. Holds no terminal or code_execution authority: it
+      dispatches to narrowly privileged executor profiles and never performs
+      production, financial, wallet, credential, or destructive operations
+      itself. Reports to main-hermes / noesis-core.
+
   research-openclaw:
     agent_id: research-openclaw
     enabled: true
@@ -206,6 +240,10 @@ agents:
 # ---------------------------------------------------------------------------
 # Maps workflow types to the agent(s) that execute them.
 worker_bindings:
+  orchestrated-task:
+    primary_worker: noesis-orchestrator
+    fallback_worker: null
+    modes: [plan, dispatch, supervise, synthesize]
   research-refresh:
     primary_worker: research-openclaw
     fallback_worker: null

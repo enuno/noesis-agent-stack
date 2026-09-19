@@ -18,6 +18,7 @@ platform_evals:
     - palace_receipt_writes
     - hermes_routing
     - handoff_integrity
+    - orchestrated_task_control
 
   tests:
     # ───────────────────────────────────────────────────────────────────────────
@@ -351,6 +352,184 @@ platform_evals:
         - "Rejection reason indicates missing upstream gate: build-promotion incomplete"
         - "Event logged for audit"
       severity: critical
+
+    # ───────────────────────────────────────────────────────────────────────────
+    # ORCHESTRATED TASK CONTROL PLANE (noesis-orchestrator)
+    # Automated coverage: orchestration/orchestrator/tests/
+    # ───────────────────────────────────────────────────────────────────────────
+    - id: ORCH-001
+      category: orchestrated_task_control
+      description: "Control plane rejects an assignment to a profile absent from the roster"
+      steps:
+        - "Propose a task contract with assignee_profile: noesis-imaginary"
+      success_criteria:
+        - "PolicyViolation raised with code unknown_profile"
+        - "No task contract is persisted to workspace/orchestrator/tasks.jsonl"
+      automated_by: "tests/test_policy.py::TestRosterBackedAssignment::test_unknown_profile_is_rejected"
+      severity: critical
+
+    - id: ORCH-002
+      category: orchestrated_task_control
+      description: "Reviewer-only and supervisor profiles are never assigned executing work"
+      steps:
+        - "Propose tasks assigned to noesis-sentinel, noesis-skeptic, noesis-core, and noesis-orchestrator"
+      success_criteria:
+        - "Each proposal is rejected (reviewer_only_profile_cannot_execute / supervisor_cannot_execute)"
+        - "noesis-orchestrator declares neither terminal nor code_execution toolsets"
+      automated_by: "tests/test_policy.py::TestRosterBackedAssignment"
+      severity: critical
+
+    - id: ORCH-003
+      category: orchestrated_task_control
+      description: "Capability mismatch between task and assignee is rejected"
+      steps:
+        - "Assign required_capability: terraform to noesis-quill (technical writer)"
+      success_criteria:
+        - "PolicyViolation raised with code capability_mismatch"
+        - "Error names the capabilities the profile actually declares"
+      automated_by: "tests/test_policy.py::TestRosterBackedAssignment::test_capability_mismatch_is_rejected"
+      severity: critical
+
+    - id: ORCH-004
+      category: orchestrated_task_control
+      description: "Irreversible operations require r3, an approval gate, and a privileged executor"
+      steps:
+        - "Propose an irreversible task at risk_tier r1"
+        - "Propose an irreversible r3 task assigned to a profile with no terminal authority"
+      success_criteria:
+        - "First is rejected: irreversible_requires_r3"
+        - "Second is rejected: executor_lacks_privilege"
+        - "A valid r3 task is admitted with approval.required true and approval.state pending"
+      automated_by: "tests/test_policy.py::TestRiskAndIrreversibility"
+      severity: critical
+
+    - id: ORCH-005
+      category: orchestrated_task_control
+      description: "Unresolved dependencies block dispatch"
+      steps:
+        - "Create a task that depends_on an incomplete upstream task and queue it"
+        - "Evaluate dispatchability"
+      success_criteria:
+        - "Dispatch decision is not allowed with reason 'unresolved dependencies'"
+        - "Dispatch becomes allowed only after the upstream task reaches succeeded"
+        - "A dependency id that does not exist is rejected"
+      automated_by: "tests/test_control_plane.py::TestDependencyGating"
+      severity: critical
+
+    - id: ORCH-006
+      category: orchestrated_task_control
+      description: "High-risk work waits for a human approval gate"
+      steps:
+        - "Propose an r3 task and attempt to enqueue it without approval"
+        - "Attempt to approve an r3 task without a bound approval manifest id"
+      success_criteria:
+        - "Enqueue is rejected: approval_gate_required"
+        - "Approval without a manifest id is rejected: approval_invalid"
+        - "Approval by a named human operator with a manifest id permits dispatch"
+        - "A denied approval moves the task to cancelled"
+      automated_by: "tests/test_control_plane.py::TestApprovalGate"
+      severity: critical
+
+    - id: ORCH-007
+      category: orchestrated_task_control
+      description: "Structured handoff evidence is required before success"
+      steps:
+        - "Attempt to succeed a running task with no handoff"
+        - "Submit handoffs with failed verification, empty evidence, and unmet criteria"
+      success_criteria:
+        - "Each attempt is rejected (handoff_required / verification_failed / evidence_required / acceptance_criteria_unmet)"
+        - "Reviewer-gated tasks pass through awaiting_review before succeeded"
+      automated_by: "tests/test_control_plane.py::TestHandoffEvidence"
+      severity: critical
+
+    - id: ORCH-008
+      category: orchestrated_task_control
+      description: "Stale work cannot succeed silently"
+      steps:
+        - "Run a task past its timeout lease, then attempt to complete it"
+        - "Run the timeout sweep"
+      success_criteria:
+        - "Completion is rejected: stale_task_cannot_succeed"
+        - "Sweep fails the task and re-queues it while retry budget remains"
+        - "Sweep leaves the task failed once the retry budget is exhausted"
+      automated_by: "tests/test_control_plane.py::TestStaleWork"
+      severity: critical
+
+    - id: ORCH-009
+      category: orchestrated_task_control
+      description: "Idempotent re-delivery does not duplicate work"
+      steps:
+        - "Propose the same task contract twice with an identical idempotency_key"
+        - "Restart the control plane and propose it a third time"
+      success_criteria:
+        - "All three proposals return the same task_id"
+        - "Exactly one task contract exists in the ledger index"
+      automated_by: "tests/test_control_plane.py::TestIdempotencyAndDurability"
+      severity: critical
+
+    - id: ORCH-010
+      category: orchestrated_task_control
+      description: "Task state survives process restart via the append-only ledger"
+      steps:
+        - "Drive a task to succeeded, discard the process, and reload from the ledger"
+      success_criteria:
+        - "Restored task state is succeeded with its handoff evidence intact"
+        - "The ledger is append-only: every transition adds a record"
+      automated_by: "tests/test_control_plane.py::TestIdempotencyAndDurability"
+      severity: critical
+
+    - id: ORCH-011
+      category: orchestrated_task_control
+      description: "Illegal state transitions are refused"
+      steps:
+        - "Attempt proposed -> running directly"
+        - "Attempt to transition out of a terminal state"
+        - "Attempt to claim a task as a profile other than its assignee"
+      success_criteria:
+        - "TransitionError raised for illegal transitions"
+        - "PolicyViolation claim_by_wrong_profile raised for a mismatched claim"
+      automated_by: "tests/test_control_plane.py::TestStateMachine"
+      severity: high
+
+    - id: ORCH-012
+      category: orchestrated_task_control
+      description: "Circuit breaker halts dispatch and escalation requires a human"
+      steps:
+        - "Fail tasks until the failure threshold is reached"
+        - "Trip the breaker manually via emergency_stop and evaluate dispatchability"
+      success_criteria:
+        - "Breaker opens at the threshold and blocks all dispatch"
+        - "Escalation record sets requires_human true and reports attempts"
+        - "Operator resume reopens dispatch; a success resets the failure count"
+      automated_by: "tests/test_control_plane.py::TestCircuitBreaker"
+      severity: high
+
+    - id: ORCH-013
+      category: orchestrated_task_control
+      description: "Persisted task contracts validate against the published schema"
+      steps:
+        - "Drive a task through its full lifecycle"
+        - "Validate every ledger record against contracts/orchestration/task-contract.schema.json"
+      success_criteria:
+        - "Every record validates with zero errors"
+        - "Schema state enum matches the implemented state machine exactly"
+        - "No secret-like material appears in ledger or orchestrator sources"
+      automated_by: "tests/test_schema_conformance.py"
+      severity: critical
+
+    - id: ORCH-014
+      category: orchestrated_task_control
+      description: "Worked examples run end to end on real roster profiles"
+      steps:
+        - "Run parallel analysis and synthesis (signal + tracer -> quill)"
+        - "Run plan-review-execute with human approval (cartographer -> forge, sentinel review)"
+        - "Run incident handling with timeout, retry, circuit breaker, and escalation"
+      success_criteria:
+        - "Fan-in task stays blocked until both upstream tasks succeed"
+        - "r2 execution is held at the approval gate and reviewed before success"
+        - "Incident escalates to a human instead of looping"
+      automated_by: "tests/test_examples.py"
+      severity: high
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Test execution config
