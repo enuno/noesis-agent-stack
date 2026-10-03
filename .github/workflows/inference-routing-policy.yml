@@ -1,0 +1,89 @@
+name: Inference Routing Policy
+
+"on":
+  pull_request:
+    paths:
+      - 'platform/inference-routing.yaml'
+      - 'platform/runtime-reconciliation.yaml'
+      - 'shared/models.yaml'
+      - 'shared/model-aliases.yaml'
+      - 'shared/provider-policies.yaml'
+      - 'profiles/**'
+      - 'evals/inference-routing.eval.yaml'
+      - 'scripts/validate_inference_routing.*'
+      - 'docs/inference-lanes-design.md'
+      - '.github/workflows/inference-routing-policy.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'platform/inference-routing.yaml'
+      - 'platform/runtime-reconciliation.yaml'
+      - 'shared/models.yaml'
+      - 'shared/model-aliases.yaml'
+      - 'shared/provider-policies.yaml'
+      - 'profiles/**'
+      - 'evals/inference-routing.eval.yaml'
+      - 'scripts/validate_inference_routing.*'
+      - 'docs/inference-lanes-design.md'
+      - '.github/workflows/inference-routing-policy.yml'
+
+jobs:
+  inference-routing-policy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install parser dependency
+        run: python -m pip install --upgrade pyyaml
+
+      - name: YAML syntax validation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+          paths = [
+              'platform/inference-routing.yaml',
+              'platform/runtime-reconciliation.yaml',
+              'shared/models.yaml',
+              'shared/model-aliases.yaml',
+              'shared/provider-policies.yaml',
+              'profiles/noesis-roster.yaml',
+              'profiles/model-profiles.yaml',
+              'platform/risk-tiers.yaml',
+              'evals/inference-routing.eval.yaml',
+          ]
+          for rel in paths:
+              with Path(rel).open('r', encoding='utf-8') as f:
+                  yaml.safe_load(f)
+              print(f'parsed {rel}')
+          PY
+
+      - name: Semantic routing validation and scoped secret scan
+        run: python scripts/validate_inference_routing.py --strict
+
+      - name: Write non-sensitive validation summary
+        if: always()
+        run: |
+          mkdir -p validation-summary
+          {
+            echo 'Inference routing policy workflow ran.'
+            echo 'Validator: scripts/validate_inference_routing.py --strict'
+            echo 'Scope: design artifacts, routing policy, reconciliation matrix, model/provider catalogs.'
+          } > validation-summary/inference-routing-policy.txt
+
+      - name: Upload validation summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: inference-routing-policy-summary
+          path: validation-summary/inference-routing-policy.txt
+          if-no-files-found: error

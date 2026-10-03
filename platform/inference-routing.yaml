@@ -1,0 +1,521 @@
+version: 2026-10-03.1
+policy_mode: proposed_not_live
+routing_seed: f6116a9c11971a82a7082590f5501980df4d239eb0c0823c69e69045c5f786d2
+global_invariants:
+  provider_is_not_authority: true
+  secrets_to_external_inference: denied
+  pinned_model_required: true
+  provider_substitution_must_be_logged: true
+  structured_output_required_for_workers: true
+  r2_independent_provider_review_required: true
+  r3_human_approval_required: true
+  r3_automatic_execution_fallback: false
+  live_activation_requires_approval: true
+interim_operating_mode:
+  mode: reconciliation_freeze
+  status: proposed_not_live
+  effective_until: canonical_lane_review_approved
+  purpose:
+  - prevent further provider and model routing drift
+  - preserve observed runtime as evidence without promoting it to policy
+  - block unreviewed provider activation and automatic fallback promotion
+  - enable design validation before any fleet reconciliation
+  permitted_existing_behavior:
+    KIMI_CODE:
+      status: observed_runtime_baseline
+      scope: existing_non_privileged_work_only
+      new_profile_assignments: denied
+      new_model_alias_assignments: denied
+      live_configuration_changes: denied
+      runtime_adoption_as_policy: denied
+  prohibited:
+  - new_provider_activation
+  - new_model_activation
+  - new_model_alias_activation
+  - openrouter_primary_routing
+  - openrouter_automatic_fallback
+  - automatic_execution_fallback
+  - r2_or_r3_route_promotion
+  - unapproved_profile_reconciliation
+  - secret_or_restricted_data_external_egress
+  - live_runtime_mutation
+  required_before_route_activation:
+  - canonical_provider_policy
+  - canonical_model_catalog_entry
+  - immutable_or_explicitly_pinned_model_identifier
+  - approved_lane_definition
+  - profile_eligibility_definition
+  - data_classification_policy
+  - structured_output_requirements_if_applicable
+  - routing_eval_coverage
+  - security_and_secret_egress_review
+  - cost_and_latency_budget
+  - explicit_human_approval
+approved_lanes:
+  KIMI_CODE:
+    status: approved
+    provider_family: kimi
+    permitted_profile_types:
+    - supervisor
+    - orchestrator
+    - worker
+    - coder
+    - qa
+    - security
+    - ops
+    - reflective
+    permitted_task_classes:
+    - supervisor_control_plane
+    - structured_worker
+    - implementation_planning
+    - code_critique
+    - qa_analysis
+    - ops_planning
+    - reflective_advisory
+    permitted_data_classes:
+    - public
+    - internal
+    prohibited_data_classes:
+    - confidential
+    - restricted
+    - secret
+    execution_mode_max: bounded_execution
+    model_aliases:
+    - kimi-coding
+    pinned_models:
+    - kimi-k2.7-code
+    required_capabilities:
+    - chat_completions
+    - repository_reasoning
+    - structured_text_output
+    required_policy_checks:
+    - no_secret_payload
+    - risk_gate
+    - tool_scope_unchanged
+    - schema_when_worker
+    - provider_substitution_logged
+    max_risk_tier: r2
+    fallback_eligible: true
+    notes: Currently observed active fleet baseline from safe active-profile metadata. Approval here is design-only; runtime
+      remains unchanged. If kimi-k2.7-code becomes an alias rather than an immutable model identifier, promotion must reclassify
+      this as blocked_missing_configuration.
+  PERPLEXITY_API:
+    status: proposed
+    provider_family: perplexity
+    permitted_profile_types:
+    - research
+    - supervisor
+    - security
+    - qa
+    permitted_task_classes:
+    - research
+    - intelligence
+    - source_discovery
+    - source_verification
+    - citation_backed_brief
+    - documentation_triage
+    permitted_data_classes:
+    - public
+    - internal_redacted
+    prohibited_data_classes:
+    - confidential
+    - restricted
+    - secret
+    execution_mode_max: advisory
+    observed_aliases_not_canonical_pins:
+    - sonar
+    - sonar-pro
+    model_aliases:
+    - sonar
+    - sonar-pro
+    pinned_models: []
+    required_capabilities:
+    - source_capture
+    - claim_to_source_mapping
+    - retrieval_timestamp
+    - uncertainty_or_conflict_reporting
+    - structured_output
+    required_policy_checks:
+    - redact_before_dispatch
+    - provenance_artifact_required
+    - source_conflict_detection
+    - no_execution_authority
+    - no_secret_egress
+    - task_scope_enforcement
+    activation_requirements:
+    - verify_documented_api_auth_method
+    - verify_terms_and_permitted_automation_model
+    - verify_canonical_api_model_identifiers
+    - pin_canonical_model_identifiers
+    - define_rate_limits
+    - define_per_task_and_daily_budget_limits
+    - verify_data_handling_and_retention_posture
+    - define_source_retention_and_provenance_policy
+    - add_structured_output_contract
+    - add_provider_outage_and_substitution_evals
+    - add_redaction_and_secret-denial_evals
+    - explicit_human_approval
+    max_risk_tier: r1
+    fallback_eligible: false
+    notes: Proposed evidence-only lane. Local aliases sonar and sonar-pro are observed aliases, not canonical pins. Activation
+      requires verified API auth, terms, data handling, canonical model identifiers, provenance artifacts, evals, budgets,
+      and explicit human approval.
+  NOUS_PORTAL:
+    status: blocked_missing_configuration
+    provider_family: nous
+    permitted_profile_types:
+    - supervisor
+    - orchestrator
+    - worker
+    - qa
+    permitted_task_classes:
+    - supervisor_control_plane
+    - cheap_router
+    - eval_judge
+    - research_synthesis
+    permitted_data_classes:
+    - public
+    - internal
+    prohibited_data_classes:
+    - confidential
+    - restricted
+    - secret
+    execution_mode_max: advisory
+    model_aliases:
+    - nous-router-default
+    - nous-eval-default
+    pinned_models: []
+    required_capabilities:
+    - structured_output
+    - routing_judgment
+    - policy_evaluation
+    required_policy_checks:
+    - catalog_entry_required
+    - auth_route_required
+    - eval_record_required
+    - not_sole_r2_r3_validator
+    max_risk_tier: r1
+    fallback_eligible: false
+    notes: shared/models.yaml contains placeholder Nous aliases and roster comments report dead Nous key; no active fleet-wide
+      canonical pinned model is verified.
+    activation_requirements:
+    - canonical_model_catalog_entry
+    - provider_policy_approval
+    - routing_eval_coverage
+    - security_review
+    - explicit_human_approval
+  CLAUDE_CODE_PRO:
+    status: blocked_missing_configuration
+    provider_family: anthropic_claude
+    permitted_profile_types:
+    - coder
+    - supervisor
+    - orchestrator
+    - research
+    - qa
+    - security
+    permitted_task_classes:
+    - bounded_code_generation
+    - refactoring
+    - test_construction
+    - long_context_synthesis
+    - r3_planning_draft
+    permitted_data_classes:
+    - public
+    - internal
+    - confidential_redacted
+    prohibited_data_classes:
+    - restricted
+    - secret
+    execution_mode_max: bounded_execution
+    model_aliases:
+    - claude-sonnet
+    - claude-sonnet-4-5
+    - claude-opus-4-5
+    - claude-sonnet-5
+    pinned_models: []
+    required_capabilities:
+    - tool_use
+    - long_context
+    - code_reasoning
+    - structured_handoff
+    required_policy_checks:
+    - canonical_lane_binding_required
+    - data_policy_required
+    - eval_record_required
+    - independent_review_for_r2_plus
+    max_risk_tier: r2
+    fallback_eligible: false
+    notes: Repo contains inconsistent Anthropic/Claude identifiers and live profiles route some Claude traffic through OpenRouter;
+      approved lane label and authentication route are not canonically pinned.
+    activation_requirements:
+    - canonical_model_catalog_entry
+    - provider_policy_approval
+    - routing_eval_coverage
+    - security_review
+    - explicit_human_approval
+  CHATGPT_PRO:
+    status: blocked_missing_configuration
+    provider_family: openai_chatgpt_codex
+    permitted_profile_types:
+    - supervisor
+    - orchestrator
+    - qa
+    - security
+    - coder
+    permitted_task_classes:
+    - adversarial_critique
+    - structured_explanation
+    - alternate_design_review
+    - code_primary_if_bridge_approved
+    permitted_data_classes:
+    - public
+    - internal
+    prohibited_data_classes:
+    - confidential
+    - restricted
+    - secret
+    execution_mode_max: bounded_execution
+    model_aliases:
+    - gpt-4.1
+    - gpt-5
+    - gpt-5.4-mini
+    - openai-codex
+    pinned_models: []
+    required_capabilities:
+    - structured_output
+    - tool_use_if_coder_bridge
+    - adversarial_reasoning
+    required_policy_checks:
+    - canonical_model_required
+    - programmatic_api_rights_required
+    - eval_record_required
+    - not_sole_evidence_authority
+    max_risk_tier: r2
+    fallback_eligible: false
+    notes: Repo and active configs disagree between gpt-4.1, gpt-5, and openai-codex gpt-5.4-mini; no canonical CHATGPT_PRO
+      lane binding is defined.
+    activation_requirements:
+    - canonical_model_catalog_entry
+    - provider_policy_approval
+    - routing_eval_coverage
+    - security_review
+    - explicit_human_approval
+  VENICE_PRO:
+    status: blocked_missing_configuration
+    provider_family: venice
+    permitted_profile_types:
+    - research
+    - reflective
+    - supervisor
+    permitted_task_classes:
+    - privacy_conscious_ideation
+    - dissent_generation
+    - sanitized_private_analysis
+    permitted_data_classes:
+    - public
+    - internal_redacted
+    - confidential_redacted
+    prohibited_data_classes:
+    - restricted
+    - secret
+    - credentials
+    - wallet_material
+    execution_mode_max: advisory
+    model_aliases:
+    - venice-private-default
+    pinned_models: []
+    required_capabilities:
+    - privacy_mode
+    - metadata_only_logging
+    - no_tool_execution
+    required_policy_checks:
+    - tee_or_e2ee_status_required
+    - local_redaction_required
+    - fail_closed
+    - never_standard_cloud_fallback
+    max_risk_tier: r1
+    fallback_eligible: false
+    notes: Provider appears in config, but no pinned model, privacy-mode proof, or eval record is present. Cannot receive
+      secrets or restricted data.
+    activation_requirements:
+    - canonical_model_catalog_entry
+    - provider_policy_approval
+    - routing_eval_coverage
+    - security_review
+    - explicit_human_approval
+  OPENROUTER_FALLBACK:
+    status: disabled
+    provider_family: openrouter
+    permitted_profile_types: []
+    permitted_task_classes: []
+    permitted_data_classes:
+    - public
+    - internal
+    prohibited_data_classes:
+    - confidential
+    - restricted
+    - secret
+    execution_mode_max: draft_only
+    model_aliases: []
+    pinned_models: []
+    required_capabilities:
+    - explicit_allowlist
+    - structured_output_if_used
+    - cost_cap_enforcement
+    required_policy_checks:
+    - shared_models_enabled_status_review
+    - explicit_exception_record
+    - human_review_for_route_addition
+    - never_default_primary
+    - substitution_logged
+    max_risk_tier: r0
+    fallback_eligible: false
+    notes: Disabled while shared/models.yaml and provider policy treat OpenRouter as disabled/exception-only. It cannot be
+      primary, cannot be automatic execution fallback, and cannot be selected for r1-r3 while reconciliation_freeze is proposed.
+    primary_eligible: false
+    automatic_execution_fallback: false
+    activation_requirements:
+    - resolve_shared_catalog_contradiction
+    - explicit_provider_policy_approval
+    - allowlisted_and_pinned_model_identifiers
+    - provider_and_model_data_policy
+    - request_budget_and_daily_budget_limits
+    - structured_output_contract
+    - provider_substitution_logging
+    - circuit_breaker_policy
+    - outage_and_degraded_mode_evals
+    - security_review
+    - explicit_human_approval
+profile_routing_classes:
+  supervisor_control_plane:
+    description: Planning, dispatch, synthesis, policy enforcement; no privileged execution.
+    eligible_primary_lanes:
+    - KIMI_CODE
+    required_critic_for_r2_plus:
+    - CLAUDE_CODE_PRO
+    - CHATGPT_PRO
+    - KIMI_CODE
+    structured_output_required: true
+  research_evidence:
+    description: Source discovery, evidence packs, claim-to-source maps, cited briefs.
+    eligible_primary_lanes:
+    - KIMI_CODE
+    required_critic_for_material_findings:
+    - KIMI_CODE
+    - NOUS_PORTAL
+    - CHATGPT_PRO
+    structured_output_required: true
+    proposed_evidence_lanes:
+    - PERPLEXITY_API
+    required_gates:
+    - provenance_artifact_required
+    - source_conflict_detection
+    - no_secret_egress
+  implementation_coder:
+    description: Bounded code changes and test construction under a scoped bridge.
+    eligible_primary_lanes:
+    - KIMI_CODE
+    blocked_preferred_lanes:
+    - CLAUDE_CODE_PRO
+    required_gates:
+    - independent_provider_review
+    - qa_validation
+    - rollback_plan_for_r2
+  qa_validation:
+    description: Deterministic test/schema/policy verification, model-assisted review only.
+    eligible_primary_lanes:
+    - KIMI_CODE
+    required_gates:
+    - executable_evidence
+    - schema_validation
+    - policy_gate
+  security_adversarial_review:
+    description: Attack-path and boundary review; no remediation authority.
+    eligible_primary_lanes:
+    - KIMI_CODE
+    blocked_preferred_lanes:
+    - CHATGPT_PRO
+    required_gates:
+    - independent_provider_family_if_r2_plus
+  reflective_advisory:
+    description: Curated snapshot reflection and drift signals only.
+    eligible_primary_lanes:
+    - KIMI_CODE
+    required_gates:
+    - curated_input_only
+    - no_external_research_without_supervisor_request
+  ops_infra_planning:
+    description: Infrastructure planning and bounded non-production analysis.
+    eligible_primary_lanes:
+    - KIMI_CODE
+    required_gates:
+    - r3_manifest_for_privileged_or_destructive_actions
+    - human_approval_for_production
+  structured_worker:
+    description: Typed extraction, transformation, drafting, documentation.
+    eligible_primary_lanes:
+    - KIMI_CODE
+    required_gates:
+    - schema_validation
+    - confidence_threshold
+    - quarantine_on_invalid_output
+risk_tier_requirements:
+  r0:
+    review: optional
+    fallback: allowed_if_same_or_lower_execution_mode
+    human_approval: false
+    external_dispatch: public_or_internal_only
+  r1:
+    review: critic_when_material_or_uncertain
+    fallback: allowed_if_logged_and_policy_compatible
+    human_approval: external_mutation_only
+    workspace: sandboxed_or_read_only
+  r2:
+    review: mandatory_independent_provider_family
+    fallback: draft_or_read_only_unless explicitly approved
+    human_approval: policy_or_per_action_by_blast_radius
+    rollback_required: true
+  r3:
+    review: mandatory_independent_review_and_policy_validation
+    fallback: no_automatic_execution_fallback
+    human_approval: mandatory_canonical_action_manifest
+    rollback_required: true
+fallback_policy:
+  default: fail_closed_if_no_policy_compatible_fallback
+  preserve_fields:
+  - task_id
+  - profile_id
+  - data_classification
+  - risk_tier
+  - tool_scope
+  - execution_mode
+  - approval_requirements
+  - output_schema
+  - redaction_state
+  on_unavailable_lane:
+  - emit_provider_failure_event
+  - attempt_only_enabled_profile_compatible_fallbacks
+  - degrade_to_draft_only_or_blocked_degraded_when_needed
+  prohibited:
+  - silent_provider_substitution
+  - risk_tier_downgrade
+  - data_classification_downgrade
+  - tool_scope_expansion
+  - approval_requirement_removal
+  - r3_execution_fallback
+circuit_breakers:
+  trip_on:
+  - provider_outage_or_repeated_throttling
+  - invalid_structured_output
+  - policy_violation
+  - privacy_or_data_boundary_violation
+  - unexpected_metered_spend
+  - latency_slo_breach
+  - fallback_substitution_without_log
+  - openrouter_primary_selection
+  action: mark_route_unavailable_and_require_supervisor_review
+  safe_degraded_modes:
+  - draft_only
+  - read_only
+  - blocked_degraded

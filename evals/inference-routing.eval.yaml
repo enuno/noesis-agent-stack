@@ -1,0 +1,131 @@
+version: 2026-10-03.1
+policy_mode: proposed_not_live
+suite: inference-routing
+routing_seed: f6116a9c11971a82a7082590f5501980df4d239eb0c0823c69e69045c5f786d2
+description: Design-time fixtures mapped to semantic validator assertions for canonical inference lanes, reconciliation freeze,
+  fallback safety, and runtime/repo drift.
+tests:
+- id: IR-001
+  name: freeze_blocks_new_lane_activation
+  setup: New provider/model route is introduced during reconciliation_freeze.
+  expected_result: fail
+  expected_error_class_or_assertion: R001,R002
+  linked_validator_rule: R001,R002
+  risk_level: critical
+- id: IR-002
+  name: kimi_observed_runtime_is_not_automatic_policy
+  setup: KIMI_CODE is present as observed runtime baseline but used to justify new profile assignment.
+  expected_result: fail
+  expected_error_class_or_assertion: R001,R023
+  linked_validator_rule: R001,R023
+  risk_level: high
+- id: IR-003
+  name: perplexity_requires_canonical_model_pin_before_approval
+  setup: PERPLEXITY_API is changed to approved while pinned_models is empty or aliases are asserted as pins.
+  expected_result: fail
+  expected_error_class_or_assertion: R008,R009
+  linked_validator_rule: R008,R009
+  risk_level: critical
+- id: IR-004
+  name: perplexity_restricts_data_to_public_or_internal_redacted
+  setup: PERPLEXITY_API permitted_data_classes includes confidential, restricted, or secret.
+  expected_result: fail
+  expected_error_class_or_assertion: R005,R018
+  linked_validator_rule: R005,R018
+  risk_level: critical
+- id: IR-005
+  name: perplexity_requires_provenance_artifact
+  setup: Research/evidence route using PERPLEXITY_API lacks provenance_artifact_required/source mapping checks.
+  expected_result: fail
+  expected_error_class_or_assertion: R018
+  linked_validator_rule: R018
+  risk_level: high
+- id: IR-006
+  name: claude_code_requires_bridge_independent_review_and_qa
+  setup: CLAUDE_CODE_PRO or implementation_coder is made selectable without bridge constraints, independent review, and QA
+    gates.
+  expected_result: fail
+  expected_error_class_or_assertion: R017
+  linked_validator_rule: R017
+  risk_level: critical
+- id: IR-007
+  name: proposed_lane_cannot_be_selected
+  setup: Any proposed or blocked_missing_configuration lane appears in eligible_primary_lanes.
+  expected_result: fail
+  expected_error_class_or_assertion: R002
+  linked_validator_rule: R002
+  risk_level: critical
+- id: IR-008
+  name: openrouter_disabled_cannot_be_primary
+  setup: Repo/live declaration or policy makes OpenRouter primary while catalog/policy disables it and reconciliation does
+    not mark it blocked.
+  expected_result: fail
+  expected_error_class_or_assertion: R011,R022
+  linked_validator_rule: R011,R022
+  risk_level: critical
+- id: IR-009
+  name: openrouter_cannot_be_automatic_execution_fallback
+  setup: OPENROUTER_FALLBACK sets automatic_execution_fallback true or fallback_eligible true.
+  expected_result: fail
+  expected_error_class_or_assertion: R012,R013
+  linked_validator_rule: R012,R013
+  risk_level: critical
+- id: IR-010
+  name: provider_outage_preserves_task_class_and_logs_substitution
+  setup: Fallback policy omits preserved task fields or substitution logging.
+  expected_result: fail
+  expected_error_class_or_assertion: R006
+  linked_validator_rule: R006
+  risk_level: high
+- id: IR-011
+  name: r2_requires_independent_provider_family_review
+  setup: r2 requirements or routing classes omit independent provider-family review.
+  expected_result: fail
+  expected_error_class_or_assertion: R015
+  linked_validator_rule: R015
+  risk_level: critical
+- id: IR-012
+  name: r3_disables_automatic_execution_fallback_and_requires_human_gate
+  setup: r3 requirements permit automatic execution fallback or omit human approval/rollback.
+  expected_result: fail
+  expected_error_class_or_assertion: R016
+  linked_validator_rule: R016
+  risk_level: critical
+- id: IR-013
+  name: secrets_denied_before_external_dispatch
+  setup: Design artifacts contain secret-like material or a lane permits secret/restricted external dispatch.
+  expected_result: fail
+  expected_error_class_or_assertion: R005,R025
+  linked_validator_rule: R005,R025
+  risk_level: critical
+- id: IR-014
+  name: runtime_repo_drift_requires_explicit_reconciliation_state
+  setup: Drift/blocked reconciliation entry lacks resolution state, rationale, or required gates.
+  expected_result: fail
+  expected_error_class_or_assertion: R020,R021,R022
+  linked_validator_rule: R020,R021,R022
+  risk_level: high
+- id: IR-015
+  name: alias_change_requires_routing_review
+  setup: Model alias or provider policy paths change without routing matrix/design/eval artifacts.
+  expected_result: fail
+  expected_error_class_or_assertion: R010
+  linked_validator_rule: R010
+  risk_level: high
+ci_integration_proposal:
+  watch_paths:
+  - shared/models.yaml
+  - shared/model-aliases.yaml
+  - shared/provider-policies.yaml
+  - platform/inference-routing.yaml
+  - platform/runtime-reconciliation.yaml
+  - profiles/noesis-roster.yaml
+  - platform/orchestrator.yaml
+  - profiles/live/*/config.yaml
+  - docs/inference-lanes-design.md
+  - scripts/validate_inference_routing.py
+  required_artifacts_on_change:
+  - platform/runtime-reconciliation.yaml
+  - docs/inference-lanes-design.md
+  - evals/inference-routing.eval.yaml
+  failure_mode: fail_closed_until_routing_matrix_review_present
