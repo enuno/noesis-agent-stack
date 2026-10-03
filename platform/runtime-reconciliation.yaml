@@ -1,0 +1,523 @@
+version: "2026-10-03.1"
+policy_mode: "proposed_not_live"
+routing_seed: "f6116a9c11971a82a7082590f5501980df4d239eb0c0823c69e69045c5f786d2"
+source_artifacts:
+- workspace/orchestrator/profile-routing-assessment-2026-10-03.yaml
+- profiles/noesis-roster.yaml
+- profiles/model-profiles.yaml
+- platform/orchestrator.yaml
+- shared/models.yaml
+- profiles/live/*/config.yaml
+- safe active ~/.hermes profile metadata (provider/model/aliases only)
+non_secret_extraction_rules:
+- record provider/lane label only
+- record model alias or identifier only
+- do not copy API keys, env var values, tokens, cookies, secrets, private endpoints, or raw active config content
+profiles:
+- profile_id: noesis-core
+  profile_type: supervisor
+  purpose: Noesis supervisor and router (Hermes-Core). Intake tasks, classify domain and risk tier, assign the narrowest-mandate
+    specialist, enforce approval gates; never executes domain work.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/config.yaml'
+  repo_declared:
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: profiles/noesis-roster.yaml
+  alignment: aligned
+  resolution:
+    state: needs_evidence
+    rationale: Observed safe runtime route matches repository declaration, but live activation still requires review under
+      proposed policy.
+    required_gates:
+    - independent_provider_review
+    - qa_or_policy_gate
+    - routing_matrix_review
+    - evals/inference-routing.eval.yaml
+  target_routing_class: supervisor_control_plane
+- profile_id: noesis-orchestrator
+  profile_type: orchestrator
+  purpose: Noesis control-plane orchestrator. Plans, dispatches, supervises, and synthesizes cross-profile work through durable
+    task contracts; holds no terminal or execution authority and never performs irreversible operations itself.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-orchestrator/config.yaml'
+  repo_declared:
+    provider_lane: CLAUDE_CODE_PRO
+    model_alias_or_id: claude-sonnet-5
+    evidence: profiles/noesis-roster.yaml
+  alignment: drift
+  resolution:
+    state: needs_evidence
+    rationale: Observed active route differs from repository declaration; do not adopt either side without routing-matrix
+      review.
+    required_gates:
+    - independent_provider_review
+    - qa_or_policy_gate
+    - routing_matrix_review
+    - evals/inference-routing.eval.yaml
+  target_routing_class: supervisor_control_plane
+- profile_id: noesis-steward
+  profile_type: orchestrator
+  purpose: Noesis chief of staff. Daily triage and prioritization across workstreams; surfaces blockers and deadline risks;
+    delegates planning to Cartographer.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-steward/config.yaml'
+  repo_declared:
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: profiles/live/noesis-steward/config.yaml
+  alignment: aligned
+  resolution:
+    state: needs_evidence
+    rationale: Observed safe runtime route matches repository declaration, but live activation still requires review under
+      proposed policy.
+    required_gates:
+    - routing_matrix_review
+    - evals/inference-routing.eval.yaml
+  target_routing_class: supervisor_control_plane
+- profile_id: noesis-cartographer
+  profile_type: orchestrator
+  purpose: Noesis project decomposition specialist. Turns goals into phased task graphs with dependencies, risk registers,
+    and owner assignments; never executes.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-cartographer/config.yaml'
+  repo_declared:
+    provider_lane: OPENROUTER_FALLBACK
+    model_alias_or_id: anthropic/claude-sonnet-5
+    evidence: profiles/live/noesis-cartographer/config.yaml
+  alignment: drift
+  resolution:
+    state: blocked
+    rationale: Repository-declared profile uses OpenRouter as a primary route while global catalog/policy keeps OpenRouter
+      disabled/fallback-only.
+    required_gates:
+    - independent_provider_review
+    - qa_or_policy_gate
+    - resolve_openrouter_catalog_contradiction
+    - human_review_before_any_runtime_change
+  target_routing_class: supervisor_control_plane
+- profile_id: noesis-forge
+  profile_type: coder
+  purpose: Noesis software engineering executor. Writes and modifies code, IaC, and CI/CD; never deploys to production or
+    merges unreviewed.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-forge/config.yaml'
+  repo_declared:
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: profiles/live/noesis-forge/config.yaml
+  alignment: aligned
+  resolution:
+    state: needs_evidence
+    rationale: Observed safe runtime route matches repository declaration, but live activation still requires review under
+      proposed policy.
+    required_gates:
+    - independent_provider_review
+    - qa_or_policy_gate
+    - routing_matrix_review
+    - evals/inference-routing.eval.yaml
+  target_routing_class: implementation_coder
+- profile_id: noesis-sentinel
+  profile_type: security
+  purpose: Noesis independent code/security reviewer. Reviews diffs for correctness, security, quality; reviewer-only, blocks
+    on exposed secrets.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-sentinel/config.yaml'
+  repo_declared:
+    provider_lane: OPENROUTER_FALLBACK
+    model_alias_or_id: anthropic/claude-sonnet-5
+    evidence: profiles/live/noesis-sentinel/config.yaml
+  alignment: drift
+  resolution:
+    state: blocked
+    rationale: Repository-declared profile uses OpenRouter as a primary route while global catalog/policy keeps OpenRouter
+      disabled/fallback-only.
+    required_gates:
+    - independent_provider_review
+    - qa_or_policy_gate
+    - resolve_openrouter_catalog_contradiction
+    - human_review_before_any_runtime_change
+  target_routing_class: security_adversarial_review
+- profile_id: noesis-scribe
+  profile_type: worker
+  purpose: Noesis knowledge archivist. Structures, versions, cross-links KB entries, changelogs, indexes with provenance preserved;
+    never originates technical content.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-scribe/config.yaml'
+  repo_declared:
+    provider_lane: NOUS_PORTAL
+    model_alias_or_id: deepseek/deepseek-v4-flash
+    evidence: profiles/live/noesis-scribe/config.yaml
+  alignment: drift
+  resolution:
+    state: needs_evidence
+    rationale: Observed active route differs from repository declaration; do not adopt either side without routing-matrix
+      review.
+    required_gates:
+    - routing_matrix_review
+    - evals/inference-routing.eval.yaml
+  target_routing_class: structured_worker
+- profile_id: noesis-signal
+  profile_type: research
+  purpose: Noesis research and synthesis specialist. Multi-source deep research with cross-validation and cited briefs.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-signal/config.yaml'
+  repo_declared:
+    provider_lane: OPENROUTER_FALLBACK
+    model_alias_or_id: anthropic/claude-sonnet-5
+    evidence: profiles/live/noesis-signal/config.yaml
+  alignment: drift
+  resolution:
+    state: blocked
+    rationale: Repository-declared profile uses OpenRouter as a primary route while global catalog/policy keeps OpenRouter
+      disabled/fallback-only.
+    required_gates:
+    - resolve_openrouter_catalog_contradiction
+    - human_review_before_any_runtime_change
+  target_routing_class: research_evidence
+- profile_id: noesis-substrate
+  profile_type: ops
+  purpose: Infrastructure and DevOps engineer. Designs and operates containers, K8s, cloud/edge, networking; no production
+    changes without approval.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-substrate/config.yaml'
+  repo_declared:
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: profiles/live/noesis-substrate/config.yaml
+  alignment: aligned
+  resolution:
+    state: needs_evidence
+    rationale: Observed safe runtime route matches repository declaration, but live activation still requires review under
+      proposed policy.
+    required_gates:
+    - independent_provider_review
+    - qa_or_policy_gate
+    - routing_matrix_review
+    - evals/inference-routing.eval.yaml
+  target_routing_class: ops_infra_planning
+- profile_id: noesis-tracer
+  profile_type: research
+  purpose: OSINT / evidence / timeline specialist. Builds verifiable timelines and evidence tables from public sources, labeled
+    fact/allegation/inference/unknown.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-tracer/config.yaml'
+  repo_declared:
+    provider_lane: OPENROUTER_FALLBACK
+    model_alias_or_id: anthropic/claude-sonnet-5
+    evidence: profiles/live/noesis-tracer/config.yaml
+  alignment: drift
+  resolution:
+    state: blocked
+    rationale: Repository-declared profile uses OpenRouter as a primary route while global catalog/policy keeps OpenRouter
+      disabled/fallback-only.
+    required_gates:
+    - resolve_openrouter_catalog_contradiction
+    - human_review_before_any_runtime_change
+  target_routing_class: research_evidence
+- profile_id: noesis-ledger
+  profile_type: research
+  purpose: Crypto, mining, and DePIN research analyst. Researches and tracks on-chain/mining/DePIN developments; never financial
+    advice, never transactions.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-ledger/config.yaml'
+  repo_declared:
+    provider_lane: OPENROUTER_FALLBACK
+    model_alias_or_id: anthropic/claude-sonnet-5
+    evidence: profiles/live/noesis-ledger/config.yaml
+  alignment: drift
+  resolution:
+    state: blocked
+    rationale: Repository-declared profile uses OpenRouter as a primary route while global catalog/policy keeps OpenRouter
+      disabled/fallback-only.
+    required_gates:
+    - independent_provider_review
+    - qa_or_policy_gate
+    - resolve_openrouter_catalog_contradiction
+    - human_review_before_any_runtime_change
+  target_routing_class: research_evidence
+- profile_id: noesis-grid
+  profile_type: worker
+  purpose: Data analysis and reporting. Structures, analyzes, and visualizes data into CSV/XLSX/charts/tables; never fabricates
+    or silently interpolates.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-grid/config.yaml'
+  repo_declared:
+    provider_lane: NOUS_PORTAL
+    model_alias_or_id: deepseek/deepseek-v4-flash
+    evidence: profiles/live/noesis-grid/config.yaml
+  alignment: drift
+  resolution:
+    state: needs_evidence
+    rationale: Observed active route differs from repository declaration; do not adopt either side without routing-matrix
+      review.
+    required_gates:
+    - independent_provider_review
+    - qa_or_policy_gate
+    - routing_matrix_review
+    - evals/inference-routing.eval.yaml
+  target_routing_class: structured_worker
+- profile_id: noesis-quill
+  profile_type: worker
+  purpose: Technical writing and editing. Drafts and polishes docs, runbooks, ADRs, reports; flags technical ambiguities rather
+    than guessing.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-quill/config.yaml'
+  repo_declared:
+    provider_lane: OPENROUTER_FALLBACK
+    model_alias_or_id: anthropic/claude-sonnet-5
+    evidence: profiles/live/noesis-quill/config.yaml
+  alignment: drift
+  resolution:
+    state: blocked
+    rationale: Repository-declared profile uses OpenRouter as a primary route while global catalog/policy keeps OpenRouter
+      disabled/fallback-only.
+    required_gates:
+    - resolve_openrouter_catalog_contradiction
+    - human_review_before_any_runtime_change
+  target_routing_class: structured_worker
+- profile_id: noesis-advocate
+  profile_type: research
+  purpose: Legal and administrative advocacy support. Researches and drafts supporting documents; never legal advice, never
+    external submission.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-advocate/config.yaml'
+  repo_declared:
+    provider_lane: OPENROUTER_FALLBACK
+    model_alias_or_id: anthropic/claude-sonnet-5
+    evidence: profiles/live/noesis-advocate/config.yaml
+  alignment: drift
+  resolution:
+    state: blocked
+    rationale: Repository-declared profile uses OpenRouter as a primary route while global catalog/policy keeps OpenRouter
+      disabled/fallback-only.
+    required_gates:
+    - independent_provider_review
+    - qa_or_policy_gate
+    - resolve_openrouter_catalog_contradiction
+    - human_review_before_any_runtime_change
+  target_routing_class: research_evidence
+- profile_id: noesis-herald
+  profile_type: worker
+  purpose: Strategic comms drafter. Drafts external-facing communications with risk/tone notes; never sends autonomously.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-herald/config.yaml'
+  repo_declared:
+    provider_lane: OPENROUTER_FALLBACK
+    model_alias_or_id: anthropic/claude-sonnet-5
+    evidence: profiles/live/noesis-herald/config.yaml
+  alignment: drift
+  resolution:
+    state: blocked
+    rationale: Repository-declared profile uses OpenRouter as a primary route while global catalog/policy keeps OpenRouter
+      disabled/fallback-only.
+    required_gates:
+    - resolve_openrouter_catalog_contradiction
+    - human_review_before_any_runtime_change
+  target_routing_class: structured_worker
+- profile_id: noesis-architect
+  profile_type: orchestrator
+  purpose: Agent and orchestration designer. Designs agent profiles, prompts, memory systems, MCP/ACP/A2A integration; never
+    implements infra directly.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-architect/config.yaml'
+  repo_declared:
+    provider_lane: OPENROUTER_FALLBACK
+    model_alias_or_id: anthropic/claude-sonnet-5
+    evidence: profiles/live/noesis-architect/config.yaml
+  alignment: drift
+  resolution:
+    state: blocked
+    rationale: Repository-declared profile uses OpenRouter as a primary route while global catalog/policy keeps OpenRouter
+      disabled/fallback-only.
+    required_gates:
+    - independent_provider_review
+    - qa_or_policy_gate
+    - resolve_openrouter_catalog_contradiction
+    - human_review_before_any_runtime_change
+  target_routing_class: supervisor_control_plane
+- profile_id: noesis-skeptic
+  profile_type: qa
+  purpose: Adversarial / red-team reviewer. Challenges outputs from other Noesis agents pre-high-stakes-use; reviewer-only,
+    uses a distinct model ecosystem.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-skeptic/config.yaml'
+  repo_declared:
+    provider_lane: OPENROUTER_FALLBACK
+    model_alias_or_id: anthropic/claude-sonnet-5
+    evidence: profiles/live/noesis-skeptic/config.yaml
+  alignment: drift
+  resolution:
+    state: blocked
+    rationale: Repository-declared profile uses OpenRouter as a primary route while global catalog/policy keeps OpenRouter
+      disabled/fallback-only.
+    required_gates:
+    - independent_provider_review
+    - qa_or_policy_gate
+    - resolve_openrouter_catalog_contradiction
+    - human_review_before_any_runtime_change
+  target_routing_class: qa_validation
+- profile_id: main-hermes
+  profile_type: supervisor
+  purpose: Hermes is the only agent authorized to submit broker jobs and the only persistent reasoning layer. It does not
+    execute shell commands directly.
+  observed_runtime:
+    source: repo_only
+    provider_lane: unknown
+    model_alias_or_id: unknown
+    evidence: no active Hermes profile metadata observed by this design task
+  repo_declared:
+    provider_lane: CLAUDE_CODE_PRO
+    model_alias_or_id: claude-sonnet-4-5
+    evidence: platform/orchestrator.yaml + shared/models.yaml
+  alignment: runtime_not_observed
+  resolution:
+    state: needs_evidence
+    rationale: No active Hermes profile metadata was observed; repository declaration can be reviewed but not reconciled to
+      runtime.
+    required_gates:
+    - independent_provider_review
+    - qa_or_policy_gate
+    - routing_matrix_review
+    - evals/inference-routing.eval.yaml
+  target_routing_class: supervisor_control_plane
+- profile_id: research-openclaw
+  profile_type: research
+  purpose: Extraction engine. Writes findings, claims, sources, and run receipts to the research vault. Cannot publish, execute
+    external actions, or touch secrets.
+  observed_runtime:
+    source: repo_only
+    provider_lane: unknown
+    model_alias_or_id: unknown
+    evidence: no active Hermes profile metadata observed by this design task
+  repo_declared:
+    provider_lane: unknown
+    model_alias_or_id: '{''bootstrap'': ''reasoning_primary'', ''refresh'': ''extraction_fast'', ''validation'': ''extraction_fast'',
+      ''daily_summary'': ''synthesis_mid'', ''midday_focus'': ''synthesis_mid'', ''recover'': ''reasoning_strong''}'
+    evidence: platform/orchestrator.yaml
+  alignment: runtime_not_observed
+  resolution:
+    state: needs_evidence
+    rationale: No active Hermes profile metadata was observed; repository declaration can be reviewed but not reconciled to
+      runtime.
+    required_gates:
+    - routing_matrix_review
+    - evals/inference-routing.eval.yaml
+  target_routing_class: research_evidence
+- profile_id: subconscious-openclaw
+  profile_type: reflective
+  purpose: Pattern-noticing layer. Consumes research snapshots and room memory, emits signal events and intent drafts. Cannot
+    code, self-approve, or change its own thresholds.
+  observed_runtime:
+    source: repo_only
+    provider_lane: unknown
+    model_alias_or_id: unknown
+    evidence: no active Hermes profile metadata observed by this design task
+  repo_declared:
+    provider_lane: unknown
+    model_alias_or_id: '{''drift_from_research'': ''local_drift'', ''continue_project'': ''local_drift'', ''pure_tangent'':
+      ''local_drift'', ''tend_the_room'': ''local_drift'', ''digest'': ''synthesis_mid'', ''elaborate_intent'': ''synthesis_mid''}'
+    evidence: platform/orchestrator.yaml
+  alignment: runtime_not_observed
+  resolution:
+    state: needs_evidence
+    rationale: No active Hermes profile metadata was observed; repository declaration can be reviewed but not reconciled to
+      runtime.
+    required_gates:
+    - routing_matrix_review
+    - evals/inference-routing.eval.yaml
+  target_routing_class: reflective_advisory
+- profile_id: coder
+  profile_type: coder
+  purpose: Builder lane. Receives approved handoffs from Hermes. Writes artifacts to coder-jobs workspace. Cannot self-start
+    from raw research or subconscious signals.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: KIMI_CODE
+    model_alias_or_id: kimi-k2.7-code
+    evidence: 'active profile metadata: ~/.hermes/profiles/coder/config.yaml'
+  repo_declared:
+    provider_lane: unknown
+    model_alias_or_id: zai-org-glm-4.7
+    evidence: profiles/live/coder/config.yaml
+  alignment: missing_repo_declaration
+  resolution:
+    state: needs_evidence
+    rationale: Active runtime route was observed but repository declaration does not map to a canonical lane.
+    required_gates:
+    - routing_matrix_review
+    - evals/inference-routing.eval.yaml
+  target_routing_class: implementation_coder
+- profile_id: qa
+  profile_type: qa
+  purpose: Release gate. Audits build artifacts against evidence, schema, and policy. Can block progression. Cannot waive
+    gates based solely on agent confidence.
+  observed_runtime:
+    source: repo_only
+    provider_lane: unknown
+    model_alias_or_id: unknown
+    evidence: no active Hermes profile metadata observed by this design task
+  repo_declared:
+    provider_lane: CLAUDE_CODE_PRO
+    model_alias_or_id: claude-sonnet-4-5
+    evidence: platform/orchestrator.yaml + shared/models.yaml
+  alignment: runtime_not_observed
+  resolution:
+    state: needs_evidence
+    rationale: No active Hermes profile metadata was observed; repository declaration can be reviewed but not reconciled to
+      runtime.
+    required_gates:
+    - routing_matrix_review
+    - evals/inference-routing.eval.yaml
+  target_routing_class: qa_validation
