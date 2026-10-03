@@ -86,6 +86,44 @@ providers:
     enabled: true
     notes: Hermes-native inference, routing, evaluation, classification, approved fallback.
 
+  claude_code:
+    display_name: Claude Code subscription (OAuth)
+    api_base: https://api.anthropic.com/v1
+    auth_env: null
+    provider_class: subscription
+    enabled: true
+    notes: >-
+      Claude Pro/Max subscription capacity via Claude Code OAuth (Hermes
+      `claude_code` credential pool, subscription route). Verified live across
+      the fleet for claude-sonnet-5 since 2026-09-18, replacing the
+      billing-exhausted OpenRouter anthropic route. No API key required;
+      auth rides the Hermes OAuth credential pool.
+
+  xai:
+    display_name: xAI Grok
+    api_base: https://api.x.ai/v1
+    auth_env: XAI_API_KEY
+    provider_class: subscription
+    enabled: true
+    notes: >-
+      Grok models for adversarial critique, search-heavy reasoning, and
+      independent review. XAI_API_KEY exists in Bitwarden but is not yet
+      injected into fleet .env/auth pools; runtime activation requires the
+      key material plus explicit human approval.
+
+  nous_portal:
+    display_name: Nous Portal subscription
+    api_base: https://inference-api.nousresearch.com/v1
+    auth_env: NOUS_API_KEY
+    provider_class: subscription
+    enabled: true
+    notes: >-
+      Nous Portal subscription. Primary auth is the Hermes `nous` OAuth
+      credential pool (`hermes login --provider nous`); static Portal API
+      key (NOUS_API_KEY) as fallback. Endpoint inference-api.nousresearch.com
+      supersedes the stale inference.nousresearch.com base in the legacy
+      `nous` entry above. Hermes-native routing/eval lane.
+
   openrouter:
     display_name: OpenRouter (metered exception)
     api_base: https://openrouter.ai/api/v1
@@ -408,6 +446,8 @@ security:
     optional:
       - OLLAMA_HOST        # override default 127.0.0.1:11434
       - LOCAL_LLM_HOST     # override default 127.0.0.1:8000
+      - XAI_API_KEY        # xAI Grok pool (subscription-backed lane)
+      - NOUS_API_KEY       # Nous Portal static-key fallback (primary: Hermes nous OAuth pool)
   worker_access:
     openclaw_workers_may_call_cloud_providers: true
     openclaw_workers_may_call_local_providers: true

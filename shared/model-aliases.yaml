@@ -26,7 +26,7 @@ capability_aliases:
       critical planning, and long-context synthesis. Used by R3 planner/reviewer
       and supervisor escalation.
     preferred_provider_class: subscription
-    candidates: [claude, codex, kimi, nous]
+    candidates: [claude, claude_code, codex, kimi, nous, nous_portal]
     fallback_policy: subscription-only; OpenRouter only for approved gap
 
   # Primary implementation and tool-oriented engineering.
@@ -35,7 +35,7 @@ capability_aliases:
       Primary coding, debugging, repository modification, test repair,
       tool-oriented engineering.
     preferred_provider_class: subscription
-    candidates: [codex, kimi, claude]
+    candidates: [codex, kimi, claude, claude_code]
     fallback_policy: subscription-only
 
   # Independent code review, exploration, refactoring, test generation.
@@ -44,7 +44,7 @@ capability_aliases:
       Parallel/independent review lanes. Must be distinct from the
       implementation route for separation of duties.
     preferred_provider_class: subscription
-    candidates: [kimi, codex, claude]
+    candidates: [kimi, codex, claude, claude_code, xai]
     fallback_policy: subscription-only; must differ from code_implementation route
 
   # Cheap, fast classification/extraction/triage/routing.
@@ -53,7 +53,7 @@ capability_aliases:
       Classification, extraction, triage, routing, structured parsing.
       Low cost, high throughput, deterministic output preferred.
     preferred_provider_class: subscription
-    candidates: [nous, kimi, codex]
+    candidates: [nous, nous_portal, kimi, codex]
     fallback_policy: allow openrouter for approved low-risk fallback
 
   # Research organization and evidence synthesis.
@@ -61,7 +61,7 @@ capability_aliases:
     description: >-
       Organize research, synthesize evidence, produce structured summaries.
     preferred_provider_class: subscription
-    candidates: [claude, kimi, nous]
+    candidates: [claude, claude_code, kimi, nous, nous_portal]
     fallback_policy: subscription-only
 
   # Privacy-qualified analysis. Venice Private or approved self-hosted only.
@@ -96,7 +96,7 @@ capability_aliases:
     description: >-
       Bounded-output evaluation: safety, routing, tool quality, schema validity.
     preferred_provider_class: subscription
-    candidates: [nous, claude]
+    candidates: [nous, nous_portal, claude]
     fallback_policy: allow openrouter for approved eval bursts
 
 # ---------------------------------------------------------------------------
@@ -105,7 +105,7 @@ capability_aliases:
 provider_classes:
   subscription:
     description: Subscription-backed capacity pools (normal default).
-    providers: [claude, codex, kimi, nous]
+    providers: [claude, codex, kimi, nous, claude_code, xai, nous_portal]
     spend_model: fixed subscription; no per-token meter
     priority_bonus: strong
 
