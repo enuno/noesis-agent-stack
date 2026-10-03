@@ -18,6 +18,11 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from app import policy
+from app.inference_routing import (
+    EnforcerConfig,
+    InferenceRoutingEnforcer,
+    RoutingContext,
+)
 from app.models import Approval, Retry, TaskContract, TransitionError, Verification, utcnow
 from app.policy import DispatchDecision, PolicyViolation
 from app.store import DEFAULT_LEDGER, TaskStore
@@ -70,9 +75,22 @@ class Orchestrator:
         ledger_path: Path | str = DEFAULT_LEDGER,
         *,
         failure_threshold: int = DEFAULT_FAILURE_THRESHOLD,
+        inference_enforcer: InferenceRoutingEnforcer | None = None,
+        inference_enforcer_config: EnforcerConfig | None = None,
+        inference_routing_context: dict[str, dict[str, str]] | None = None,
     ) -> None:
         self.store = TaskStore(ledger_path)
         self.breaker = CircuitBreaker(failure_threshold=failure_threshold)
+        if inference_enforcer is not None:
+            self.inference_enforcer = inference_enforcer
+        else:
+            try:
+                self.inference_enforcer = InferenceRoutingEnforcer(inference_enforcer_config)
+            except Exception:
+                # In observe-capable deployments the orchestrator must still boot;
+                # enforcement modes will fail closed on dispatch if no policy loads.
+                self.inference_enforcer = None
+        self._inference_routing_context = dict(inference_routing_context or {})
 
     # ------------------------------------------------------------------ plan --
 
@@ -186,7 +204,47 @@ class Orchestrator:
             return DispatchDecision(False, f"circuit breaker open: {self.breaker.reason}")
         if task.state != "queued":
             return DispatchDecision(False, f"task is '{task.state}', not 'queued'")
-        return policy.check_dispatchable(task, self.store.all_tasks())
+        decision = policy.check_dispatchable(task, self.store.all_tasks())
+        if not decision.allowed:
+            return decision
+        if self.inference_enforcer is not None:
+            route_ctx = self._routing_context_for_task(task)
+            routing_decision = self.inference_enforcer.evaluate(route_ctx)
+            if not routing_decision.allowed:
+                return DispatchDecision(
+                    False,
+                    f"inference routing denied: {routing_decision.reason_code}: {routing_decision.reason}",
+                )
+        return decision
+
+    def _routing_context_for_task(self, task: TaskContract) -> RoutingContext:
+        """Build the non-sensitive routing context for pre-dispatch evaluation."""
+        overrides = self._inference_routing_context.get(str(task.task_id), {})
+        task_class = overrides.get("task_class") or task.labels[0] if task.labels else "general"
+        data_classification = (
+            overrides.get("data_classification")
+            or ("internal_redacted" if task.risk_tier in {"r0", "r1"} else "internal")
+        )
+        return RoutingContext(
+            task_id=str(task.task_id),
+            profile_id=task.assignee_profile,
+            task_class=task_class,
+            risk_tier=task.risk_tier,
+            data_classification=data_classification,
+            requested_lane=overrides.get("requested_lane"),
+            requested_model=overrides.get("requested_model"),
+            approval_granted=bool(
+                task.approval and task.approval.required and task.approval.state == "granted"
+            ),
+            approval_manifest_id=(
+                task.approval.approval_manifest_id if task.approval else None
+            ),
+            rollback_plan_present=bool(task.handoff and task.handoff.get("rollback_plan")),
+            independent_review_provider_family=overrides.get("independent_review_provider_family"),
+            tool_scope=tuple(overrides.get("tool_scope", "").split(","))
+            if overrides.get("tool_scope")
+            else (),
+        )
 
     def check_gate_blocked(self, task_id: str | UUID) -> bool:
         """True when a task is held by an unsatisfied human approval gate.
