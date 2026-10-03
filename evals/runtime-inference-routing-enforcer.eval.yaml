@@ -1,0 +1,84 @@
+# Eval fixture: runtime inference-routing enforcer
+# Static assertions that must hold for the enforcer to be considered
+# correctly enforcing the merged canonical policy.
+
+eval_id: runtime-inference-routing-enforcer.v1
+policy_version: 2026-10-03.1
+applies_to:
+  - orchestration/orchestrator/app/inference_routing.py
+  - orchestration/orchestrator/app/control_plane.py
+
+assertions:
+  - id: openrouter-always-denied
+    description: OpenRouter is denied regardless of requested route or mode.
+    lane: OPENROUTER_FALLBACK
+    expect_decision: deny
+    modes: [enforce, enforce_allowlist]
+
+  - id: proposed-lane-denied-in-enforce
+    description: A proposed lane (e.g. PERPLEXITY_API) cannot be selected.
+    lane: PERPLEXITY_API
+    expect_decision: deny
+    modes: [enforce]
+
+  - id: unpinned-model-denied
+    description: A model not pinned or aliased on the lane is denied.
+    lane: KIMI_CODE
+    model: not-a-pinned-model
+    expect_decision: deny
+    modes: [enforce]
+
+  - id: secret-data-denied-pre-provider
+    description: secret/restricted data classes are denied before provider selection.
+    data_classification: secret
+    expect_decision: deny
+    modes: [enforce]
+
+  - id: profile-missing-from-reconciliation-denied
+    description: Profiles absent from runtime reconciliation are denied.
+    profile_id: unknown-profile
+    expect_decision: deny
+    modes: [enforce]
+
+  - id: r2-requires-independent-review
+    description: r2 tasks require cross-provider review evidence.
+    risk_tier: r2
+    expect_decision: deny
+    modes: [enforce]
+
+  - id: r3-requires-approval-and-rollback
+    description: r3 tasks require human approval manifest and rollback metadata.
+    risk_tier: r3
+    expect_decision: deny
+    modes: [enforce]
+
+  - id: observe-mode-preserves-dispatch
+    description: Observe mode records would-deny but never blocks dispatch.
+    mode: observe
+    expect_decision: observe_deny
+    expect_dispatch_continues: true
+
+  - id: enforce-allowlist-blocks-unlisted
+    description: enforce_allowlist denies unlisted profile:lane:model tuples.
+    mode: enforce_allowlist
+    expect_decision: deny
+
+  - id: reconciled-baseline-route-allowed
+    description: An aligned r0 profile on the approved pinned KIMI baseline is allowed.
+    profile_id: noesis-signal
+    lane: KIMI_CODE
+    model: kimi-k2.7-code
+    risk_tier: r0
+    data_classification: internal_redacted
+    expect_decision: allow
+    modes: [enforce_allowlist]
+    requires_allowlist: true
+
+  - id: no-silent-fallback
+    description: Provider substitution without an explicit compliant fallback definition is denied.
+    expect_no_fallback: true
+
+  - id: every-decision-carries-policy-identity
+    description: Every emitted decision includes policy version and SHA-256.
+    expect_policy_version: true
+    expect_policy_sha256: true
