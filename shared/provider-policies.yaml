@@ -81,6 +81,52 @@ providers:
       requires_human_review_for: []
     health: [latency, quota, cooldown, outage]
 
+  claude_code:
+    class: subscription
+    display_name: Claude Code subscription (OAuth)
+    capability: frontier reasoning, coding, refactoring, test construction, long-context synthesis, adversarial review, R3 plan/review
+    data_policy:
+      classification_allowed: [public, internal, confidential_redacted]
+      private_analysis: false
+      retention: provider-managed
+    spend_policy:
+      model: fixed_subscription
+      burst_guardrail_usd_per_job: 10.00
+    eligibility:
+      default_routes: [supervisor_reasoning, r3_planner, r3_reviewer, research_synthesis, code_implementation]
+      requires_human_review_for: [r3_model_changes]
+    health: [latency, quota, cooldown, outage]
+
+  xai:
+    class: subscription
+    display_name: xAI Grok
+    capability: adversarial critique, search-heavy reasoning, independent review, alternate-design analysis
+    data_policy:
+      classification_allowed: [public, internal]
+      private_analysis: false
+    spend_policy:
+      model: fixed_subscription
+      burst_guardrail_usd_per_job: 5.00
+    eligibility:
+      default_routes: []
+      requires_human_review_for: [route_addition]
+    health: [latency, quota, cooldown, outage]
+
+  nous_portal:
+    class: subscription
+    display_name: Nous Portal subscription
+    capability: Hermes-native inference, routing, evaluation, classification, approved fallback
+    data_policy:
+      classification_allowed: [public, internal]
+      private_analysis: false
+    spend_policy:
+      model: fixed_subscription
+      burst_guardrail_usd_per_job: 5.00
+    eligibility:
+      default_routes: [cheap_router, eval_judge]
+      requires_human_review_for: []
+    health: [latency, quota, cooldown, outage]
+
   openrouter:
     class: metered
     display_name: OpenRouter

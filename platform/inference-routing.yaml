@@ -161,7 +161,7 @@ approved_lanes:
       requires verified API auth, terms, data handling, canonical model identifiers, provenance artifacts, evals, budgets,
       and explicit human approval.
   NOUS_PORTAL:
-    status: blocked_missing_configuration
+    status: proposed
     provider_family: nous
     permitted_profile_types:
     - supervisor
@@ -196,8 +196,11 @@ approved_lanes:
     - not_sole_r2_r3_validator
     max_risk_tier: r1
     fallback_eligible: false
-    notes: shared/models.yaml contains placeholder Nous aliases and roster comments report dead Nous key; no active fleet-wide
-      canonical pinned model is verified.
+    notes: shared/models.yaml now declares the nous_portal provider (endpoint
+      inference-api.nousresearch.com) and the Hermes `nous` OAuth credential pool
+      is present in fleet auth.json, with NOUS_API_KEY as Bitwarden-held static
+      fallback. No canonical pinned fleet model is verified yet, so pinned_models
+      stays empty; activation still requires the gates below.
     activation_requirements:
     - canonical_model_catalog_entry
     - provider_policy_approval
@@ -205,7 +208,7 @@ approved_lanes:
     - security_review
     - explicit_human_approval
   CLAUDE_CODE_PRO:
-    status: blocked_missing_configuration
+    status: proposed
     provider_family: anthropic_claude
     permitted_profile_types:
     - coder
@@ -233,7 +236,8 @@ approved_lanes:
     - claude-sonnet-4-5
     - claude-opus-4-5
     - claude-sonnet-5
-    pinned_models: []
+    pinned_models:
+    - claude-sonnet-5
     required_capabilities:
     - tool_use
     - long_context
@@ -246,8 +250,11 @@ approved_lanes:
     - independent_review_for_r2_plus
     max_risk_tier: r2
     fallback_eligible: false
-    notes: Repo contains inconsistent Anthropic/Claude identifiers and live profiles route some Claude traffic through OpenRouter;
-      approved lane label and authentication route are not canonically pinned.
+    notes: Canonical catalog entry added (claude_code provider in shared/models.yaml);
+      authentication route is the Claude Code OAuth credential pool, verified live
+      fleet-wide for claude-sonnet-5 since 2026-09-18. Repo/runtime drift on this
+      lane (observed kimi-k2.7-code on several profiles) is tracked in
+      platform/runtime-reconciliation.yaml and must be resolved before activation.
     activation_requirements:
     - canonical_model_catalog_entry
     - provider_policy_approval
@@ -296,6 +303,52 @@ approved_lanes:
     notes: Repo and active configs disagree between gpt-4.1, gpt-5, and openai-codex gpt-5.4-mini; no canonical CHATGPT_PRO
       lane binding is defined.
     activation_requirements:
+    - canonical_model_catalog_entry
+    - provider_policy_approval
+    - routing_eval_coverage
+    - security_review
+    - explicit_human_approval
+  XAI_GROK:
+    status: blocked_missing_configuration
+    provider_family: xai
+    permitted_profile_types:
+    - supervisor
+    - qa
+    - security
+    - coder
+    - research
+    permitted_task_classes:
+    - adversarial_critique
+    - alternate_design_review
+    - search_heavy_reasoning
+    - independent_review
+    permitted_data_classes:
+    - public
+    - internal
+    prohibited_data_classes:
+    - confidential
+    - restricted
+    - secret
+    execution_mode_max: advisory
+    model_aliases:
+    - grok-4
+    pinned_models: []
+    required_capabilities:
+    - structured_output
+    - adversarial_reasoning
+    required_policy_checks:
+    - catalog_entry_required
+    - auth_route_required
+    - eval_record_required
+    - not_sole_r2_r3_validator
+    max_risk_tier: r1
+    fallback_eligible: false
+    notes: xAI Grok pool entry declared in shared/models.yaml. XAI_API_KEY exists in
+      Bitwarden but is not yet injected into fleet .env/auth pools, so the lane is
+      blocked_missing_configuration until the key material is provisioned and a
+      canonical model identifier is pinned.
+    activation_requirements:
+    - key_material_provisioned_to_runtime
     - canonical_model_catalog_entry
     - provider_policy_approval
     - routing_eval_coverage
