@@ -196,11 +196,12 @@ approved_lanes:
     - not_sole_r2_r3_validator
     max_risk_tier: r1
     fallback_eligible: false
-    notes: shared/models.yaml now declares the nous_portal provider (endpoint
-      inference-api.nousresearch.com) and the Hermes `nous` OAuth credential pool
-      is present in fleet auth.json, with NOUS_API_KEY as Bitwarden-held static
-      fallback. No canonical pinned fleet model is verified yet, so pinned_models
-      stays empty; activation still requires the gates below.
+    notes: >
+      A replacement NOUS_API_KEY has been provisioned for the local noesis-orchestrator
+      provider transport. Previous nonfunctional/expired key material is superseded and
+      must not be reused. Transport availability does not establish a canonical model pin,
+      provider-policy approval, data-handling posture, budget, evaluation evidence, or
+      route activation. NOUS_PORTAL remains non-selectable until those requirements pass.
     activation_requirements:
     - canonical_model_catalog_entry
     - provider_policy_approval
@@ -309,7 +310,7 @@ approved_lanes:
     - security_review
     - explicit_human_approval
   XAI_GROK:
-    status: blocked_missing_configuration
+    status: proposed
     provider_family: xai
     permitted_profile_types:
     - supervisor
@@ -342,11 +343,16 @@ approved_lanes:
     - eval_record_required
     - not_sole_r2_r3_validator
     max_risk_tier: r1
+    execution_authority: denied
+    primary_eligible: false
     fallback_eligible: false
-    notes: xAI Grok pool entry declared in shared/models.yaml. XAI_API_KEY exists in
-      Bitwarden but is not yet injected into fleet .env/auth pools, so the lane is
-      blocked_missing_configuration until the key material is provisioned and a
-      canonical model identifier is pinned.
+    notes: >
+      Local noesis-orchestrator transport declaration has been provisioned with
+      base endpoint https://api.x.ai/v1 and environment-key reference XAI_API_KEY.
+      This records transport availability only. No canonical model identifier,
+      immutable model pin, provider-policy approval, data-handling validation,
+      cost/rate budget, routing evaluation, or production route activation has
+      been approved. This lane remains non-selectable for dispatch.
     activation_requirements:
     - key_material_provisioned_to_runtime
     - canonical_model_catalog_entry

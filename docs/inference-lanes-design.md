@@ -53,11 +53,28 @@ Under the freeze:
 |---|---|---|---|---|---|
 | KIMI_CODE | approved | yes: kimi-k2.7-code | r2 | bounded_execution | Currently observed active fleet baseline from safe active-profile metadata. Approval here is design-only; runtime remains unchanged. If kimi-k2.7-code becomes an alias rather than an immutable model identifier, promotion must reclassify this as blocked_missing_configuration. |
 | PERPLEXITY_API | proposed | no: observed aliases only (sonar, sonar-pro) | r1 | advisory | Proposed evidence-only lane. Local aliases sonar and sonar-pro are observed aliases, not canonical pins. Activation requires verified API auth, terms, data handling, canonical model identifiers, provenance artifacts, evals, budgets, and explicit human approval. |
-| NOUS_PORTAL | blocked_missing_configuration | no: none | r1 | advisory | shared/models.yaml contains placeholder Nous aliases and roster comments report dead Nous key; no active fleet-wide canonical pinned model is verified. |
+| NOUS_PORTAL | proposed | no: none | r1 | advisory | Replacement NOUS_API_KEY provisioned for the local noesis-orchestrator provider transport (previous expired key superseded). No canonical pinned fleet model is verified; lane remains non-selectable pending model pin, provider-policy approval, data-handling posture, budget, eval evidence, and explicit human approval. |
 | CLAUDE_CODE_PRO | blocked_missing_configuration | no: none | r2 | bounded_execution | Repo contains inconsistent Anthropic/Claude identifiers and live profiles route some Claude traffic through OpenRouter; approved lane label and authentication route are not canonically pinned. |
 | CHATGPT_PRO | blocked_missing_configuration | no: none | r2 | bounded_execution | Repo and active configs disagree between gpt-4.1, gpt-5, and openai-codex gpt-5.4-mini; no canonical CHATGPT_PRO lane binding is defined. |
+| XAI_GROK | proposed | no: none | r1 | advisory | Local noesis-orchestrator transport declaration provisioned (endpoint api.x.ai/v1, env-key reference XAI_API_KEY). Transport availability only: no canonical model pin, provider-policy approval, data-handling validation, budget, routing eval, or route activation. Non-selectable for dispatch. |
 | VENICE_PRO | blocked_missing_configuration | no: none | r1 | advisory | Provider appears in config, but no pinned model, privacy-mode proof, or eval record is present. Cannot receive secrets or restricted data. |
 | OPENROUTER_FALLBACK | disabled | no: none | r0 | draft_only | Disabled while shared/models.yaml and provider policy treat OpenRouter as disabled/exception-only. It cannot be primary, cannot be automatic execution fallback, and cannot be selected for r1-r3 while reconciliation_freeze is proposed. |
+
+### Transport registration note (2026-10-03)
+
+Transport registration and route activation are separate controls. Registering a
+provider transport (local profile provider declaration: base endpoint plus an
+environment-key reference, no secret values) changes lane metadata at most from
+`blocked_missing_configuration` to `proposed`. It does not and cannot: pin a
+canonical model, constitute provider-policy approval, establish data-handling
+posture, set budgets, satisfy routing eval coverage, or make a lane selectable
+for dispatch.
+
+- xAI transport registration moves `XAI_GROK` to `proposed`, not `approved`.
+- Nous has replacement transport credentials locally, but `NOUS_PORTAL` route
+  activation remains gated on the full activation requirements.
+- All external provider keys remain runtime-secret references (`key_env` names
+  only) and never enter Git, docs, logs, or fixtures.
 
 ## 5. Perplexity API as proposed citation/evidence lane
 
