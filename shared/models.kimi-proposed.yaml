@@ -1,0 +1,98 @@
+# shared/models.kimi-proposed.yaml
+# Proposed (NOT canonical, NOT approved) KIMI model mapping candidate.
+#
+# Status: design artifact only. This file proposes a canonicalization path for
+# the observed fleet model reference `kimi-k2.7-code`. It does NOT pin the
+# model, does NOT approve any route, and must not be loaded by dispatch,
+# broker, or enforcer code until every activation_requirement below is
+# satisfied and a human explicitly approves promotion.
+#
+# Evidence basis (all repository-local, no provider calls):
+#   - Observed runtime: platform/runtime-reconciliation.yaml records
+#     `kimi-k2.7-code` as the observed model on 18 of 22 profiles.
+#   - Lane: platform/inference-routing.yaml KIMI_CODE currently lists
+#     pinned_models: [kimi-k2.7-code] with an explicit caveat that the pin
+#     must be reclassified blocked_missing_configuration if the string turns
+#     out to be an alias rather than an immutable identifier.
+#   - Catalog gap: shared/models.yaml has NO entry for `kimi-k2.7-code`;
+#     the only kimi catalog model is `kimi-k2-thinking` (charter profile
+#     code_parallel). The observed string is therefore not yet a verified
+#     shared-catalog model entry.
+#   - Transport naming gap: the provider transport appears as `kimi`
+#     (shared/models.yaml) and as `kimi-coding` (lane model_aliases, roster
+#     apply_model.provider, active profile configs). One canonical transport
+#     identifier must be chosen before promotion.
+
+version: "2026-10-04.1"
+policy_mode: proposed_not_live
+candidate_status: observed_not_verified
+
+models:
+  - catalog_id: kimi_code_primary_candidate
+    provider_lane: KIMI_CODE
+    provider_transport_observed: kimi-coding
+    provider_transport_catalog_key: kimi
+    transport_naming_status: dual_named_unresolved
+    observed_model_reference: kimi-k2.7-code
+    canonical_model_id: null
+    pin_status: observed_not_verified
+    identification:
+      classification: unresolved
+      summary: >-
+        Live-observed model reference accepted by the provider endpoint
+        https://api.kimi.com/coding/v1, but its status as an immutable
+        upstream model identifier versus a provider-side alias is
+        unverifiable from repository evidence alone and no provider API
+        call was made in this task. Per the KIMI_CODE lane's own note,
+        alias status forces reclassification to blocked_missing_configuration.
+    eligible_profiles: []
+    eligible_task_classes:
+      - structured_worker
+      - technical_decomposition
+      - code_review
+    allowed_data_classes:
+      - public
+      - internal
+    prohibited_data_classes:
+      - confidential
+      - restricted
+      - secret
+    max_risk_tier: r1
+    execution_mode_max: advisory
+    fallback_eligible: false
+    default_route: false
+    parameter_profiles:
+      structured_worker:
+        temperature: 0.0
+        max_tokens: 2048
+      technical_analysis:
+        temperature: 0.2
+        max_tokens: 4096
+    usage_restrictions:
+      may_be_used_as:
+        - design_reference
+        - eval_fixture_subject
+        - shadow_candidate_after_activation
+      may_not_be_used_as:
+        - approved_route
+        - model_pin
+        - r2_r3_route
+        - confidential_restricted_secret_route
+        - automatic_fallback
+        - provider_selection_default
+    activation_requirements:
+      - verify_upstream_immutable_model_identifier
+      - resolve_dual_transport_naming_kimi_vs_kimi_coding
+      - add_canonical_catalog_entry_in_shared_models
+      - verify_provider_policy_and_data_handling
+      - define_cost_rate_latency_budget
+      - define_structured_output_contract
+      - add_offline_and_shadow_evals
+      - resolve_drifted_profile_reconciliation_entries
+      - independent_security_review
+      - explicit_human_approval
+    observed_evidence:
+      reconciliation_profiles: 18
+      reconciliation_source: platform/runtime-reconciliation.yaml
+      lane_source: platform/inference-routing.yaml
+      catalog_absence: shared/models.yaml contains no kimi-k2.7-code entry
