@@ -1,0 +1,147 @@
+version: 2026-10-04.1
+policy_mode: proposed_not_live
+suite: profile-inference-assignment
+description: Design-time fixtures mapped to validator assertions for the strategic
+  profile-to-inference-lane assignment matrix (observe_only). Covers roster/registry
+  completeness, canonical model pins, lane selectability, review independence,
+  data-class boundaries, tool boundaries, fallback safety, and secret hygiene.
+tests:
+- id: PIA-001
+  name: profile_count_matches_roster_plus_platform_registry
+  setup: Assignment matrix is loaded and compared against profiles/noesis-roster.yaml
+    union platform/orchestrator.yaml agent registry (22 unique IDs).
+  expected_result: pass
+  expected_error_class_or_assertion: PIA001
+  linked_validator_rule: PIA001
+  risk_level: critical
+- id: PIA-002
+  name: every_profile_has_required_strategic_fields
+  setup: Any profile record missing purpose, profile_type, authority_level, risk_ceiling,
+    allowed/prohibited data classes, allowed_task_classes, tool_policy, inference_strategy,
+    validation, or rollout.
+  expected_result: fail
+  expected_error_class_or_assertion: PIA002
+  linked_validator_rule: PIA002
+  risk_level: critical
+- id: PIA-003
+  name: selected_primary_model_ref_must_exist_in_shared_catalog
+  setup: A non-null primary.model_ref that is not an exact canonical entry in
+    shared/models.yaml (profiles or charter_profiles), a lane pinned_models entry,
+    or an explicitly approved immutable alias.
+  expected_result: fail
+  expected_error_class_or_assertion: PIA003
+  linked_validator_rule: PIA003
+  risk_level: critical
+- id: PIA-004
+  name: proposed_or_disabled_lane_cannot_be_active_primary
+  setup: A primary.lane whose lane status is proposed, disabled, or
+    blocked_missing_configuration appears as an active primary.
+  expected_result: fail
+  expected_error_class_or_assertion: PIA004
+  linked_validator_rule: PIA004
+  risk_level: critical
+- id: PIA-005
+  name: r2_r3_critic_family_must_differ_from_primary
+  setup: A profile with risk ceiling r2/r3 whose critic is required and whose
+    critic lane shares the primary lane's provider family, or whose required
+    cross-family critic gap is not recorded under evidence.unresolved_gaps.
+  expected_result: fail
+  expected_error_class_or_assertion: PIA005
+  linked_validator_rule: PIA005
+  risk_level: critical
+- id: PIA-006
+  name: coder_qa_implementation_review_family_separation
+  setup: qa-typed profile used as sole acceptance reviewer for r2+ work implemented
+    by the same provider family without an independent_provider_review gate.
+  expected_result: fail
+  expected_error_class_or_assertion: PIA006
+  linked_validator_rule: PIA006
+  risk_level: critical
+- id: PIA-007
+  name: research_profiles_require_provenance_for_external_research
+  setup: A research-typed profile with external research task classes lacks
+    provenance_artifact_required in required_gates.
+  expected_result: fail
+  expected_error_class_or_assertion: PIA007
+  linked_validator_rule: PIA007
+  risk_level: high
+- id: PIA-008
+  name: reflective_profiles_cannot_get_write_or_external_execution
+  setup: A reflective-typed profile whose tool_policy.allowed contains terminal,
+    code_execution, external publish/send tools, or broker submission.
+  expected_result: fail
+  expected_error_class_or_assertion: PIA008
+  linked_validator_rule: PIA008
+  risk_level: critical
+- id: PIA-009
+  name: privileged_profiles_no_automatic_fallback_and_require_human_approval
+  setup: An approval_gated-authority profile (or r3 ceiling) with
+    fallback.enabled true, fallback candidates, or without a human-approval gate
+    in required_gates.
+  expected_result: fail
+  expected_error_class_or_assertion: PIA009
+  linked_validator_rule: PIA009
+  risk_level: critical
+- id: PIA-010
+  name: no_openrouter_use_anywhere
+  setup: OPENROUTER_FALLBACK appears as a primary lane, fallback candidate, or
+    permitted lane for any profile.
+  expected_result: fail
+  expected_error_class_or_assertion: PIA010
+  linked_validator_rule: PIA010
+  risk_level: critical
+- id: PIA-011
+  name: fallback_entries_preserve_data_risk_tool_approval_constraints
+  setup: Any fallback block with enabled false but non-empty candidates, or with
+    candidates that are not approved lanes, or with any preserve_* constraint
+    not true.
+  expected_result: fail
+  expected_error_class_or_assertion: PIA011
+  linked_validator_rule: PIA011
+  risk_level: high
+- id: PIA-012
+  name: no_literal_secrets_in_assignment_artifacts
+  setup: Secret-like material (keys, tokens, private key blocks, seed phrases,
+    credential assignments) appears in the assignment matrix, this eval file,
+    or the rationale document.
+  expected_result: fail
+  expected_error_class_or_assertion: PIA012
+  linked_validator_rule: PIA012
+  risk_level: critical
+- id: PIA-013
+  name: unresolved_gaps_block_activation_rather_than_being_guessed
+  setup: A profile with null primary lane but status observe_only, or a required
+    critic/reviewer lane that is null without a corresponding entry in
+    evidence.unresolved_gaps or rollout.activation_requirements.
+  expected_result: fail
+  expected_error_class_or_assertion: PIA013
+  linked_validator_rule: PIA013
+  risk_level: high
+- id: PIA-014
+  name: no_confidential_restricted_secret_data_on_any_route
+  setup: Any profile allowed_data_classes intersects {confidential, restricted,
+    secret} on an external lane assignment.
+  expected_result: fail
+  expected_error_class_or_assertion: PIA014
+  linked_validator_rule: PIA014
+  risk_level: critical
+- id: PIA-015
+  name: lane_type_permission_and_risk_ceiling_enforced
+  setup: A primary lane whose permitted_profile_types excludes the profile type,
+    whose permitted_task_classes excludes an allowed task class, or whose
+    max_risk_tier is below the profile risk ceiling.
+  expected_result: fail
+  expected_error_class_or_assertion: PIA015
+  linked_validator_rule: PIA015
+  risk_level: critical
+ci_integration_proposal:
+  watch_paths:
+  - platform/profile-inference-assignments.yaml
+  - docs/profile-inference-assignment-rationale.md
+  - evals/profile-inference-assignment.eval.yaml
+  - scripts/validate_profile_inference_assignments.py
+  required_artifacts_on_change:
+  - platform/profile-inference-assignments.yaml
+  - docs/profile-inference-assignment-rationale.md
+  - evals/profile-inference-assignment.eval.yaml
+  failure_mode: fail_closed_until_assignment_review_present

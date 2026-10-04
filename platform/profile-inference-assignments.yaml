@@ -1,0 +1,1198 @@
+# platform/profile-inference-assignments.yaml
+# Strategic profile -> inference-lane assignment matrix for the Noesis stack.
+#
+# Scope: observe_only design artifact. This file does NOT change live dispatch,
+# does NOT activate any provider lane, and does NOT weaken any prior policy
+# status. It records, per profile, the policy-valid strategic lane/model
+# assignment derived from repository sources only (no ~/.hermes reads beyond
+# the already-extracted non-secret reconciliation evidence, no provider calls).
+#
+# Status vocabulary (restricted by design):
+#   observe_only                  - compliant selection exists; evaluation only.
+#   blocked_missing_configuration - no canonical lane/model/policy binding.
+#   proposed                      - strategically appropriate lane needs formal
+#                                   activation requirements first.
+# Never: approved / active / enforced / production.
+#
+# Lane status facts this matrix preserves (platform/inference-routing.yaml):
+#   KIMI_CODE            approved  (pinned kimi-k2.7-code, max r2,
+#                                    types supervisor|orchestrator|worker|coder|
+#                                    qa|security|ops|reflective,
+#                                    data public|internal)
+#   PERPLEXITY_API       proposed  (evidence-only lane, research-typed,
+#                                    data public|internal_redacted, max r1)
+#   NOUS_PORTAL          proposed  (not approved; no canonical pin)
+#   CLAUDE_CODE_PRO      proposed  (not approved; bridge unbound)
+#   CHATGPT_PRO          blocked_missing_configuration
+#   VENICE_PRO           blocked_missing_configuration
+#   OPENROUTER_FALLBACK  disabled  (never primary; never fallback; max r0)
+#
+# Note on inventory: profiles/noesis-roster.yaml carries 17 noesis-* IDs
+# (the roster header still says "16-agent fleet"; noesis-orchestrator was added
+# later). The 22-profile union = 17 roster IDs + 5 additional platform agent
+# IDs (main-hermes, research-openclaw, subconscious-openclaw, coder, qa);
+# noesis-orchestrator appears in both registries and is counted once.
+
+version: "2026-10-04.1"
+mode: observe_only
+source_of_truth:
+  routing_policy: platform/inference-routing.yaml
+  model_catalog: shared/models.yaml
+  model_aliases: shared/model-aliases.yaml
+  provider_policy: shared/provider-policies.yaml
+  reconciliation: platform/runtime-reconciliation.yaml
+
+profiles:
+
+  # ── Supervisors / control plane ──────────────────────────────────────────
+
+  - profile_id: noesis-core
+    profile_type: supervisor
+    purpose: "Noesis supervisor and router (Hermes-Core): intake, domain/risk classification, narrowest-mandate assignment, approval-gate enforcement; never executes domain work."
+    authority_level: approval_gated
+    risk_ceiling: r2
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [supervisor_control_plane]
+    tool_policy:
+      allowed: [memory, session_search, file, web, clarify, todo, delegation, cronjob, skills]
+      denied: [terminal, code_execution, treasury_read, treasury_propose_action, artifact_publish_external, wallet]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.2, max_tokens: 12000, timeout_seconds: 120}
+        selection_rationale: >
+          Observed runtime and repo declaration are aligned on KIMI_CODE /
+          kimi-k2.7-code; KIMI_CODE is the only approved lane and permits the
+          supervisor type with the supervisor_control_plane task class.
+          Long-context synthesis quality is rated from the analogous canonical
+          catalog profile reasoning_primary (temperature 0.2 envelope); the
+          kimi model has no canonical parameter block, so these are proposed
+          bounds pending lane eval, not measured properties.
+      critic:
+        required: true
+        lane: null
+        model_ref: null
+        trigger_conditions: [novel_or_material_planning, ambiguous_risk_classification, externally_grounded_claims]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API]
+      dispatch_conditions:
+        - "observe_only: record decision, never alter live dispatch"
+        - "no_secret_payload check before dispatch"
+        - "risk_gate: r2+ requires approval gate and independent-family review before execution routing"
+        - "structured decision records for dispatch judgments"
+    validation:
+      required_evals: [IR-001, IR-002, IR-011, IR-012, IR-013, PIA-001, PIA-002, PIA-004, PIA-009, PIA-012]
+      required_gates: [human_approval_manifest, structured_output, no_secret_egress]
+      success_metrics: [validator_strict_pass, zero_secret_findings, structured_decision_record_validity]
+    rollout:
+      stage: observe_only
+      activation_requirements:
+        - routing_matrix_review
+        - independent_provider_review
+        - qa_or_policy_gate
+        - evals/inference-routing.eval.yaml green
+        - explicit_human_approval before any live dispatch change
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml, shared/models.yaml, platform/risk-tiers.yaml]
+      unresolved_gaps:
+        - "Cross-family critic lane is not selectable (CLAUDE_CODE_PRO is proposed, CHATGPT_PRO is blocked_missing_configuration); r2+ review currently has no approved independent family."
+
+  - profile_id: noesis-orchestrator
+    profile_type: orchestrator
+    purpose: "Control-plane orchestrator: task-contract lifecycle, dispatch control, dependency gating, approval gates, synthesis; holds no terminal or execution authority."
+    authority_level: planning
+    risk_ceiling: r2
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [supervisor_control_plane]
+    tool_policy:
+      allowed: [memory, file, todo, clarify, delegation, session_search, skills]
+      denied: [terminal, code_execution, treasury_read, treasury_propose_action, artifact_publish_external, wallet]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.1, max_tokens: 12000, timeout_seconds: 120}
+        selection_rationale: >
+          Reconciliation shows drift (observed KIMI_CODE vs repo-declared
+          CLAUDE_CODE_PRO claude-sonnet-5, which is proposed, not approved).
+          Strategic assignment adopts neither side as policy: the only approved
+          lane KIMI_CODE is assigned observe_only while the drift is resolved.
+          Lower temperature proposed for deterministic dispatch judgment;
+          analogous canonical envelope from reasoning_primary, bounded pending
+          lane eval. Dispatch-gate evaluation is deterministic policy code, not
+          model judgment (see profiles/model-profiles.yaml defaults).
+      critic:
+        required: true
+        lane: null
+        model_ref: null
+        trigger_conditions: [ambiguous_risk_classification, novel_dispatch_pattern, material_synthesis]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API]
+      dispatch_conditions:
+        - "observe_only: record, never block or mutate live dispatch"
+        - "risk ceiling r2; r3 contracts are planned and routed to privileged executors behind human approval, never executed here"
+        - "structured_output_required for synthesis artifacts"
+    validation:
+      required_evals: [IR-011, IR-012, ORCH-001, ORCH-002, ORCH-004, ORCH-006, PIA-001, PIA-002, PIA-009, PIA-012]
+      required_gates: [approval_gate_enforcement, dependency_gating, handoff_evidence, circuit_breaker]
+      success_metrics: [validator_strict_pass, orchestrator_test_suite_pass, zero_secret_findings]
+    rollout:
+      stage: observe_only
+      activation_requirements:
+        - resolve KIMI-vs-CLAUDE_CODE_PRO reconciliation drift via routing_matrix_review
+        - independent_provider_review
+        - qa_or_policy_gate
+        - explicit_human_approval before any live dispatch change
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/orchestrator.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml, profiles/model-profiles.yaml, shared/GUARDRAILS.global.yaml]
+      unresolved_gaps:
+        - "Repo-declared CLAUDE_CODE_PRO route is proposed, not approved; drift must not be adopted without human review."
+        - "No approved cross-family critic exists for r2+ synthesis review."
+
+  - profile_id: noesis-steward
+    profile_type: orchestrator
+    purpose: "Chief of staff: daily triage, prioritization, deadline tracking, status digests; delegates planning to Cartographer."
+    authority_level: planning
+    risk_ceiling: r2
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [supervisor_control_plane]
+    tool_policy:
+      allowed: [memory, file, todo, session_search, web, clarify, delegation, skills]
+      denied: [terminal, code_execution, treasury_read, treasury_propose_action, artifact_publish_external, wallet]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.2, max_tokens: 12000, timeout_seconds: 120}
+        selection_rationale: >
+          Aligned observed/repo KIMI route; fast triage is the dominant
+          workload and KIMI_CODE is approved for the orchestrator type.
+          Parameters proposed from the reasoning_primary analog; low-stakes
+          digests may later move to a cheap_router lane once NOUS_PORTAL or a
+          local lane graduates from blocked_missing_configuration.
+      critic:
+        required: true
+        lane: null
+        model_ref: null
+        trigger_conditions: [conflicting_priorities, material_deadline_risk]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API]
+      dispatch_conditions:
+        - "observe_only"
+        - "structured digest output with schema validation"
+        - "no external posting authority"
+    validation:
+      required_evals: [IR-001, IR-002, PIA-001, PIA-002, PIA-009]
+      required_gates: [structured_output, schema_validation]
+      success_metrics: [validator_strict_pass, digest_schema_validity]
+    rollout:
+      stage: observe_only
+      activation_requirements: [routing_matrix_review, evals/inference-routing.eval.yaml green, explicit_human_approval]
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml]
+      unresolved_gaps: ["No approved cheap_router lane (NOUS_PORTAL proposed) for high-volume triage cost optimization."]
+
+  - profile_id: noesis-cartographer
+    profile_type: orchestrator
+    purpose: "Project decomposition: goals to phased task graphs, dependency maps, risk registers, ADRs; never executes."
+    authority_level: planning
+    risk_ceiling: r2
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [supervisor_control_plane]
+    tool_policy:
+      allowed: [memory, file, web, todo, clarify, delegation, skills, session_search]
+      denied: [terminal, code_execution, treasury_read, treasury_propose_action, artifact_publish_external, wallet]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.2, max_tokens: 12000, timeout_seconds: 120}
+        selection_rationale: >
+          Repo-declared OpenRouter/claude-sonnet-5 route is blocked in
+          reconciliation (OpenRouter is disabled fleet-wide); the aligned
+          observed KIMI runtime is the only policy-compliant approved lane for
+          long-context decomposition. Structured plan output required.
+      critic:
+        required: true
+        lane: null
+        model_ref: null
+        trigger_conditions: [multi_phase_plan, cross_profile_dependencies, risk_register_material]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API]
+      dispatch_conditions:
+        - "observe_only"
+        - "structured plan artifacts (task graph, ADR) with schema validation"
+        - "OpenRouter-declared repo route must remain blocked until catalog contradiction is resolved and human review occurs"
+    validation:
+      required_evals: [IR-008, IR-014, PIA-001, PIA-002, PIA-009]
+      required_gates: [structured_output, schema_validation, quarantine_on_invalid_output]
+      success_metrics: [validator_strict_pass, plan_artifact_schema_validity]
+    rollout:
+      stage: observe_only
+      activation_requirements:
+        - resolve_openrouter_catalog_contradiction
+        - routing_matrix_review
+        - explicit_human_approval
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml]
+      unresolved_gaps: ["Repo-declared OpenRouter primary must stay blocked; claude-sonnet-5 has no canonical lane binding."]
+
+  - profile_id: noesis-architect
+    profile_type: orchestrator
+    purpose: "Agent/orchestration designer: profiles, prompts, memory systems, MCP/ACP/A2A integration design; never implements infra directly."
+    authority_level: planning
+    risk_ceiling: r2
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [supervisor_control_plane]
+    tool_policy:
+      allowed: [web, file, memory, session_search, skills, todo]
+      denied: [terminal, code_execution, treasury_read, treasury_propose_action, artifact_publish_external, wallet]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.2, max_tokens: 12000, timeout_seconds: 120}
+        selection_rationale: >
+          Observed KIMI route is the only approved option; repo-declared
+          OpenRouter/claude-sonnet-5 stays blocked. Design artifacts require
+          structured output; prompt-robustness cross-check needs a second
+          family that is not yet selectable.
+      critic:
+        required: true
+        lane: null
+        model_ref: null
+        trigger_conditions: [prompt_robustness_review, novel_integration_design]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API]
+      dispatch_conditions:
+        - "observe_only"
+        - "structured design docs; alias changes require routing review (IR-015)"
+    validation:
+      required_evals: [IR-008, IR-014, IR-015, PIA-001, PIA-002, PIA-009]
+      required_gates: [structured_output, routing_review_for_alias_changes]
+      success_metrics: [validator_strict_pass]
+    rollout:
+      stage: observe_only
+      activation_requirements: [resolve_openrouter_catalog_contradiction, routing_matrix_review, explicit_human_approval]
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml, shared/model-aliases.yaml]
+      unresolved_gaps: ["Cross-family design critic unavailable (CHATGPT_PRO blocked_missing_configuration)."]
+
+  - profile_id: main-hermes
+    profile_type: supervisor
+    purpose: "Platform supervisor: sole broker-job submitter and persistent reasoning layer; approves/rejects workflow gates; never executes shell directly."
+    authority_level: approval_gated
+    risk_ceiling: r2
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [supervisor_control_plane]
+    tool_policy:
+      allowed: [broker_submit_job, broker_get_job, broker_list_artifacts, route_handoff, read_workspace, write_main_state, github_fetch, schema_validate]
+      denied: [terminal, code_execution, treasury_read, treasury_propose_action, artifact_publish_external, wallet]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.2, max_tokens: 12000, timeout_seconds: 120}
+        selection_rationale: >
+          Runtime was not observed by the reconciliation pass; repo declares
+          reasoning_primary / claude-sonnet-4-5 (a canonical catalog profile
+          name, but CLAUDE_CODE_PRO as a lane is proposed, not approved
+          and no approved lane carries that catalog binding). KIMI_CODE is the
+          only approved lane for the supervisor type and is assigned
+          observe_only strictly as an evaluable baseline, not as an adoption
+          of any drifted runtime.
+      critic:
+        required: true
+        lane: null
+        model_ref: null
+        trigger_conditions: [material_routing_decision, escalation_path, contradictory_worker_evidence]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API]
+      dispatch_conditions:
+        - "observe_only"
+        - "routing decisions recorded as structured decision records"
+        - "broker job submission is the only external side effect and stays supervisor-exclusive"
+    validation:
+      required_evals: [HERMES-001, HERMES-002, HERMES-003, HERMES-004, HERMES-005, IR-014, PIA-001, PIA-002, PIA-009, PIA-012]
+      required_gates: [human_approval_manifest, broker_authority_exclusive, palace_context_query]
+      success_metrics: [validator_strict_pass, platform_eval_hermes_routing_pass]
+    rollout:
+      stage: observe_only
+      activation_requirements:
+        - "observe and reconcile actual runtime route before any assignment becomes binding"
+        - independent_provider_review
+        - explicit_human_approval
+    evidence:
+      profile_sources: [platform/orchestrator.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml, shared/models.yaml, shared/tools.yaml]
+      unresolved_gaps:
+        - "Runtime route unobserved; repo declaration (claude-sonnet-4-5) has no approved lane binding."
+        - "Escalation model (reasoning_strong/OpenAI) has no approved lane."
+
+  # ── Coder / ops executors ────────────────────────────────────────────────
+
+  - profile_id: noesis-forge
+    profile_type: coder
+    purpose: "Software engineering executor: code, IaC, CI/CD; never deploys to production or merges unreviewed."
+    authority_level: bounded_execution
+    risk_ceiling: r2
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [implementation_planning]
+    tool_policy:
+      allowed: [terminal, file, web, memory, session_search, skills, todo, delegation, code_execution]
+      denied: [treasury_read, treasury_propose_action, artifact_publish_external, wallet, production_deploy]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.1, max_tokens: 16000, timeout_seconds: 300}
+        selection_rationale: >
+          Aligned observed/repo KIMI route; KIMI_CODE is approved for coder
+          type with implementation_planning and is the fleet's code lane.
+          Bounded workspace, patch-quality evals, and independent review are
+          mandatory gates. Parameters proposed from the code_primary charter
+          analog (low temperature, bounded output); job timeout bounded
+          separately by orchestrator config.
+      critic:
+        required: true
+        lane: null
+        model_ref: null
+        trigger_conditions: [always_for_r2, security_relevant_change, novel_repository]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API]
+      dispatch_conditions:
+        - "observe_only"
+        - "r2+ work requires independent provider-family review (noesis-sentinel) and QA validation before success"
+        - "implementation and reviewer lanes must differ in provider family once a second family is selectable"
+        - "rollback plan required for r2"
+    validation:
+      required_evals: [IR-006, IR-011, ORCH-007, PIA-001, PIA-002, PIA-005, PIA-006, PIA-009]
+      required_gates: [independent_provider_review, qa_validation, rollback_plan_for_r2]
+      success_metrics: [patch_quality_eval, test_construction_pass_rate, validator_strict_pass]
+    rollout:
+      stage: observe_only
+      activation_requirements:
+        - claude_code_bridge_binding (for cross-family review) or other approved independent-family reviewer lane
+        - routing_matrix_review
+        - explicit_human_approval
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml, platform/risk-tiers.yaml]
+      unresolved_gaps:
+        - "Independent reviewer family unavailable: CLAUDE_CODE_PRO bridge binding not yet established (lane proposed)."
+
+  - profile_id: coder
+    profile_type: coder
+    purpose: "Platform builder lane: receives approved handoffs from Hermes, writes artifacts to coder-jobs workspace; cannot self-start."
+    authority_level: bounded_execution
+    risk_ceiling: r2
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [implementation_planning]
+    tool_policy:
+      allowed: [file, terminal, code_execution, unit_test, schema_validate, git_write, artifact_publish_internal, github_fetch]
+      denied: [treasury_read, treasury_propose_action, artifact_publish_external, wallet, broker_submit_job, route_handoff]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.1, max_tokens: 16000, timeout_seconds: 300}
+        selection_rationale: >
+          Active KIMI route observed; repo declaration (zai-org-glm-4.7) maps
+          to no canonical lane and is recorded as reconciliation drift, not
+          adopted. KIMI_CODE is the approved implementation lane. Internal
+          publish only; external publish stays human-gated and denied.
+      critic:
+        required: true
+        lane: null
+        model_ref: null
+        trigger_conditions: [always_for_r2, handoff_prep, artifact_publish_internal]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API]
+      dispatch_conditions:
+        - "observe_only"
+        - "handoff-only intake: cannot self-start from raw research or subconscious signals"
+        - "r2+ requires independent-family review and QA release gate"
+    validation:
+      required_evals: [IR-006, IR-011, ISOLATE-003, HANDOFF-001, HANDOFF-002, HANDOFF-003, PIA-001, PIA-002, PIA-005, PIA-006, PIA-009]
+      required_gates: [independent_provider_review, qa_validation, checksum_verification]
+      success_metrics: [build_handoff_schema_validity, checksum_match_rate, validator_strict_pass]
+    rollout:
+      stage: observe_only
+      activation_requirements: [routing_matrix_review, independent-family reviewer lane activation, explicit_human_approval]
+    evidence:
+      profile_sources: [platform/orchestrator.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml, shared/tools.yaml]
+      unresolved_gaps:
+        - "Repo-declared zai-org-glm-4.7 has no canonical lane/catalog binding; treated as drift."
+        - "No approved independent-family reviewer lane for r2+ acceptance."
+
+  - profile_id: noesis-substrate
+    profile_type: ops
+    purpose: "Infrastructure/DevOps engineer: containers, K8s, cloud/edge, networking; no production changes without approval."
+    authority_level: bounded_execution
+    risk_ceiling: r2
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [ops_planning]
+    tool_policy:
+      allowed: [terminal, file, web, memory, session_search, skills, todo, delegation]
+      denied: [code_execution, treasury_read, treasury_propose_action, artifact_publish_external, wallet, production_mutation_without_manifest]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.1, max_tokens: 12000, timeout_seconds: 180}
+        selection_rationale: >
+          Aligned observed/repo KIMI route; approved for ops type with
+          ops_planning class. Ops work is planning plus bounded non-production
+          execution; r3-class effects (firewall/DNS/production) require a
+          canonical action manifest, independent review, and human approval.
+      critic:
+        required: true
+        lane: null
+        model_ref: null
+        trigger_conditions: [always_for_r2, production_adjacent_plan, rollback_plan_present]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API]
+      dispatch_conditions:
+        - "observe_only"
+        - "r3-manifest required for privileged or destructive actions; human approval for production"
+        - "no automatic execution fallback; fail closed"
+    validation:
+      required_evals: [IR-011, IR-012, ORCH-004, PIA-001, PIA-002, PIA-005, PIA-009, PIA-012]
+      required_gates: [r3_manifest_for_privileged_or_destructive_actions, human_approval_for_production, rollback_plan]
+      success_metrics: [validator_strict_pass, rollback_plan_coverage]
+    rollout:
+      stage: observe_only
+      activation_requirements: [routing_matrix_review, independent-family reviewer lane, explicit_human_approval]
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml, shared/GUARDRAILS.global.yaml]
+      unresolved_gaps: ["No approved independent-family reviewer for r2/r3 ops planning."]
+
+  # ── Security / QA reviewers ──────────────────────────────────────────────
+
+  - profile_id: noesis-sentinel
+    profile_type: security
+    purpose: "Independent code/security reviewer: correctness, security, quality; blocks on exposed secrets; reviewer-only."
+    authority_level: validation
+    risk_ceiling: r2
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [code_critique]
+    tool_policy:
+      allowed: [terminal, file, web, memory, session_search, skills, todo]
+      denied: [code_execution, delegation, treasury_read, treasury_propose_action, artifact_publish_external, wallet]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.1, max_tokens: 16000, timeout_seconds: 180}
+        selection_rationale: >
+          Observed KIMI route; repo-declared OpenRouter/claude-sonnet-5 stays
+          blocked. Strategic irony recorded: today the reviewer shares the
+          implementation family (kimi), so r2+ review independence is NOT yet
+          achievable; this matrix refuses to launder that into compliance and
+          records the gap instead. Adversarial second-family review activates
+          only with CHATGPT_PRO or CLAUDE_CODE_PRO.
+      critic:
+        required: false
+        lane: null
+        model_ref: null
+        trigger_conditions: []
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API]
+      dispatch_conditions:
+        - "observe_only; reviewer-only: never assigned executing work"
+        - "security-critical code requires adversarial cross-family review once selectable"
+        - "blocks on exposed secrets"
+    validation:
+      required_evals: [IR-006, IR-011, IR-013, ORCH-002, PIA-001, PIA-002, PIA-005, PIA-009]
+      required_gates: [independent_provider_family_if_r2_plus, secret_exposure_block]
+      success_metrics: [validator_strict_pass, review_independence_gate_coverage]
+    rollout:
+      stage: observe_only
+      activation_requirements:
+        - independent-family review lane (CHATGPT_PRO or CLAUDE_CODE_PRO) activation
+        - resolve_openrouter_catalog_contradiction
+        - explicit_human_approval
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml]
+      unresolved_gaps:
+        - "Reviewer currently shares the implementation provider family; r2+ independence requires a second family."
+
+  - profile_id: noesis-skeptic
+    profile_type: qa
+    purpose: "Adversarial/red-team reviewer: challenges other agents' outputs pre-high-stakes-use; distinct model ecosystem by design."
+    authority_level: validation
+    risk_ceiling: r2
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [qa_analysis]
+    tool_policy:
+      allowed: [file, web, memory, session_search, skills, todo]
+      denied: [terminal, code_execution, delegation, treasury_read, treasury_propose_action, artifact_publish_external, wallet]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.1, max_tokens: 16000, timeout_seconds: 180}
+        selection_rationale: >
+          Roster design calls for a distinct ecosystem from reviewed agents,
+          but no second family is selectable; observed KIMI route is assigned
+          observe_only with the independence gap recorded explicitly.
+          Cross-check duties for critical-risk items stay blocked until
+          CHATGPT_PRO/CLAUDE_CODE_PRO activation.
+      critic:
+        required: false
+        lane: null
+        model_ref: null
+        trigger_conditions: []
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API]
+      dispatch_conditions:
+        - "observe_only; reviewer-only"
+        - "distinct-ecosystem requirement unsatisfied: recorded as unresolved gap, not waived"
+    validation:
+      required_evals: [IR-011, IR-013, ORCH-002, PIA-001, PIA-002, PIA-005, PIA-009]
+      required_gates: [independent_provider_review, independent_provider_family_if_r2_plus, no_secret_egress]
+      success_metrics: [validator_strict_pass]
+    rollout:
+      stage: observe_only
+      activation_requirements: [independent-family lane activation, resolve_openrouter_catalog_contradiction, explicit_human_approval]
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml]
+      unresolved_gaps: ["Distinct-ecosystem mandate cannot be met with one approved family."]
+
+  - profile_id: qa
+    profile_type: qa
+    purpose: "Platform release gate: audits artifacts against evidence, schema, and policy; can block progression; cannot waive gates on confidence alone."
+    authority_level: validation
+    risk_ceiling: r2
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [qa_analysis]
+    tool_policy:
+      allowed: [run_tests, audit_artifacts, schema_validate, compare_contracts, write_release_gate, file]
+      denied: [terminal, code_execution, delegation, treasury_read, treasury_propose_action, artifact_publish_external, wallet, broker_submit_job]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.1, max_tokens: 16000, timeout_seconds: 180}
+        selection_rationale: >
+          Runtime unobserved; repo declares reasoning_primary/claude-sonnet-4-5
+          (catalog profile name without an approved lane binding). KIMI_CODE
+          is approved for qa type. QA judgment is tool-first (deterministic
+          test/schema/policy tools before model judgment); the model is
+          assistive, never the sole acceptance reviewer. Because implementation
+          (coder/forge) is also kimi-family today, r2+ acceptance requires a
+          cross-family reviewer lane before activation.
+      critic:
+        required: true
+        lane: null
+        model_ref: null
+        trigger_conditions: [acceptance_review_of_same_family_implementation, material_verdict, contradictory_evidence]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API]
+      dispatch_conditions:
+        - "observe_only"
+        - "deterministic tools first; model never sole acceptance authority"
+        - "same-family implementation acceptance at r2+ requires independent-family review gate"
+    validation:
+      required_evals: [ISOLATE-004, HANDOFF-002, HANDOFF-003, HANDOFF-004, HANDOFF-005, IR-011, PIA-001, PIA-002, PIA-005, PIA-006, PIA-009]
+      required_gates: [executable_evidence, schema_validation, policy_gate, independent_provider_review]
+      success_metrics: [validator_strict_pass, gate_waiver_count_zero]
+    rollout:
+      stage: observe_only
+      activation_requirements:
+        - independent-family reviewer lane activation for same-family implementation acceptance
+        - routing_matrix_review
+        - explicit_human_approval
+    evidence:
+      profile_sources: [platform/orchestrator.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml, shared/tools.yaml, EVALS.platform.yaml]
+      unresolved_gaps:
+        - "Implementation and QA currently share provider family; cross-family acceptance review blocked."
+
+  # ── Structured workers ───────────────────────────────────────────────────
+
+  - profile_id: noesis-scribe
+    profile_type: worker
+    purpose: "Knowledge archivist: structures, versions, cross-links KB entries, changelogs, indexes with provenance; never originates technical content."
+    authority_level: bounded_execution
+    risk_ceiling: r1
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [structured_worker]
+    tool_policy:
+      allowed: [memory, file, skills, session_search, web, todo]
+      denied: [terminal, code_execution, delegation, treasury_read, treasury_propose_action, artifact_publish_external, wallet]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.1, max_tokens: 8192, timeout_seconds: 120}
+        selection_rationale: >
+          Aligned observed KIMI route; repo-declared nous/deepseek route is
+          drift (NOUS_PORTAL proposed). Formatting-heavy archival work fits the
+          structured_worker class; parameters proposed from the
+          extraction_quality analog.
+      critic:
+        required: false
+        lane: null
+        model_ref: null
+        trigger_conditions: [conflicting_versions_reconciliation]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API]
+      dispatch_conditions:
+        - "observe_only"
+        - "schema-validated writes; provenance preserved on every entry"
+    validation:
+      required_evals: [IR-002, PIA-001, PIA-002, PIA-009]
+      required_gates: [schema_validation, confidence_threshold, quarantine_on_invalid_output]
+      success_metrics: [validator_strict_pass, write_schema_validity]
+    rollout:
+      stage: observe_only
+      activation_requirements: [routing_matrix_review, explicit_human_approval]
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml]
+      unresolved_gaps: ["Repo-declared NOUS_PORTAL route is proposed, not approved."]
+
+  - profile_id: noesis-grid
+    profile_type: worker
+    purpose: "Data analysis and reporting: structures, analyzes, visualizes data into CSV/XLSX/charts/tables; never fabricates or silently interpolates."
+    authority_level: bounded_execution
+    risk_ceiling: r1
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [structured_worker]
+    tool_policy:
+      allowed: [file, terminal, memory, session_search, skills, todo]
+      denied: [code_execution, delegation, treasury_read, treasury_propose_action, artifact_publish_external, wallet]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.1, max_tokens: 8192, timeout_seconds: 120}
+        selection_rationale: >
+          Aligned observed KIMI route; repo-declared nous/deepseek is drift.
+          Extraction/transformation workload matches structured_worker class;
+          no fabrication tolerated - structured output with quarantine on
+          invalid output.
+      critic:
+        required: false
+        lane: null
+        model_ref: null
+        trigger_conditions: [complex_statistics, material_report]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API]
+      dispatch_conditions:
+        - "observe_only"
+        - "deterministic tooling preferred for computation; model for interpretation only"
+    validation:
+      required_evals: [IR-002, PIA-001, PIA-002, PIA-009]
+      required_gates: [schema_validation, confidence_threshold, quarantine_on_invalid_output]
+      success_metrics: [validator_strict_pass]
+    rollout:
+      stage: observe_only
+      activation_requirements: [routing_matrix_review, explicit_human_approval]
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml]
+      unresolved_gaps: ["Repo-declared NOUS_PORTAL route is proposed, not approved."]
+
+  - profile_id: noesis-quill
+    profile_type: worker
+    purpose: "Technical writing and editing: docs, runbooks, ADRs, reports; flags ambiguities rather than guessing."
+    authority_level: bounded_execution
+    risk_ceiling: r1
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [structured_worker]
+    tool_policy:
+      allowed: [file, web, memory, session_search, skills, todo]
+      denied: [terminal, code_execution, delegation, treasury_read, treasury_propose_action, artifact_publish_external, wallet]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.2, max_tokens: 8192, timeout_seconds: 120}
+        selection_rationale: >
+          Observed KIMI route; repo-declared OpenRouter/claude-sonnet-5 stays
+          blocked. Writing-strong work maps to structured_worker drafting;
+          repo's claude preference recorded as a gap pending CLAUDE_CODE_PRO
+          activation.
+      critic:
+        required: false
+        lane: null
+        model_ref: null
+        trigger_conditions: [high_stakes_document, technical_ambiguity_flagged]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API]
+      dispatch_conditions:
+        - "observe_only"
+        - "ambiguities flagged, never silently resolved"
+    validation:
+      required_evals: [IR-008, IR-014, PIA-001, PIA-002, PIA-009]
+      required_gates: [schema_validation]
+      success_metrics: [validator_strict_pass]
+    rollout:
+      stage: observe_only
+      activation_requirements: [resolve_openrouter_catalog_contradiction, routing_matrix_review, explicit_human_approval]
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml]
+      unresolved_gaps: ["Repo-declared claude-sonnet-5 writing route has no approved lane binding."]
+
+  - profile_id: noesis-herald
+    profile_type: worker
+    purpose: "Strategic comms drafter: external-facing drafts with risk/tone notes; never sends autonomously."
+    authority_level: bounded_execution
+    risk_ceiling: r1
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [structured_worker]
+    tool_policy:
+      allowed: [file, web, memory, session_search, skills, todo]
+      denied: [terminal, code_execution, delegation, treasury_read, treasury_propose_action, artifact_publish_external, wallet, external_send]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.2, max_tokens: 8192, timeout_seconds: 120}
+        selection_rationale: >
+          Observed KIMI route; repo-declared OpenRouter/claude-sonnet-5 stays
+          blocked. High-stakes drafts require second-model cross-check per
+          roster; no second family selectable, so cross-check stays a recorded
+          gap. External sending is always human-gated.
+      critic:
+        required: true
+        lane: null
+        model_ref: null
+        trigger_conditions: [high_stakes_draft, external_audience]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API]
+      dispatch_conditions:
+        - "observe_only"
+        - "draft-only: external dispatch requires explicit human approval per recipient"
+    validation:
+      required_evals: [IR-008, IR-013, PIA-001, PIA-002, PIA-009]
+      required_gates: [human_approval_before_external_send, no_secret_egress]
+      success_metrics: [validator_strict_pass]
+    rollout:
+      stage: observe_only
+      activation_requirements: [resolve_openrouter_catalog_contradiction, cross-family critic activation, explicit_human_approval]
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml]
+      unresolved_gaps:
+        - "Cross-check critic lane unavailable."
+        - "External-send authority deliberately absent from tool scope."
+
+  # ── Research / intelligence (proposed PERPLEXITY evidence lane) ──────────
+
+  - profile_id: noesis-signal
+    profile_type: research
+    purpose: "Deep research and multi-source synthesis with cross-validation and cited briefs."
+    authority_level: advisory
+    risk_ceiling: r1
+    allowed_data_classes: [public, internal_redacted]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [research, intelligence, source_discovery, source_verification, citation_backed_brief]
+    tool_policy:
+      allowed: [web, file, memory, session_search, skills, todo]
+      denied: [terminal, code_execution, delegation, treasury_read, treasury_propose_action, artifact_publish_external, wallet]
+    inference_strategy:
+      status: proposed
+      primary:
+        lane: null
+        model_ref: null
+        parameters: {temperature: 0.3, max_tokens: 12000, timeout_seconds: 180}
+        selection_rationale: >
+          Strategic primary is the PERPLEXITY_API evidence lane
+          (source-backed external research, provenance artifacts,
+          public/internal_redacted data, r1 ceiling) but it is proposed and
+          non-selectable, so lane and model_ref stay null. KIMI_CODE cannot
+          serve: its lane policy excludes the research profile type. Observed
+          KIMI runtime is recorded as evidence, not promoted to policy.
+      critic:
+        required: true
+        lane: null
+        model_ref: null
+        trigger_conditions: [high_stakes_findings, conflicting_sources, material_claim]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, KIMI_CODE]
+      dispatch_conditions:
+        - "proposed only: no dispatch until PERPLEXITY_API activation requirements pass"
+        - "provenance artifact required for every external claim"
+        - "source conflict detection and uncertainty reporting mandatory"
+    validation:
+      required_evals: [IR-003, IR-004, IR-005, IR-007, PIA-001, PIA-002, PIA-007, PIA-009]
+      required_gates: [provenance_artifact_required, source_conflict_detection, no_secret_egress, redact_before_dispatch]
+      success_metrics: [validator_strict_pass, provenance_coverage]
+    rollout:
+      stage: blocked
+      activation_requirements:
+        - perplexity_activation_requirements (canonical model pins, terms verification, provenance policy, budgets, evals)
+        - routing_eval_coverage for evidence lane
+        - explicit_human_approval
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml]
+      unresolved_gaps:
+        - "PERPLEXITY_API pinned_models is empty; sonar/sonar-pro are observed aliases, not canonical pins."
+        - "Observed kimi-k2.7-code runtime is not a policy route for this research profile."
+
+  - profile_id: noesis-tracer
+    profile_type: research
+    purpose: "OSINT/evidence/timeline specialist: verifiable timelines and evidence tables from public sources, labeled fact/allegation/inference/unknown."
+    authority_level: advisory
+    risk_ceiling: r1
+    allowed_data_classes: [public, internal_redacted]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [research, intelligence, source_discovery, source_verification, citation_backed_brief]
+    tool_policy:
+      allowed: [web, file, memory, session_search, skills, todo]
+      denied: [terminal, code_execution, delegation, treasury_read, treasury_propose_action, artifact_publish_external, wallet]
+    inference_strategy:
+      status: proposed
+      primary:
+        lane: null
+        model_ref: null
+        parameters: {temperature: 0.3, max_tokens: 12000, timeout_seconds: 180}
+        selection_rationale: >
+          Same strategic posture as noesis-signal: PERPLEXITY_API evidence lane
+          is the conceptual primary but non-selectable. Skeptic cross-check
+          (noesis-skeptic) is required before finalizing; skeptic independence
+          is itself unresolved. OSINT work minimizes personal-data collection
+          and labels fact vs allegation vs inference.
+      critic:
+        required: true
+        lane: null
+        model_ref: null
+        trigger_conditions: [always_before_finalizing, allegation_vs_fact_boundary, pre_high_stakes_use]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, KIMI_CODE]
+      dispatch_conditions:
+        - "proposed only"
+        - "OSINT minimization: personal-data collection minimized; fact/allegation/inference/unknown labels mandatory"
+        - "noesis-skeptic review before finalization"
+    validation:
+      required_evals: [IR-003, IR-004, IR-005, IR-007, IR-013, PIA-001, PIA-002, PIA-007, PIA-009]
+      required_gates: [provenance_artifact_required, source_conflict_detection, label_fact_allegation_inference, no_secret_egress]
+      success_metrics: [validator_strict_pass, label_compliance]
+    rollout:
+      stage: blocked
+      activation_requirements: [perplexity_activation_requirements, skeptic_independence_resolution, explicit_human_approval]
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml]
+      unresolved_gaps:
+        - "PERPLEXITY_API non-selectable; sonar/sonar-pro unpinned."
+        - "Skeptic review independence unresolved (single approved family)."
+
+  - profile_id: noesis-ledger
+    profile_type: research
+    purpose: "Crypto/mining/DePIN research analyst; never financial advice, never transactions."
+    authority_level: advisory
+    risk_ceiling: r1
+    allowed_data_classes: [public, internal_redacted]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [research, intelligence, source_discovery, source_verification, citation_backed_brief]
+    tool_policy:
+      allowed: [web, file, memory, session_search, skills, todo]
+      denied: [terminal, code_execution, delegation, treasury_read, treasury_propose_action, artifact_publish_external, wallet, transaction_signing]
+    inference_strategy:
+      status: proposed
+      primary:
+        lane: null
+        model_ref: null
+        parameters: {temperature: 0.3, max_tokens: 12000, timeout_seconds: 180}
+        selection_rationale: >
+          PERPLEXITY_API is the strategic evidence lane for current
+          intelligence; non-selectable, so null. Roster's venice privacy
+          preference for wallet/portfolio topics is recorded but VENICE_PRO is
+          blocked_missing_configuration; wallet topics are therefore out of
+          scope entirely. Analysis is never financial advice.
+      critic:
+        required: true
+        lane: null
+        model_ref: null
+        trigger_conditions: [market_moving_claim, material_finding]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, KIMI_CODE]
+      dispatch_conditions:
+        - "proposed only"
+        - "analysis/financial-advice separation enforced; no transaction capability"
+        - "wallet/portfolio topics blocked until a privacy lane is approved"
+    validation:
+      required_evals: [IR-003, IR-004, IR-005, IR-007, PIA-001, PIA-002, PIA-007, PIA-009]
+      required_gates: [provenance_artifact_required, source_conflict_detection, no_financial_advice_boundary, no_secret_egress]
+      success_metrics: [validator_strict_pass]
+    rollout:
+      stage: blocked
+      activation_requirements: [perplexity_activation_requirements, explicit_human_approval]
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml, shared/provider-policies.yaml]
+      unresolved_gaps:
+        - "PERPLEXITY_API non-selectable."
+        - "VENICE_PRO privacy lane blocked: wallet-adjacent topics out of scope."
+
+  - profile_id: noesis-advocate
+    profile_type: research
+    purpose: "Legal/administrative advocacy support: researches and drafts supporting documents; never legal advice, never external submission."
+    authority_level: advisory
+    risk_ceiling: r1
+    allowed_data_classes: [public, internal_redacted]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [research, intelligence, source_discovery, source_verification, citation_backed_brief]
+    tool_policy:
+      allowed: [web, file, memory, session_search, skills, todo]
+      denied: [terminal, code_execution, delegation, treasury_read, treasury_propose_action, artifact_publish_external, wallet, external_submission]
+    inference_strategy:
+      status: proposed
+      primary:
+        lane: null
+        model_ref: null
+        parameters: {temperature: 0.3, max_tokens: 12000, timeout_seconds: 180}
+        selection_rationale: >
+          Case material is sensitive; only public/internal_redacted may leave
+          to any external lane. PERPLEXITY_API is the conceptual evidence
+          lane (proposed). confidential_redacted handling would require an
+          activated CLAUDE_CODE_PRO lane; until then such material stays off
+          every external route. Roster review chain (noesis-skeptic + human
+          counsel) is mandatory.
+      critic:
+        required: true
+        lane: null
+        model_ref: null
+        trigger_conditions: [always, pre_counsel_review, externally_grounded_claim]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, KIMI_CODE, VENICE_PRO]
+      dispatch_conditions:
+        - "proposed only"
+        - "never legal advice; external submission only by named human approval"
+        - "confidential case material never dispatched externally under this plan"
+    validation:
+      required_evals: [IR-003, IR-004, IR-005, IR-007, IR-013, PIA-001, PIA-002, PIA-007, PIA-009]
+      required_gates: [provenance_artifact_required, redact_before_dispatch, human_counsel_review, no_secret_egress]
+      success_metrics: [validator_strict_pass, redaction_gate_coverage]
+    rollout:
+      stage: blocked
+      activation_requirements:
+        - perplexity_activation_requirements
+        - confidential_redacted data policy via approved lane only
+        - explicit_human_approval
+    evidence:
+      profile_sources: [profiles/noesis-roster.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml]
+      unresolved_gaps:
+        - "No approved lane may receive confidential_redacted case material."
+        - "Human counsel review is a human gate, not model-routable."
+
+  - profile_id: research-openclaw
+    profile_type: research
+    purpose: "Platform extraction engine: writes findings, claims, sources, run receipts to research vault; cannot publish, execute external actions, or touch secrets."
+    authority_level: advisory
+    risk_ceiling: r1
+    allowed_data_classes: [public, internal_redacted]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [research, intelligence, source_discovery, source_verification, citation_backed_brief, documentation_triage]
+    tool_policy:
+      allowed: [web_search, rss_fetch, github_fetch, write_vault_artifact, schema_validate, health_report]
+      denied: [terminal, code_execution, delegation, treasury_read, treasury_propose_action, artifact_publish_external, wallet]
+    inference_strategy:
+      status: proposed
+      primary:
+        lane: null
+        model_ref: null
+        parameters: {temperature: 0.1, max_tokens: 8192, timeout_seconds: 120}
+        selection_rationale: >
+          Repo declares canonical catalog profile bindings (extraction_fast,
+          reasoning_primary, synthesis_mid per shared/models.yaml
+          agent_profile_map), but none of those catalog profiles is carried by
+          an approved lane, and KIMI_CODE excludes the research type.
+          PERPLEXITY_API is the proposed external-evidence lane; vault writes
+          remain schema-enforced. Parameters proposed from the
+          extraction_quality analog.
+      critic:
+        required: true
+        lane: null
+        model_ref: null
+        trigger_conditions: [material_finding, source_conflict, recover_mode]
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, KIMI_CODE]
+      dispatch_conditions:
+        - "proposed only"
+        - "vault writes are schema-enforced; scope locked to workspace/research-vault"
+        - "external research requires provenance artifacts when evidence lane activates"
+    validation:
+      required_evals: [IR-003, IR-004, IR-005, IR-007, ISOLATE-001, PALACE-001, PIA-001, PIA-002, PIA-007, PIA-009]
+      required_gates: [provenance_artifact_required, vault_scope_lock, schema_enforcement, no_secret_egress]
+      success_metrics: [validator_strict_pass, vault_schema_validity]
+    rollout:
+      stage: blocked
+      activation_requirements: [perplexity_activation_requirements, approved lane carrying catalog extraction profiles, explicit_human_approval]
+    evidence:
+      profile_sources: [platform/orchestrator.yaml, shared/models.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml, shared/tools.yaml]
+      unresolved_gaps:
+        - "Catalog profiles extraction_fast/synthesis_mid have no approved lane binding."
+        - "PERPLEXITY_API non-selectable."
+
+  # ── Reflective ───────────────────────────────────────────────────────────
+
+  - profile_id: subconscious-openclaw
+    profile_type: reflective
+    purpose: "Pattern-noticing layer: consumes research snapshots and room memory, emits signal events and intent drafts; cannot code, self-approve, or change its own thresholds."
+    authority_level: advisory
+    risk_ceiling: r0
+    allowed_data_classes: [public, internal]
+    prohibited_data_classes: [confidential, restricted, secret]
+    allowed_task_classes: [reflective_advisory]
+    tool_policy:
+      allowed: [read_room, write_room_note, signal_filter, rebuild_signal_board, memory_bridge_sync, create_build_intent]
+      denied: [terminal, code_execution, delegation, web_search, rss_fetch, artifact_publish_external, treasury_read, treasury_propose_action, wallet, broker_submit_job]
+    inference_strategy:
+      status: observe_only
+      primary:
+        lane: KIMI_CODE
+        model_ref: kimi-k2.7-code
+        parameters: {temperature: 0.3, max_tokens: 8000, timeout_seconds: 120}
+        selection_rationale: >
+          Strategic end-state is a local/self-hosted lane (catalog profile
+          local_drift, qwen3:32b, fully offline) matching the reflective
+          priorities: low cost, privacy, curated snapshots. No local/self-
+          hosted lane exists in approved_lanes, so an interim observe_only
+          KIMI_CODE assignment is recorded for the reflective_advisory class
+          with curated internal inputs only. This is not a promotion of the
+          local route, which remains blocked until a lane is defined.
+      critic:
+        required: false
+        lane: null
+        model_ref: null
+        trigger_conditions: []
+      fallback:
+        enabled: false
+        ordered_candidates: []
+        constraints: {preserve_data_class: true, preserve_risk_tier: true, preserve_tool_scope: true, preserve_approval_gates: true}
+      prohibited_lanes: [OPENROUTER_FALLBACK, PERPLEXITY_API, VENICE_PRO]
+      dispatch_conditions:
+        - "observe_only"
+        - "curated input only; no external research without supervisor request"
+        - "write capability limited to the subconscious room; build intents pass signal_filter gate"
+        - "no self-approval; thresholds are config-owned, not model-owned"
+    validation:
+      required_evals: [HERMES-005, ISOLATE-002, IR-002, PIA-001, PIA-002, PIA-008, PIA-009]
+      required_gates: [curated_input_only, no_external_research_without_supervisor_request, signal_filter_gate]
+      success_metrics: [validator_strict_pass, room_write_scope_compliance]
+    rollout:
+      stage: observe_only
+      activation_requirements:
+        - "define local/self-hosted lane in platform/inference-routing.yaml and reassign strategic primary to it"
+        - "until then, observe_only KIMI baseline with curated inputs"
+        - explicit_human_approval
+    evidence:
+      profile_sources: [platform/orchestrator.yaml, shared/models.yaml, platform/runtime-reconciliation.yaml]
+      policy_sources: [platform/inference-routing.yaml]
+      unresolved_gaps:
+        - "Strategic local lane (local_drift catalog profile) has no approved lane definition."
+        - "synthesis_mid digest binding has no approved lane."
