@@ -228,3 +228,4 @@ backups/
 
 # OMH runtime state (plan execution scratch — not source)
 .omh/state/
+.DS_Store

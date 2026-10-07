@@ -153,5 +153,25 @@ This system is designed around constrained autonomy.
 
 ## Status
 
-This repository is currently in the specification and scaffold phase. The immediate next step is to turn the architecture into concrete profile definitions, contracts, workspace layouts, and an initial runnable slice that proves the Research → Main → Subconscious → Main → Coder/QA loop with durable artifacts and explicit gates.
+**Implemented and offline-verified (2026-10-06):** the broker control plane
+(`orchestration/broker/`) and the orchestrator control plane
+(`orchestration/orchestrator/`) are implemented with passing test suites
+(35 broker + 101 orchestrator tests), including durable emergency-stop,
+registry-lane admission (coder, claude-code-worker), correlated lifecycle
+event streams, and structured errors. Validators: inference-routing policy
+(repo-local), Honcho profile definitions, agency catalog names (against the
+pinned upstream checkout), and live-config compliance
+(`scripts/verify_live_config.py`) all pass. Evidence:
+`docs/operations/deployment-verification-2026-10-06.md`.
+
+**Deployed:** wave-1 profile fleet applied to `~/.hermes`; live default model
+route aligned to the repository-approved KIMI_CODE lane.
+
+**Verified live (inference):** not yet — blocked on an approved inference
+budget. ROUTING-SMOKE.md rows remain unrecorded.
+
+**Staged, not applied:** wave-2/3 roster profiles (operator go-ahead required).
+Phases 3–7 worker slices (Research/Subconscious runners, Coder/QA lanes,
+observability) remain scaffolded; the control planes above are the runnable
+core.
 

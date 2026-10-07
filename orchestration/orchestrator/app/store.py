@@ -25,6 +25,14 @@ from app.models import (
 
 DEFAULT_LEDGER = Path("workspace/orchestrator/tasks.jsonl")
 
+# Event/schema version for control-plane records written to the ledger.
+LEDGER_SCHEMA_VERSION = "1.0"
+
+# Durable control events (no embedded task). Replay folds these to reconstruct
+# operator stop/resume state before dispatch is enabled at startup.
+BREAKER_TRIP_EVENT = "circuit_breaker_tripped"
+BREAKER_RESET_EVENT = "circuit_breaker_reset"
+
 
 def _parse_dt(value: str | None) -> datetime | None:
     if not value:
@@ -47,6 +55,11 @@ class TaskStore:
         self.ledger_path.parent.mkdir(parents=True, exist_ok=True)
         self._tasks: dict[str, TaskContract] = {}
         self._by_idempotency: dict[str, str] = {}
+        # Durable operator stop/resume events, in ledger order.
+        self.breaker_events: list[dict[str, Any]] = []
+        # Set when replay hits a malformed/truncated record. The control plane
+        # must fail closed (block dispatch) when this is non-None.
+        self.replay_error: str | None = None
         if self.ledger_path.exists():
             self.replay()
 
@@ -62,19 +75,61 @@ class TaskStore:
             fh.flush()
             os.fsync(fh.fileno())
 
+    def append_control_event(self, event: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """Durably record a control-plane event (no embedded task).
+
+        Returns the persisted record. Raises if the durable write fails; the
+        caller must NOT acknowledge the operation in that case.
+        """
+        record = {
+            "event": event,
+            "recorded_at": utcnow().isoformat(),
+            "schema_version": LEDGER_SCHEMA_VERSION,
+            **payload,
+        }
+        line = json.dumps(record, sort_keys=True, default=str)
+        with self.ledger_path.open("a", encoding="utf-8") as fh:
+            fh.write(line + "\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+        self.breaker_events.append(record)
+        return record
+
+    def latest_breaker_event(self) -> dict[str, Any] | None:
+        return self.breaker_events[-1] if self.breaker_events else None
+
     def replay(self) -> None:
-        """Rebuild current state by folding the append-only log."""
+        """Rebuild current state by folding the append-only log.
+
+        A malformed or truncated record stops replay and sets ``replay_error``;
+        the control plane is responsible for failing closed (blocking dispatch)
+        when that happens. A restart must never silently reopen dispatch.
+        """
         self._tasks.clear()
         self._by_idempotency.clear()
+        self.breaker_events.clear()
+        self.replay_error = None
         with self.ledger_path.open("r", encoding="utf-8") as fh:
-            for line in fh:
+            for lineno, line in enumerate(fh, start=1):
                 line = line.strip()
                 if not line:
                     continue
-                record = json.loads(line)
-                task = self._rehydrate(record["task"])
-                self._tasks[str(task.task_id)] = task
-                self._by_idempotency[task.idempotency_key] = str(task.task_id)
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError as exc:
+                    self.replay_error = f"line {lineno}: invalid JSON: {exc}"
+                    return
+                if "task" in record:
+                    try:
+                        task = self._rehydrate(record["task"])
+                    except (KeyError, ValueError, TypeError) as exc:
+                        self.replay_error = f"line {lineno}: malformed task record: {exc}"
+                        return
+                    self._tasks[str(task.task_id)] = task
+                    self._by_idempotency[task.idempotency_key] = str(task.task_id)
+                elif record.get("event") in (BREAKER_TRIP_EVENT, BREAKER_RESET_EVENT):
+                    self.breaker_events.append(record)
+                # Unknown records are ignored for forward compatibility.
 
     @staticmethod
     def _rehydrate(data: dict[str, Any]) -> TaskContract:

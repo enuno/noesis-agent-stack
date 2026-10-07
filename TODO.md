@@ -2,7 +2,11 @@
 
 > Derived from DEVELOPMENT_PLAN.md assessment on 2026-05-05.
 > Current branch: main
-> Status: Phase 0 partially scaffolded; contracts and agent SOULs exist.
+> Status (updated 2026-10-06): Phases 0, 1, 1.5 completed; broker and
+> orchestrator control planes implemented, remediated, and offline-verified
+> (see docs/operations/deployment-verification-2026-10-06.md). The phase
+> checklists below lag the implementation; Phases 2's platform configs and
+> control-plane code exist on main. Phases 3–7 remain scaffolded.
 
 ---
 

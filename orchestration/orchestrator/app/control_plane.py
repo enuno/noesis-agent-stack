@@ -25,7 +25,12 @@ from app.inference_routing import (
 )
 from app.models import Approval, Retry, TaskContract, TransitionError, Verification, utcnow
 from app.policy import DispatchDecision, PolicyViolation
-from app.store import DEFAULT_LEDGER, TaskStore
+from app.store import (
+    BREAKER_RESET_EVENT,
+    BREAKER_TRIP_EVENT,
+    DEFAULT_LEDGER,
+    TaskStore,
+)
 
 # Consecutive failures within one correlation graph before dispatch is halted.
 DEFAULT_FAILURE_THRESHOLD = 3
@@ -81,6 +86,7 @@ class Orchestrator:
     ) -> None:
         self.store = TaskStore(ledger_path)
         self.breaker = CircuitBreaker(failure_threshold=failure_threshold)
+        self._restore_breaker_state()
         if inference_enforcer is not None:
             self.inference_enforcer = inference_enforcer
         else:
@@ -355,12 +361,60 @@ class Orchestrator:
             "requires_human": True,
         }
 
+    def _restore_breaker_state(self) -> None:
+        """Reconstruct circuit-breaker state from the durable ledger.
+
+        Runs during startup, before dispatch is enabled. A restart must never
+        implicitly clear an operator stop, and a ledger that cannot be replayed
+        must fail closed (block new execution admission), not open dispatch.
+        """
+        if self.store.replay_error is not None:
+            self.breaker.trip(
+                f"fail-closed: ledger replay error: {self.store.replay_error}"
+            )
+            return
+        latest = self.store.latest_breaker_event()
+        if latest is None:
+            return
+        if latest.get("event") == BREAKER_TRIP_EVENT:
+            self.breaker.manually_tripped = True
+            self.breaker.reason = latest.get("reason")
+        elif latest.get("event") == BREAKER_RESET_EVENT:
+            self.breaker.manually_tripped = False
+            self.breaker.consecutive_failures = 0
+            self.breaker.reason = f"reset by {latest.get('operator')}"
+
     def emergency_stop(self, *, operator: str, reason: str) -> CircuitBreaker:
+        """Durable operator stop. Blocks NEW dispatch (claim); already-running
+        work is left to its lease and swept normally.
+
+        The stop is acknowledged only after its durable ledger write succeeds.
+        If persistence fails, an exception is raised and dispatch additionally
+        fails closed in-memory (a broker that cannot record stops must not keep
+        dispatching).
+        """
+        if not operator or not operator.strip():
+            raise ValueError("operator identity is required for emergency_stop")
+        try:
+            self.store.append_control_event(
+                BREAKER_TRIP_EVENT,
+                {"operator": operator.strip(), "reason": reason},
+            )
+        except Exception:
+            self.breaker.trip(f"fail-closed: stop persistence failure (by {operator})")
+            raise
         self.breaker.trip(f"{reason} (by {operator})")
         return self.breaker
 
     def resume(self, *, operator: str) -> CircuitBreaker:
-        self.breaker.reset(operator=operator)
+        """Durable, audited operator resume. Persists before acknowledging."""
+        if not operator or not operator.strip():
+            raise ValueError("operator identity is required for resume")
+        self.store.append_control_event(
+            BREAKER_RESET_EVENT,
+            {"operator": operator.strip(), "reason": "operator resume"},
+        )
+        self.breaker.reset(operator=operator.strip())
         return self.breaker
 
     # ------------------------------------------------------------ synthesize --

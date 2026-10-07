@@ -32,7 +32,7 @@ platform_evals:
         - "Submit to POST /v1/jobs with valid worker_type, scopes, and payload"
       success_criteria:
         - "HTTP 202 Accepted"
-        - "Response body contains job_id, correlation_id, and state: queued"
+        - "Response body contains job_id, correlation_id, and status: pending (authoritative field per contracts/broker-api/job.schema.json; the schema defines status, not state, and new jobs enter as pending)"
         - "Job appears in GET /v1/jobs/{job_id} within 2 seconds"
       severity: critical
 

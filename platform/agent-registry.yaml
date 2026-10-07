@@ -3,6 +3,20 @@ generated_from:
   - orchestrator.yaml
   - routing.yaml
 
+# Execution lanes the noesis-orchestrator control plane is explicitly
+# authorized to dispatch. Listing here is necessary but not sufficient: the
+# agent entry must also set enabled: true. Registration without listing (or
+# with enabled: false) leaves the identity UNKNOWN to admission — staged
+# agents are never implicitly activated. Names must not collide with
+# profiles/noesis-roster.yaml identities (load fails closed on collision).
+orchestration_lanes:
+  - coder
+  - claude-code-worker
+
+# Explicit alias resolution for admission. An alias resolves to exactly one
+# canonical identity; shadowing a roster or lane name fails closed at load.
+aliases: {}
+
 agents:
   main-hermes:
     agent_id: main-hermes
@@ -142,6 +156,32 @@ agents:
       Release gate. Audits build artifacts against evidence, schema, and
       policy. Can block progression. Cannot waive gates based solely on
       agent confidence.
+
+  claude-code-worker:
+    agent_id: claude-code-worker
+    enabled: true
+    runtime: claude-code
+    role: builder
+    capabilities:
+      - implement
+      - debug
+      - test
+      - refactor
+      - review
+      - explore
+    model_profile: subscription_claude_code
+    limits:
+      default_timeout_s: 2400
+      default_cost_limit_usd: 0.00
+    palace_wings: []
+    write_scope:
+      - workspace/coder-jobs
+    notes: >-
+      Ephemeral bridge worker. Executes immutable scoped bridge tasks from
+      inbox/ and returns structured results to outbox/ (contracts/bridge).
+      Holds no standing authority; R2/R3 requires an explicit signed grant
+      from Noesis Praxis. Admission requires listing in
+      orchestration_lanes plus enabled: true.
 
 routing:
   main-hermes:

@@ -13,6 +13,7 @@ class JobStore:
         self._events: dict[UUID, list[Event]] = {}
         self._artifacts: dict[UUID, list[Artifact]] = {}
         self._idempotency: dict[str, datetime] = {}
+        self._rejections: list[dict] = []
         self._lock = asyncio.Lock()
 
     async def create_job(self, job: JobResponse) -> JobResponse:
@@ -86,6 +87,17 @@ class JobStore:
             if job:
                 job.artifact_count = len(self._artifacts[job_id])
             return artifact
+
+    async def append_rejection(self, record: dict) -> None:
+        """Bounded, sanitized audit trail for rejected requests (in-memory)."""
+        async with self._lock:
+            self._rejections.append(record)
+            if len(self._rejections) > 1000:
+                del self._rejections[: len(self._rejections) - 1000]
+
+    async def list_rejections(self) -> list[dict]:
+        async with self._lock:
+            return list(self._rejections)
 
     def check_idempotency(self, key: str) -> bool:
         """Return True if key is already known and within the window."""

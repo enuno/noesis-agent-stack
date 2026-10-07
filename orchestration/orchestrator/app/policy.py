@@ -53,7 +53,14 @@ def validate_assignment(task: TaskContract) -> None:
     if profile is None:
         raise PolicyViolation(
             "unknown_profile",
-            f"'{task.assignee_profile}' is not defined in profiles/noesis-roster.yaml",
+            f"'{task.assignee_profile}' is not a known roster profile, "
+            f"orchestration lane, or alias",
+        )
+
+    if profile.source == "agent-registry" and profile.activation_state != "activated":
+        raise PolicyViolation(
+            "lane_not_activated",
+            f"'{profile.name}' is registered but not activated for orchestration",
         )
 
     if profile.is_reviewer_only:

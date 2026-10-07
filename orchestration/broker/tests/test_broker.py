@@ -117,7 +117,12 @@ class TestJobEvents:
         job_id = created["job_id"]
         response = client.get(f"/v1/jobs/{job_id}/events")
         assert response.status_code == 200
-        assert response.json()["events"] == []
+        events = response.json()["events"]
+        # Accepted submissions emit a correlated, contract-shaped event
+        # (deployment-verification-2026-10-06: streams were silently empty).
+        assert [e["type"] for e in events] == ["broker.job.submitted"]
+        assert events[0]["job_id"] == job_id
+        assert events[0]["correlation_id"] == created["correlation_id"]
 
 
 class TestJobArtifacts:

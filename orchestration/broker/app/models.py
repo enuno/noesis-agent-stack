@@ -57,13 +57,17 @@ class JobResponse(BaseModel):
 
 
 class Event(BaseModel):
+    """Broker event stream entry. Conforms to contracts/broker-api/events.schema.json."""
+
     event_id: UUID = Field(default_factory=uuid4)
     job_id: UUID
+    correlation_id: UUID | None = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    severity: str = Field(..., pattern=r"^(debug|info|warning|error|critical)$")
-    message: str
+    type: str = Field(..., description="Event type in dot notation, e.g. broker.job.submitted")
     source: str | None = None
-    metadata: dict[str, Any] | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
+    severity: str = Field(..., pattern=r"^(debug|info|warning|error|critical)$")
+    traceparent: str | None = None
 
 
 class Artifact(BaseModel):
