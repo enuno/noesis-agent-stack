@@ -89,6 +89,97 @@ class Approval:
     approval_manifest_id: str | None = None
 
 
+# Review stages in the authoritative lifecycle. Spec compliance must pass for a
+# candidate before quality review may begin; integration is plan/root-level.
+REVIEW_STAGES = frozenset({"spec", "quality", "integration"})
+SPEC_VERDICTS = frozenset({"PASS", "REQUEST_CHANGES", "BLOCKED"})
+QUALITY_VERDICTS = frozenset({"APPROVED", "REQUEST_CHANGES", "BLOCKED"})
+# Positive success only. Failure verdicts are never mapped toward PASS/APPROVED.
+_POSITIVE_REVIEW_VERDICT = {
+    "spec": "PASS",
+    "quality": "APPROVED",
+}
+
+
+@dataclass
+class ReviewRecord:
+    """A review verdict bound to one candidate revision (never a stale diff)."""
+
+    stage: str
+    verdict: str
+    reviewer: str
+    candidate_revision: str
+    findings: list[dict[str, Any]] = field(default_factory=list)
+    at: datetime = field(default_factory=utcnow)
+
+
+@dataclass
+class Delegation:
+    """Authoritative delegation/assignment record lived on the task contract.
+
+    This is the extension of the TaskStore contract with delegation behavior;
+    a task that has been explicitly assigned to a specialist carries this. It
+    records assignment epoch (monotonic fencing), active attempt, resolved
+    runtime profile, the current candidate revision/digest, revision-bound
+    reviews, and the explicit orchestrator acceptance. Budget accounting is
+    minimal and honest: unknown token usage is tracked as ``None``, never as 0.
+    """
+
+    assignment_epoch: int = 0
+    attempt: int = 0
+    runtime_profile: str | None = None
+    candidate_revision: str | None = None
+    candidate_digest: str | None = None
+    contract_revision: str | None = None
+    baseline: str | None = None
+    reviews: list[ReviewRecord] = field(default_factory=list)
+    accepted_by: str | None = None
+    accepted_at: datetime | None = None
+    request_limit: int | None = None
+    requests_used: int = 0
+    budget_tokens: int | None = None
+    tokens_used: int | None = None  # None = unknown, tracked explicitly, never 0
+    approved_provider: str | None = None
+    approved_model: str | None = None
+    launch_reservation: dict[str, Any] | None = None
+
+    def current_reviews(self, stage: str) -> list[ReviewRecord]:
+        rev = self.candidate_revision
+        return [r for r in self.reviews if r.stage == stage and r.candidate_revision == rev]
+
+    def current_verdicts(self) -> dict[str, str]:
+        """Best current candidate's verdicts keyed by stage (later review wins)."""
+        out: dict[str, str] = {}
+        rev = self.candidate_revision
+        if not rev:
+            return out
+        for r in self.reviews:
+            if r.candidate_revision == rev:
+                out[r.stage] = r.verdict
+        return out
+
+    def required_review_satisfied(self, stage: str) -> bool:
+        """Satisfied only by the explicit positive verdict for that stage.
+
+        Spec requires PASS. Quality requires APPROVED. Missing, unknown,
+        malformed, wrong-stage, BLOCKED, REQUEST_CHANGES, and unsupported
+        stages fail closed. A failure verdict is never coerced into success.
+        """
+        expected = _POSITIVE_REVIEW_VERDICT.get(stage)
+        if expected is None:
+            return False
+        verdict = self.current_verdicts().get(stage)
+        if not isinstance(verdict, str) or not verdict.strip():
+            return False
+        return verdict == expected
+
+    def budget_exceeded(self) -> bool:
+        if self.request_limit is not None and self.requests_used > self.request_limit:
+            return True
+        return False
+
+
+
 @dataclass
 class TaskContract:
     """Durable unit of supervised cross-profile work."""
@@ -120,6 +211,7 @@ class TaskContract:
     created_by: str = "noesis-orchestrator"
     updated_at: datetime | None = None
     terminal_reason: str | None = None
+    delegation: Delegation = field(default_factory=Delegation)
 
     def __post_init__(self) -> None:
         if self.risk_tier not in RISK_TIERS:
@@ -194,4 +286,33 @@ class TaskContract:
                 "claimed_at": _iso(self.claim["claimed_at"]),
                 "lease_expires_at": _iso(self.claim["lease_expires_at"]),
             }
+        data["delegation"] = {
+            "assignment_epoch": self.delegation.assignment_epoch,
+            "attempt": self.delegation.attempt,
+            "runtime_profile": self.delegation.runtime_profile,
+            "candidate_revision": self.delegation.candidate_revision,
+            "candidate_digest": self.delegation.candidate_digest,
+            "contract_revision": self.delegation.contract_revision,
+            "baseline": self.delegation.baseline,
+            "accepted_by": self.delegation.accepted_by,
+            "accepted_at": _iso(self.delegation.accepted_at),
+            "request_limit": self.delegation.request_limit,
+            "requests_used": self.delegation.requests_used,
+            "budget_tokens": self.delegation.budget_tokens,
+            "tokens_used": self.delegation.tokens_used,
+            "approved_provider": self.delegation.approved_provider,
+            "approved_model": self.delegation.approved_model,
+            "launch_reservation": self.delegation.launch_reservation,
+            "reviews": [
+                {
+                    "stage": r.stage,
+                    "verdict": r.verdict,
+                    "reviewer": r.reviewer,
+                    "candidate_revision": r.candidate_revision,
+                    "findings": list(r.findings),
+                    "at": _iso(r.at),
+                }
+                for r in self.delegation.reviews
+            ],
+        }
         return data

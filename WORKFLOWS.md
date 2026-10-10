@@ -11,6 +11,9 @@
 | `build-promotion` | Advance an approved intent through plan, code, and artifact handoff | Hermes Main, broker, Coder, MemPalace |
 | `release-validation` | Verify build artifacts against evidence, schema, and policy before release | Hermes Main, broker, QA, MemPalace |
 | `orchestrated-task` | Run a graph of cross-profile work as durable task contracts with dependency, approval, timeout, and retry control | Noesis Orchestrator, assigned roster profiles, reviewers |
+| `subagent-driven-development` | Execute an approved implementation plan through fresh implementer contexts, ordered spec/quality reviews, and final integration review | Noesis Orchestrator, Noesis Forge, Noesis Sentinel, Noesis Skeptic |
+| `plan-first-delegation` | Decompose an agent request into bounded capability-mapped tasks, validate a planning gate (owners + workspace conflicts) before dispatch, then route each task to its eligible specialist | Noesis Orchestrator, route planner, eligible specialists |
+| `delegated-task-handoff` | Durable, versioned orchestrator-to-specialist handoff with assignment epoch/fencing, lease, idempotent delivery, revision-bound reviews, and distinct orchestrator acceptance | Noesis Orchestrator, assigned specialist, reviewers |
 
 ---
 

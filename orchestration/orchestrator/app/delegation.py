@@ -1,0 +1,461 @@
+"""Durable orchestrator-specialist handoff protocol and delegated-task state.
+
+Control-plane mechanism for auditable delegation:
+
+    validated task contract -> explicit specialist assignment ->
+    supervised execution -> evidence-bearing result -> required reviews ->
+    orchestrator acceptance
+
+State is persisted as append-only JSONL snapshots keyed by task id; the latest
+snapshot per task is reconstructed by replay. Every state-changing request is
+bound to an assignment epoch (monotonic fencing), an expected task version
+(optimistic concurrency), and an idempotency key so duplicate delivery never
+duplicates work. Backend success (run finished) is kept distinct from task
+acceptance (orchestrator explicitly accepts).
+"""
+from __future__ import annotations
+
+import json
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta, timezone
+from enum import StrEnum
+from pathlib import Path
+from typing import Any
+from uuid import uuid4
+
+PROTOCOL_VERSION = "noesis.delegated-task/v1"
+ORCHESTRATOR_ID = "noesis-orchestrator"
+IMPLEMENTER_ID = "noesis-forge"
+
+
+class MessageType(StrEnum):
+    ASSIGN = "ASSIGN"
+    ACK = "ACK"
+    STARTED = "STARTED"
+    PROGRESS = "PROGRESS"
+    HEARTBEAT = "HEARTBEAT"
+    CLARIFICATION_REQUEST = "CLARIFICATION_REQUEST"
+    APPROVAL_REQUEST = "APPROVAL_REQUEST"
+    REPLAN_REQUEST = "REPLAN_REQUEST"
+    RESULT = "RESULT"
+    FAILURE = "FAILURE"
+    CANCELLED = "CANCELLED"
+    REMEDIATE = "REMEDIATE"
+    CANCEL = "CANCEL"
+    ACCEPT_RESULT = "ACCEPT_RESULT"
+    REJECT_RESULT = "REJECT_RESULT"
+
+
+class TaskState(StrEnum):
+    pending = "pending"
+    ready = "ready"
+    assigned = "assigned"
+    running = "running"
+    verifying = "verifying"
+    spec_review = "spec_review"
+    quality_review = "quality_review"
+    completed = "completed"
+    blocked = "blocked"
+    cancelled = "cancelled"
+    failed = "failed"
+
+
+@dataclass(frozen=True)
+class Lease:
+    holder: str
+    epoch: int
+    issued_at: str
+    expires_at: str
+    revoked: bool = False
+
+    @property
+    def is_active(self) -> bool:
+        return not self.revoked and self.expires_at > _utcnow()
+
+
+def _utcnow() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _lease_expiry(seconds: int = 1800) -> str:
+    return (datetime.now(timezone.utc) + timedelta(seconds=seconds)).isoformat()
+
+
+@dataclass
+class Review:
+    stage: str
+    verdict: str
+    reviewer: str
+    candidate_revision: str
+    findings: list[dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class HandoffEnvelope:
+    protocol_version: str
+    message_id: str
+    message_type: MessageType
+    sender_id: str
+    recipient_id: str
+    root_task_id: str
+    task_id: str
+    attempt_id: str
+    contract_revision: str
+    assignment_epoch: int
+    correlation_id: str
+    idempotency_key: str | None = None
+    expected_task_version: int | None = None
+    payload: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class DelegatedTask:
+    task_id: str
+    contract_revision: str
+    root_task_id: str
+    correlation_id: str
+    assignee_profile: str
+    required_capability: str
+    intent: str
+    acceptance_criteria: list[str]
+    contract: dict[str, Any] = field(default_factory=dict)
+    state: TaskState = TaskState.assigned
+    version: int = 0
+    assignment_epoch: int = 1
+    candidate_revision: str | None = None
+    lease: Lease | None = None
+    reviews: list[Review] = field(default_factory=list)
+    accepted: bool = False
+    last_event: str = "assigned"
+    idempotency_key: str | None = None
+    created_at: str = field(default_factory=_utcnow)
+    updated_at: str = field(default_factory=_utcnow)
+
+
+class NoSuchTask(RuntimeError):
+    pass
+
+
+class ActivationError(RuntimeError):
+    """A state change was refused by an authorization, version, or gate rule."""
+
+
+@dataclass
+class DelegationStore:
+    ledger_path: Path
+
+    def __post_init__(self) -> None:
+        self.ledger_path = Path(self.ledger_path)
+        self.ledger_path.parent.mkdir(parents=True, exist_ok=True)
+        self._tasks: dict[str, DelegatedTask] = {}
+        self._idem: dict[str, str] = {}
+        self._replay()
+
+    # -------------------------------------------------------------- replay --
+    def _replay(self) -> None:
+        if not self.ledger_path.exists():
+            return
+        for line in self.ledger_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            task_id = record["task"]["task_id"]
+            task = _task_from_dict(record["task"])
+            # Last-write-wins per task; version is a monotonically increasing
+            # fencing counter, so we keep the highest version snapshot.
+            current = self._tasks.get(task_id)
+            if current is None or task.version >= current.version:
+                self._tasks[task_id] = task
+            if task.idempotency_key:
+                self._idem[task.idempotency_key] = task_id
+
+    def _all_records(self) -> list[DelegatedTask]:
+        """Latest task per id; used by tests for dedup checks."""
+        return sorted(self._tasks.values(), key=lambda t: t.created_at)
+
+    def get(self, task_id: str) -> DelegatedTask | None:
+        return self._tasks.get(task_id)
+
+    def _require(self, task_id: str) -> DelegatedTask:
+        task = self._tasks.get(task_id)
+        if task is None:
+            raise NoSuchTask(task_id)
+        return task
+
+    def _append(self, task: DelegatedTask) -> None:
+        task.updated_at = _utcnow()
+        with self.ledger_path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps({"task": asdict(task)}) + "\n")
+
+    def _mutate(self, task: DelegatedTask, *, event: str) -> DelegatedTask:
+        task.version += 1
+        task.last_event = event
+        self._tasks[task.task_id] = task
+        self._append(task)
+        return task
+
+    def _check_version(self, task: DelegatedTask, expected_task_version: int | None) -> None:
+        """Optimistic concurrency: a stale expected version must not overwrite newer state."""
+        if expected_task_version is not None and expected_task_version != task.version:
+            raise ActivationError(
+                f"task version conflict: expected {expected_task_version}, got {task.version}"
+            )
+
+    # -------------------------------------------------------------- assign --
+    def process(self, msg: HandoffEnvelope) -> DelegatedTask:
+        if msg.protocol_version != PROTOCOL_VERSION:
+            raise ActivationError(f"unsupported protocol {msg.protocol_version}")
+        if msg.message_type is not MessageType.ASSIGN:
+            raise ActivationError("only ASSIGN messages are accepted at the entrypoint")
+        if msg.sender_id != ORCHESTRATOR_ID:
+            raise ActivationError(f"unauthorized sender {msg.sender_id}; only {ORCHESTRATOR_ID} may assign")
+        if msg.idempotency_key and msg.idempotency_key in self._idem:
+            # Duplicate ASSIGN delivery: return the existing task unchanged.
+            return self._require(self._idem[msg.idempotency_key])
+        existing = self._require(msg.task_id) if msg.task_id in self._tasks else None
+        if existing is not None:
+            if msg.assignment_epoch < existing.assignment_epoch:
+                raise ActivationError(f"stale assignment epoch {msg.assignment_epoch} < {existing.assignment_epoch}")
+            if existing.state not in {TaskState.cancelled, TaskState.failed, TaskState.completed}:
+                return existing
+        if msg.expected_task_version is not None and existing is not None and msg.expected_task_version != existing.version:
+            raise ActivationError(
+                f"task version conflict: expected {msg.expected_task_version}, got {existing.version}"
+            )
+        payload = msg.payload or {}
+        task = DelegatedTask(
+            task_id=msg.task_id,
+            contract_revision=msg.contract_revision,
+            root_task_id=msg.root_task_id,
+            correlation_id=msg.correlation_id,
+            assignee_profile=msg.recipient_id,
+            required_capability=str(payload.get("required_capability", "")),
+            intent=str(payload.get("intent", "")),
+            acceptance_criteria=list(payload.get("acceptance_criteria") or []),
+            contract=payload,
+            state=TaskState.assigned,
+            version=0,
+            assignment_epoch=msg.assignment_epoch,
+            idempotency_key=msg.idempotency_key,
+        )
+        if msg.idempotency_key:
+            self._idem[msg.idempotency_key] = task.task_id
+        self._tasks[task.task_id] = task
+        self._append(task)
+        return task
+
+    # ---------------------------------------------------------- lifecycle --
+    def mark_ready(self, task_id: str, *, by: str, expected_task_version: int | None = None) -> DelegatedTask:
+        task = self._require(task_id)
+        self._check_version(task, expected_task_version)
+        if by != ORCHESTRATOR_ID:
+            raise ActivationError("only the orchestrator marks a task ready")
+        if task.state is not TaskState.assigned:
+            raise ActivationError(f"task {task_id} is {task.state}, not assigned")
+        task.state = TaskState.ready
+        return self._mutate(task, event="ready")
+
+    def start_running(self, task_id: str, *, by: str, expected_task_version: int | None = None) -> DelegatedTask:
+        task = self._require(task_id)
+        self._check_version(task, expected_task_version)
+        if by != task.assignee_profile:
+            raise ActivationError("only the assigned specialist may start execution")
+        if task.state not in {TaskState.ready, TaskState.running}:
+            raise ActivationError(f"task {task_id} is {task.state}, not ready")
+        if task.lease is not None and not task.lease.is_active:
+            raise ActivationError("lease expired or revoked; cannot start execution")
+        task.lease = Lease(
+            holder=by,
+            epoch=task.assignment_epoch,
+            issued_at=_utcnow(),
+            expires_at=_lease_expiry(),
+        )
+        task.state = TaskState.running
+        return self._mutate(task, event="started")
+
+    def submit_verifying(
+        self,
+        task_id: str,
+        *,
+        by: str,
+        candidate_revision: str,
+        expected_task_version: int | None = None,
+    ) -> DelegatedTask:
+        task = self._require(task_id)
+        self._check_version(task, expected_task_version)
+        if by != task.assignee_profile:
+            raise ActivationError("only the assigned specialist may submit results")
+        # Duplicate RESULT for the same candidate revision is idempotent.
+        if task.state is TaskState.verifying and task.candidate_revision == candidate_revision:
+            return task
+        # A new candidate revision may be submitted from running (first result),
+        # verifying (remediation after quality), or spec_review (remediation
+        # after spec review). It invalidates reviews bound to older revisions.
+        if task.state not in {TaskState.running, TaskState.verifying, TaskState.spec_review}:
+            raise ActivationError(f"task {task_id} is {task.state}, not running/verifying/spec_review")
+        if task.candidate_revision != candidate_revision:
+            task.reviews = [r for r in task.reviews if r.candidate_revision == candidate_revision]
+        task.candidate_revision = candidate_revision
+        task.state = TaskState.verifying
+        return self._mutate(task, event="verifying")
+
+    def record_review(
+        self,
+        task_id: str,
+        *,
+        stage: str,
+        verdict: str,
+        reviewer: str,
+        candidate_revision: str,
+        findings: list[dict[str, Any]],
+        expected_task_version: int | None = None,
+    ) -> DelegatedTask:
+        task = self._require(task_id)
+        self._check_version(task, expected_task_version)
+        if stage not in {"spec", "quality"}:
+            raise ActivationError(f"unknown review stage {stage}")
+        if reviewer == IMPLEMENTER_ID:
+            raise ActivationError("implementation profile cannot review its own work")
+        if candidate_revision != task.candidate_revision:
+            raise ActivationError("review must target the current candidate revision")
+        if any(f.get("severity") in {"critical", "important"} for f in findings):
+            raise ActivationError("critical/important findings block a passing verdict")
+        if stage == "quality":
+            spec_ok = any(
+                r.stage == "spec" and r.verdict == "PASS" and r.candidate_revision == candidate_revision
+                for r in task.reviews
+            )
+            if not spec_ok:
+                raise ActivationError("quality review requires spec PASS on the current candidate revision")
+            if task.state is not TaskState.spec_review:
+                raise ActivationError(f"task {task_id} is {task.state}, not spec_review")
+        else:  # spec
+            if task.state not in {TaskState.verifying, TaskState.spec_review}:
+                raise ActivationError(f"task {task_id} is {task.state}, cannot spec-review")
+
+        review = Review(stage, verdict, reviewer, candidate_revision, list(findings))
+        # Reviews bind to the candidate revision; rows for an older revision are
+        # invalidated by removing non-current rows.
+        task.reviews = [r for r in task.reviews if r.candidate_revision == candidate_revision]
+        task.reviews.append(review)
+        if verdict == "BLOCKED":
+            task.state = TaskState.blocked
+        elif stage == "spec" and verdict == "PASS":
+            task.state = TaskState.spec_review
+        elif stage == "spec":
+            task.state = TaskState.running  # remediation required; owner reconciles
+        elif stage == "quality" and verdict == "APPROVED":
+            # Backend + reviews complete; orchestrator acceptance is separate.
+            task.state = TaskState.verifying
+        elif stage == "quality":
+            task.state = TaskState.running
+        return self._mutate(task, event=f"review:{stage}:{verdict}")
+
+    def accept(self, task_id: str, *, by: str, expected_task_version: int | None = None) -> DelegatedTask:
+        task = self._require(task_id)
+        self._check_version(task, expected_task_version)
+        if by != ORCHESTRATOR_ID:
+            raise ActivationError("only the orchestrator accepts results")
+        # Duplicate ACCEPT is idempotent.
+        if task.state is TaskState.completed and task.accepted:
+            return task
+        if task.state is not TaskState.verifying:
+            raise ActivationError(f"task {task_id} is {task.state}; only verifying tasks are accepted")
+        if not task.lease or not task.lease.is_active:
+            raise ActivationError("lease is inactive; abort and reconcile before acceptance")
+        spec_ok = any(r.stage == "spec" and r.verdict == "PASS" for r in task.reviews)
+        quality_ok = any(r.stage == "quality" and r.verdict == "APPROVED" for r in task.reviews)
+        if not (spec_ok and quality_ok):
+            raise ActivationError("acceptance requires spec PASS and quality APPROVED")
+        task.accepted = True
+        task.state = TaskState.completed
+        return self._mutate(task, event="accepted")
+
+    def cancel(self, task_id: str, *, by: str, reason: str, expected_task_version: int | None = None) -> DelegatedTask:
+        task = self._require(task_id)
+        self._check_version(task, expected_task_version)
+        if by != ORCHESTRATOR_ID:
+            raise ActivationError("only the orchestrator may cancel a task")
+        if task.state in {TaskState.completed, TaskState.cancelled}:
+            return task
+        if task.lease is not None:
+            lease_dict = asdict(task.lease)
+            lease_dict["revoked"] = True
+            task.lease = Lease(**{k: v for k, v in lease_dict.items()})
+        task.state = TaskState.cancelled
+        task.last_event = f"cancelled: {reason}"
+        return self._mutate(task, event="cancelled")
+
+    def expire_lease(self, task_id: str) -> DelegatedTask:
+        task = self._require(task_id)
+        if task.lease is not None:
+            lease_dict = asdict(task.lease)
+            lease_dict["revoked"] = True
+            task.lease = Lease(**{k: v for k, v in lease_dict.items()})
+        if task.state is TaskState.running:
+            task.state = TaskState.blocked  # suspect; never silent success
+            task.last_event = "lease_expired"
+            self._tasks[task.task_id] = task
+            self._append(task)
+        return task
+
+
+def _task_from_dict(data: dict[str, Any]) -> DelegatedTask:
+    lease = None
+    if data.get("lease"):
+        lease_data = data["lease"]
+        lease = Lease(
+            holder=lease_data["holder"],
+            epoch=int(lease_data["epoch"]),
+            issued_at=lease_data["issued_at"],
+            expires_at=lease_data["expires_at"],
+            revoked=bool(lease_data.get("revoked", False)),
+        )
+    reviews = [Review(**r) for r in data.get("reviews") or []]
+    return DelegatedTask(
+        task_id=data["task_id"],
+        contract_revision=data["contract_revision"],
+        root_task_id=data["root_task_id"],
+        correlation_id=data["correlation_id"],
+        assignee_profile=data["assignee_profile"],
+        required_capability=data["required_capability"],
+        intent=data["intent"],
+        acceptance_criteria=list(data.get("acceptance_criteria") or []),
+        contract=dict(data.get("contract") or {}),
+        state=TaskState(data["state"]),
+        version=int(data["version"]),
+        assignment_epoch=int(data["assignment_epoch"]),
+        candidate_revision=data.get("candidate_revision"),
+        lease=lease,
+        reviews=reviews,
+        accepted=bool(data.get("accepted", False)),
+        last_event=data.get("last_event", ""),
+        idempotency_key=data.get("idempotency_key"),
+        created_at=data.get("created_at", ""),
+        updated_at=data.get("updated_at", ""),
+    )
+
+
+def drain_and_rollback_requirements() -> dict[str, str]:
+    """Compatible drain/rollback for the TaskStore lifecycle.
+
+    DelegationStore remains the legacy protocol store for its own tests. It is
+    not an independent writer for the authoritative TaskStore lifecycle.
+    Projections are derived from TaskStore; a projection failure must not change
+    acceptance. This bootstrap does not migrate live ledgers.
+    """
+    return {
+        "authority": "TaskStore tasks.jsonl",
+        "legacy_store": "DelegationStore is not a writer for the TaskStore lifecycle",
+        "drain": (
+            "Stop new admission. Do not automatically relaunch a reserved, "
+            "spawn-uncertain, or handle-uncertain attempt. Cancel only after "
+            "confirmed process-group termination; uncertain cleanup quarantines "
+            "the workspace and blocks reuse."
+        ),
+        "rollback": (
+            "Revert the code change. Do not rewrite tasks.jsonl. Regenerate "
+            "projections from TaskStore. Do not migrate or truncate live ledgers."
+        ),
+        "projection_failure": "A projection write failure must not change TaskStore acceptance.",
+    }

@@ -8,8 +8,10 @@ survives process restarts and every transition remains auditable.
 
 from __future__ import annotations
 
+import fcntl
 import json
 import os
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -17,7 +19,9 @@ from uuid import UUID
 
 from app.models import (
     Approval,
+    Delegation,
     Retry,
+    ReviewRecord,
     TaskContract,
     Verification,
     utcnow,
@@ -60,6 +64,8 @@ class TaskStore:
         # Set when replay hits a malformed/truncated record. The control plane
         # must fail closed (block dispatch) when this is non-None.
         self.replay_error: str | None = None
+        self._lock_depth = 0
+        self._sync = os.fsync
         if self.ledger_path.exists():
             self.replay()
 
@@ -73,7 +79,7 @@ class TaskStore:
         with self.ledger_path.open("a", encoding="utf-8") as fh:
             fh.write(line + "\n")
             fh.flush()
-            os.fsync(fh.fileno())
+            self._sync(fh.fileno())
 
     def append_control_event(self, event: str, payload: dict[str, Any]) -> dict[str, Any]:
         """Durably record a control-plane event (no embedded task).
@@ -91,7 +97,7 @@ class TaskStore:
         with self.ledger_path.open("a", encoding="utf-8") as fh:
             fh.write(line + "\n")
             fh.flush()
-            os.fsync(fh.fileno())
+            self._sync(fh.fileno())
         self.breaker_events.append(record)
         return record
 
@@ -174,15 +180,102 @@ class TaskStore:
                 "claimed_at": _parse_dt(claim_raw["claimed_at"]),
                 "lease_expires_at": _parse_dt(claim_raw["lease_expires_at"]),
             }
+        del_raw = data.get("delegation") or {}
+        task.delegation = Delegation(
+            assignment_epoch=int(del_raw.get("assignment_epoch", 0)),
+            attempt=int(del_raw.get("attempt", 0)),
+            runtime_profile=del_raw.get("runtime_profile"),
+            candidate_revision=del_raw.get("candidate_revision"),
+            candidate_digest=del_raw.get("candidate_digest"),
+            contract_revision=del_raw.get("contract_revision"),
+            baseline=del_raw.get("baseline"),
+            accepted_by=del_raw.get("accepted_by"),
+            accepted_at=_parse_dt(del_raw.get("accepted_at")),
+            request_limit=del_raw.get("request_limit"),
+            requests_used=int(del_raw.get("requests_used", 0)),
+            budget_tokens=del_raw.get("budget_tokens"),
+            tokens_used=del_raw.get("tokens_used"),
+            approved_provider=del_raw.get("approved_provider"),
+            approved_model=del_raw.get("approved_model"),
+            launch_reservation=del_raw.get("launch_reservation"),
+            reviews=[
+                ReviewRecord(
+                    stage=rev["stage"],
+                    verdict=rev["verdict"],
+                    reviewer=rev["reviewer"],
+                    candidate_revision=rev["candidate_revision"],
+                    findings=list(rev.get("findings", [])),
+                    at=_require_dt(rev.get("at")),
+                )
+                for rev in del_raw.get("reviews", [])
+            ],
+        )
         return task
+
+    @contextmanager
+    def _exclusive_lock(self):
+        if self._lock_depth:
+            yield
+            return
+        lock_path = self.ledger_path.with_name(self.ledger_path.name + ".lock")
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        fh = lock_path.open("a+")
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+        self._lock_depth += 1
+        try:
+            yield
+        finally:
+            self._lock_depth -= 1
+            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+            fh.close()
+
+    def reserve_launch(self, task: TaskContract, reservation: dict[str, Any]) -> tuple[TaskContract, bool]:
+        """Durably record admission before spawn. Returns (task, created_now).
+
+        A second caller, including after replay, does not create another
+        reservation and must not spawn.
+        """
+        with self._exclusive_lock():
+            if self.ledger_path.exists():
+                self.replay()
+            current = self._tasks.get(str(task.task_id)) or task
+            existing = current.delegation.launch_reservation
+            if existing:
+                return current, False
+            if current.state == "proposed":
+                current.transition_to("approved")
+            if current.state == "approved":
+                current.transition_to("queued")
+            if current.state == "queued":
+                current.transition_to("claimed")
+                if current.claim is None:
+                    current.apply_claim(reservation.get("runtime_profile") or current.assignee_profile)
+            if current.state == "claimed":
+                current.transition_to("running")
+            current.delegation.assignment_epoch += 1
+            current.delegation.attempt = int(reservation.get("attempt") or 1)
+            current.delegation.runtime_profile = reservation.get("runtime_profile")
+            current.delegation.approved_provider = reservation.get("approved_provider")
+            current.delegation.approved_model = reservation.get("approved_model")
+            current.delegation.launch_reservation = dict(reservation)
+            current.delegation.launch_reservation["epoch"] = current.delegation.assignment_epoch
+            current.delegation.launch_reservation["state"] = "reserved"
+            current.delegation.launch_reservation["workspace_reusable"] = True
+            return self.put(current, event="launch_reserved"), True
 
     # ----------------------------------------------------------------- access
 
     def put(self, task: TaskContract, event: str = "task_updated") -> TaskContract:
-        self._tasks[str(task.task_id)] = task
-        self._by_idempotency[task.idempotency_key] = str(task.task_id)
-        self._append(event, task)
-        return task
+        with self._exclusive_lock():
+            if event == "task_proposed" and self.ledger_path.exists():
+                self.replay()
+                existing = self.find_by_idempotency_key(task.idempotency_key)
+                if existing is not None:
+                    return existing
+            self._tasks[str(task.task_id)] = task
+            self._by_idempotency[task.idempotency_key] = str(task.task_id)
+            self._append(event, task)
+            return task
 
     def get(self, task_id: str | UUID) -> TaskContract | None:
         return self._tasks.get(str(task_id))
