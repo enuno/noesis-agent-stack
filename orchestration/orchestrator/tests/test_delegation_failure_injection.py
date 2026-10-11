@@ -9,6 +9,7 @@ recovery does not blindly relaunch uncertain execution.
 """
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from uuid import uuid4
 
@@ -201,3 +202,151 @@ def test_restart_preserves_cancelled_state(tmp_path: Path) -> None:
     # Replaying the same ASSIGN must not relaunch a cancelled task.
     assert second.process(_assign(task_id=task_id)) is not None
     assert second.get(task_id).state is TaskState.cancelled
+
+
+# ------------------------------------------------- Subgoal 4 §3 crash windows --
+
+
+def test_assignee_cannot_review_its_own_result_regardless_of_profile(tmp_path: Path) -> None:
+    store = _store(tmp_path)
+    tid = _task_id()
+    assign = _assign(task_id=tid)
+    store.process(replace(assign, recipient_id="noesis-substrate"))
+    store.mark_ready(tid, by="noesis-orchestrator")
+    store.start_running(tid, by="noesis-substrate")
+    store.submit_verifying(tid, by="noesis-substrate", candidate_revision="rev-1")
+
+    with pytest.raises(ActivationError, match="cannot review its own work"):
+        store.record_review(
+            tid, stage="spec", verdict="PASS", reviewer="noesis-substrate",
+            candidate_revision="rev-1", findings=[],
+        )
+
+
+def test_restart_between_every_transition_preserves_lifecycle(tmp_path: Path) -> None:
+    """Crash-window matrix: a controller restart after every single mutation.
+    Each window must preserve durable state and never duplicate work."""
+    ledger = tmp_path / "delegated-tasks.jsonl"
+    tid = _task_id()
+
+    store = DelegationStore(ledger)
+    store.process(_assign(task_id=tid))
+    store = DelegationStore(ledger)
+    assert store.get(tid).state is TaskState.assigned
+
+    store.mark_ready(tid, by="noesis-orchestrator")
+    store = DelegationStore(ledger)
+    assert store.get(tid).state is TaskState.ready
+
+    store.start_running(tid, by="noesis-forge")
+    store = DelegationStore(ledger)
+    assert store.get(tid).state is TaskState.running
+    assert store.get(tid).lease is not None and store.get(tid).lease.is_active
+
+    store.submit_verifying(tid, by="noesis-forge", candidate_revision="rev-1")
+    store = DelegationStore(ledger)
+    assert store.get(tid).state is TaskState.verifying
+
+    store.record_review(tid, stage="spec", verdict="PASS", reviewer="noesis-sentinel",
+                        candidate_revision="rev-1", findings=[])
+    store = DelegationStore(ledger)
+    assert store.get(tid).state is TaskState.spec_review
+    assert len(store.get(tid).reviews) == 1
+
+    store.record_review(tid, stage="quality", verdict="APPROVED", reviewer="noesis-sentinel",
+                        candidate_revision="rev-1", findings=[])
+    store = DelegationStore(ledger)
+    assert store.get(tid).state is TaskState.verifying
+
+    store.accept(tid, by="noesis-orchestrator")
+    store = DelegationStore(ledger)
+    final = store.get(tid)
+    assert final.state is TaskState.completed
+    assert final.accepted is True
+    # Exactly one task, one accepted completion, monotonic version across
+    # the seven restarts — no duplicate work, no state corruption.
+    assert final.task_id == tid
+    assert final.version == 6  # ready, started, verifying, spec, quality, accepted"
+
+
+def test_assignment_persisted_before_delivery_does_not_duplicate(tmp_path: Path) -> None:
+    ledger = tmp_path / "delegated-tasks.jsonl"
+    tid = _task_id()
+
+    store = DelegationStore(ledger)
+    store.process(_assign(task_id=tid, idem="idem-delivery"))
+    # Crash after persistence, before downstream delivery/launch.
+    store = DelegationStore(ledger)
+    redelivered = store.process(_assign(task_id=tid, idem="idem-delivery"))
+    assert redelivered.task_id == tid
+    assert redelivered.state is TaskState.assigned
+    # Still exactly one task record; nothing launched.
+    store2 = DelegationStore(ledger)
+    assert store2.get(tid).state is TaskState.assigned
+    assert store2.get(tid).version == 0
+
+
+def test_stale_start_after_restart_requires_ready_gate(tmp_path: Path) -> None:
+    """Message delivered but the ready/ack transition was never persisted:
+    a start attempt must fail closed, not skip the gate."""
+    ledger = tmp_path / "delegated-tasks.jsonl"
+    tid = _task_id()
+
+    store = DelegationStore(ledger)
+    store.process(_assign(task_id=tid))
+    store = DelegationStore(ledger)
+
+    with pytest.raises(ActivationError, match="not ready"):
+        store.start_running(tid, by="noesis-forge")
+    assert store.get(tid).state is TaskState.assigned
+
+
+def test_wrong_assignee_start_rejected(tmp_path: Path) -> None:
+    store = _store(tmp_path)
+    tid = _task_id()
+    store.process(_assign(task_id=tid))  # recipient noesis-forge
+    store.mark_ready(tid, by="noesis-orchestrator")
+
+    with pytest.raises(ActivationError, match="only the assigned specialist"):
+        store.start_running(tid, by="noesis-grid")
+    assert store.get(tid).state is TaskState.ready
+    assert store.get(tid).lease is None
+
+
+def test_cancel_persisted_before_termination_confirmation_blocks_all_work(tmp_path: Path) -> None:
+    ledger = tmp_path / "delegated-tasks.jsonl"
+    tid = _task_id()
+
+    store = DelegationStore(ledger)
+    store.process(_assign(task_id=tid))
+    store.mark_ready(tid, by="noesis-orchestrator")
+    store.start_running(tid, by="noesis-forge")
+    store.cancel(tid, by="noesis-orchestrator", reason="operator stop")
+    # Crash before termination confirmation / downstream cleanup.
+    store = DelegationStore(ledger)
+    task = store.get(tid)
+
+    assert task.state is TaskState.cancelled
+    assert task.lease is not None and not task.lease.is_active  # revoked
+    with pytest.raises(ActivationError):
+        store.start_running(tid, by="noesis-forge")
+    with pytest.raises(ActivationError):
+        store.submit_verifying(tid, by="noesis-forge", candidate_revision="rev-1")
+    with pytest.raises(ActivationError):
+        store.record_review(tid, stage="spec", verdict="PASS", reviewer="noesis-sentinel",
+                            candidate_revision="rev-1", findings=[])
+    with pytest.raises(ActivationError):
+        store.accept(tid, by="noesis-orchestrator")
+
+
+def test_accept_before_required_reviews_is_rejected(tmp_path: Path) -> None:
+    store = _store(tmp_path)
+    tid = _task_id()
+    store.process(_assign(task_id=tid))
+    _to_verifying(store, tid)
+
+    # Out-of-order: backend success alone must never become acceptance.
+    with pytest.raises(ActivationError, match="requires spec PASS and quality APPROVED"):
+        store.accept(tid, by="noesis-orchestrator")
+    assert store.get(tid).state is TaskState.verifying
+    assert store.get(tid).accepted is False

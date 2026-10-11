@@ -314,7 +314,9 @@ class DelegationStore:
         self._check_version(task, expected_task_version)
         if stage not in {"spec", "quality"}:
             raise ActivationError(f"unknown review stage {stage}")
-        if reviewer == IMPLEMENTER_ID:
+        # Independence: the assigned specialist — whatever its profile — can
+        # never act as its own reviewer (Subgoal 4 §2 authorization).
+        if reviewer == task.assignee_profile or reviewer == IMPLEMENTER_ID:
             raise ActivationError("implementation profile cannot review its own work")
         if candidate_revision != task.candidate_revision:
             raise ActivationError("review must target the current candidate revision")
