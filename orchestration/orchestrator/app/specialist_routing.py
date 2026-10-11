@@ -113,7 +113,7 @@ class RoutingBlocked(RuntimeError):
 # task class; capability filtering still decides final eligibility.
 TASK_RULES: tuple[tuple[str, tuple[str, ...], str, str, str | None], ...] = (
     ("agent_architecture", ("mcp", "hermes", "agent", "profile", "prompt", "routing architecture"), "profile_spec", "noesis-architect", None),
-    ("review", ("review", "qa", "security", "audit", "verify", "validation"), "code_review", "noesis-sentinel", None),
+    ("review", ("review", "qa", "security", "audit", "verify"), "code_review", "noesis-sentinel", None),
     ("implementation", ("implement", "patch", "code", "test", "ci/cd", "pipeline", "python", "javascript", "typescript"), "code_modify", "noesis-forge", "noesis-sentinel"),
     ("operations", ("docker", "kubernetes", "k8s", "terraform", "ansible", "deploy", "observability", "incident", "health"), "observability", "noesis-substrate", "noesis-sentinel"),
     ("archival", ("archive", "record preservation", "knowledge base", "kb_struct", "citation_preserve", "cross_link", "index_maintain"), "provenance_archive", "noesis-scribe", None),

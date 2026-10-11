@@ -120,6 +120,7 @@ def enforce_enforcer(tmp_path: Path) -> InferenceRoutingEnforcer:
         ("Design an MCP/Hermes profile contract for a new memory agent", "noesis-architect"),
         ("Research market pricing and return a cited brief", "noesis-signal"),
         ("Implement the approved Python patch and tests", "noesis-forge"),
+        ("Implement a deterministic input-validation function with tests", "noesis-forge"),
         ("Review the patch independently for security and correctness", "noesis-sentinel"),
         ("Diagnose Docker/Kubernetes deployment health and observability", "noesis-substrate"),
         ("Write the operator runbook and changelog", "noesis-quill"),
@@ -152,6 +153,28 @@ def test_representative_tasks_launch_intended_specialist(tmp_path: Path, intent:
     assert result.launch.requested_profile == expected
     assert result.launch.loaded_profile == expected
     assert adapter.calls[-1]["profile_id"] == expected
+
+
+def test_input_validation_phrase_is_implementation_not_review(tmp_path: Path) -> None:
+    """Regression for the Subgoal 5 rehearsal finding.
+
+    A dry-run through the real CLI entrypoint classified 'Implement a
+    deterministic port-range validation function with tests' as review /
+    code_review and selected noesis-sentinel. 'validation' is a coding-domain
+    term (input/form/schema validation); the review keyword rule no longer
+    claims it, so implementation intents reach noesis-forge.
+    """
+    from app.specialist_routing import TaskClassifier
+
+    cls = TaskClassifier().classify(
+        "Implement a deterministic port-range validation function with tests."
+    )
+    assert cls.task_class == "implementation"
+    # Review intent is still captured by the remaining keywords.
+    review_cls = TaskClassifier().classify(
+        "Independently review this patch for security and correctness"
+    )
+    assert review_cls.task_class == "review"
 
 
 def test_architecture_does_not_fall_back_to_default_or_coder(tmp_path: Path) -> None:
