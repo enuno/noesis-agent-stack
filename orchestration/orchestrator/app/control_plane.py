@@ -11,7 +11,7 @@ already-running work is left to its lease and swept normally.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -385,6 +385,7 @@ class Orchestrator:
             "resolved_launch_target": selected.runtime_profile if selected else None,
             "requested_profile_id": selected.runtime_profile if selected else None,
             "loaded_profile_id": getattr(launch, "loaded_profile", None),
+            "attestation": asdict(launch.attestation) if getattr(launch, "attestation", None) else None,
             "model_provider": getattr(selected, "model_provider", None),
             "model_id": getattr(selected, "model_id", None),
             "policy_decision": "verification_pending" if not getattr(launch, "dry_run", True) else "dry_run_not_canary",

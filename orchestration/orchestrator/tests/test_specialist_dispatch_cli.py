@@ -39,6 +39,39 @@ def test_cli_dry_run_routes_through_control_plane_and_attests_profile(tmp_path: 
     assert event["loaded_profile_id"] == "noesis-architect"
 
 
+def test_cli_event_persists_launcher_attestation_for_audit(tmp_path: Path, capsys) -> None:
+    """Standing-goal §7: the routing event must durably carry the launcher
+    attestation (loaded profile + manifest digest), not only live on stdout.
+    A captured terminal is not an audit trail."""
+    payload = {
+        "title": "attestation persistence",
+        "intent": "Implement a deterministic retry wrapper with unit tests",
+        "acceptance_criteria": ["event carries attestation block"],
+        "verification": {"method": "launcher_attestation"},
+        "idempotency_key": "cli:attestation-persistence",
+        "dry_run": True,
+    }
+    input_path = tmp_path / "task.json"
+    input_path.write_text(json.dumps(payload), encoding="utf-8")
+    events = tmp_path / "events.jsonl"
+
+    exit_code = specialist_dispatch_cli.main([
+        "--input", str(input_path),
+        "--ledger", str(tmp_path / "tasks.jsonl"),
+        "--events", str(events),
+    ])
+
+    assert exit_code == 0
+    capsys.readouterr()
+    event = json.loads(events.read_text(encoding="utf-8").splitlines()[-1])
+    attestation = event.get("attestation")
+    assert attestation is not None, "routing event must persist launcher attestation"
+    assert attestation["requested_profile"] == "noesis-forge"
+    assert attestation["loaded_profile"] == "noesis-forge"
+    assert attestation["runtime"] == "hermes"
+    assert len(attestation["manifest_sha256"]) == 64
+
+
 def test_cli_blocks_missing_runtime_without_default_or_parent_fallback(tmp_path: Path, capsys) -> None:
     payload = {
         "title": "research route",
