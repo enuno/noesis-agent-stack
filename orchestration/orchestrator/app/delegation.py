@@ -16,6 +16,7 @@ acceptance (orchestrator explicitly accepts).
 from __future__ import annotations
 
 import json
+import threading
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import StrEnum
@@ -128,6 +129,8 @@ class DelegatedTask:
     accepted: bool = False
     last_event: str = "assigned"
     idempotency_key: str | None = None
+    budget_reserved: float = 0.0
+    budget_consumed: float = 0.0
     created_at: str = field(default_factory=_utcnow)
     updated_at: str = field(default_factory=_utcnow)
 
@@ -140,6 +143,10 @@ class ActivationError(RuntimeError):
     """A state change was refused by an authorization, version, or gate rule."""
 
 
+class BudgetExhausted(ActivationError):
+    """A reservation would exceed the root task's shared budget cap."""
+
+
 @dataclass
 class DelegationStore:
     ledger_path: Path
@@ -149,6 +156,7 @@ class DelegationStore:
         self.ledger_path.parent.mkdir(parents=True, exist_ok=True)
         self._tasks: dict[str, DelegatedTask] = {}
         self._idem: dict[str, str] = {}
+        self._lock = threading.Lock()
         self._replay()
 
     # -------------------------------------------------------------- replay --
@@ -223,6 +231,8 @@ class DelegationStore:
                 f"task version conflict: expected {msg.expected_task_version}, got {existing.version}"
             )
         payload = msg.payload or {}
+        budget_requirement = float(payload.get("budget_requirement") or 0.0)
+        budget_cap = payload.get("budget_cap")
         task = DelegatedTask(
             task_id=msg.task_id,
             contract_revision=msg.contract_revision,
@@ -237,12 +247,86 @@ class DelegationStore:
             version=0,
             assignment_epoch=msg.assignment_epoch,
             idempotency_key=msg.idempotency_key,
+            budget_reserved=budget_requirement,
         )
-        if msg.idempotency_key:
-            self._idem[msg.idempotency_key] = task.task_id
-        self._tasks[task.task_id] = task
-        self._append(task)
+        # Atomic shared-budget check-and-reserve: the task is inserted and
+        # persisted only if the root's aggregate reservation fits the cap.
+        # On exhaustion nothing is persisted — the ASSIGN fails explicitly.
+        with self._lock:
+            self._check_budget(msg.root_task_id, budget_requirement, budget_cap)
+            if msg.idempotency_key:
+                self._idem[msg.idempotency_key] = task.task_id
+            self._tasks[msg.task_id] = task
+            self._append(task)
         return task
+
+    # -------------------------------------------------------------- budget --
+    def _root_reserved(self, root_task_id: str, *, exclude_task_id: str | None = None) -> float:
+        total = 0.0
+        for task in self._tasks.values():
+            if task.root_task_id != root_task_id or task.task_id == exclude_task_id:
+                continue
+            total += task.budget_reserved
+        return total
+
+    def _check_budget(self, root_task_id: str, amount: float, cap: float | None) -> None:
+        if amount <= 0:
+            return
+        if cap is None:
+            return
+        projected = self._root_reserved(root_task_id) + amount
+        if projected > float(cap):
+            raise BudgetExhausted(
+                f"budget_exhausted: root {root_task_id} reservation {projected} exceeds cap {float(cap)}"
+            )
+
+    def reserve_budget(
+        self,
+        task_id: str,
+        amount: float,
+        *,
+        by: str,
+        cap: float | None = None,
+        expected_task_version: int | None = None,
+    ) -> DelegatedTask:
+        """Reserve additional budget against the task's root. Orchestrator-only;
+        atomic with respect to concurrent reservations on the same root."""
+        task = self._require(task_id)
+        self._check_version(task, expected_task_version)
+        if by != ORCHESTRATOR_ID:
+            raise ActivationError("only the orchestrator reserves budget")
+        if amount <= 0:
+            raise ActivationError("reservation amount must be positive")
+        with self._lock:
+            self._check_budget(task.root_task_id, amount, cap)
+            task.budget_reserved += amount
+        return self._mutate(task, event="budget_reserved")
+
+    def consume_budget(
+        self,
+        task_id: str,
+        amount: float,
+        *,
+        by: str,
+        expected_task_version: int | None = None,
+    ) -> DelegatedTask:
+        """Record measured usage against the task's reservation. Assignee-only;
+        consumption can never exceed what was reserved (unknown usage is not
+        silently treated as zero — it must be reserved first)."""
+        task = self._require(task_id)
+        self._check_version(task, expected_task_version)
+        if by != task.assignee_profile:
+            raise ActivationError("only the assigned specialist consumes budget")
+        if amount < 0:
+            raise ActivationError("consumption amount must be non-negative")
+        with self._lock:
+            if task.budget_consumed + amount > task.budget_reserved:
+                raise ActivationError(
+                    f"budget_overconsumption: consumed {task.budget_consumed + amount} "
+                    f"> reserved {task.budget_reserved}; reserve before consuming"
+                )
+            task.budget_consumed += amount
+        return self._mutate(task, event="budget_consumed")
 
     # ---------------------------------------------------------- lifecycle --
     def mark_ready(self, task_id: str, *, by: str, expected_task_version: int | None = None) -> DelegatedTask:
@@ -433,6 +517,8 @@ def _task_from_dict(data: dict[str, Any]) -> DelegatedTask:
         accepted=bool(data.get("accepted", False)),
         last_event=data.get("last_event", ""),
         idempotency_key=data.get("idempotency_key"),
+        budget_reserved=float(data.get("budget_reserved", 0.0)),
+        budget_consumed=float(data.get("budget_consumed", 0.0)),
         created_at=data.get("created_at", ""),
         updated_at=data.get("updated_at", ""),
     )

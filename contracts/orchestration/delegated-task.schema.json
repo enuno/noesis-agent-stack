@@ -18,55 +18,158 @@
     "assignment_epoch"
   ],
   "properties": {
-    "task_id": { "type": "string" },
-    "contract_revision": { "type": "string" },
-    "root_task_id": { "type": "string" },
-    "correlation_id": { "type": "string" },
-    "assignee_profile": { "type": "string" },
-    "required_capability": { "type": "string" },
-    "intent": { "type": "string" },
-    "acceptance_criteria": { "type": "array", "items": { "type": "string" } },
-    "contract": { "type": "object" },
+    "task_id": {
+      "type": "string"
+    },
+    "contract_revision": {
+      "type": "string"
+    },
+    "root_task_id": {
+      "type": "string"
+    },
+    "correlation_id": {
+      "type": "string"
+    },
+    "assignee_profile": {
+      "type": "string"
+    },
+    "required_capability": {
+      "type": "string"
+    },
+    "intent": {
+      "type": "string"
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "contract": {
+      "type": "object"
+    },
     "state": {
       "type": "string",
       "enum": [
-        "pending", "ready", "assigned", "running", "verifying",
-        "spec_review", "quality_review", "completed", "blocked",
-        "cancelled", "failed"
+        "pending",
+        "ready",
+        "assigned",
+        "running",
+        "verifying",
+        "spec_review",
+        "quality_review",
+        "completed",
+        "blocked",
+        "cancelled",
+        "failed"
       ]
     },
-    "version": { "type": "integer" },
-    "assignment_epoch": { "type": "integer" },
-    "candidate_revision": { "type": ["string", "null"] },
-    "accepted": { "type": "boolean" },
+    "version": {
+      "type": "integer"
+    },
+    "assignment_epoch": {
+      "type": "integer"
+    },
+    "candidate_revision": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "accepted": {
+      "type": "boolean"
+    },
     "lease": {
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
       "properties": {
-        "holder": { "type": "string" },
-        "epoch": { "type": "integer" },
-        "issued_at": { "type": "string", "format": "date-time" },
-        "expires_at": { "type": "string", "format": "date-time" },
-        "revoked": { "type": "boolean" }
+        "holder": {
+          "type": "string"
+        },
+        "epoch": {
+          "type": "integer"
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "revoked": {
+          "type": "boolean"
+        }
       },
-      "required": ["holder", "epoch", "issued_at", "expires_at"]
+      "required": [
+        "holder",
+        "epoch",
+        "issued_at",
+        "expires_at"
+      ]
     },
     "reviews": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["stage", "verdict", "reviewer", "candidate_revision"],
+        "required": [
+          "stage",
+          "verdict",
+          "reviewer",
+          "candidate_revision"
+        ],
         "properties": {
-          "stage": { "enum": ["spec", "quality", "integration"] },
-          "verdict": { "type": "string" },
-          "reviewer": { "type": "string" },
-          "candidate_revision": { "type": "string" },
-          "findings": { "type": "array", "items": { "type": "object" } }
+          "stage": {
+            "enum": [
+              "spec",
+              "quality",
+              "integration"
+            ]
+          },
+          "verdict": {
+            "type": "string"
+          },
+          "reviewer": {
+            "type": "string"
+          },
+          "candidate_revision": {
+            "type": "string"
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
         }
       }
     },
-    "idempotency_key": { "type": ["string", "null"] },
-    "last_event": { "type": "string" },
-    "created_at": { "type": "string", "format": "date-time" },
-    "updated_at": { "type": "string", "format": "date-time" }
+    "idempotency_key": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "last_event": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "budget_reserved": {
+      "type": "number",
+      "default": 0.0
+    },
+    "budget_consumed": {
+      "type": "number",
+      "default": 0.0
+    }
   }
 }
