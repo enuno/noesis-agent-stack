@@ -116,6 +116,7 @@ TASK_RULES: tuple[tuple[str, tuple[str, ...], str, str, str | None], ...] = (
     ("review", ("review", "qa", "security", "audit", "verify", "validation"), "code_review", "noesis-sentinel", None),
     ("implementation", ("implement", "patch", "code", "test", "ci/cd", "pipeline", "python", "javascript", "typescript"), "code_modify", "noesis-forge", "noesis-sentinel"),
     ("operations", ("docker", "kubernetes", "k8s", "terraform", "ansible", "deploy", "observability", "incident", "health"), "observability", "noesis-substrate", "noesis-sentinel"),
+    ("archival", ("archive", "record preservation", "knowledge base", "kb_struct", "citation_preserve", "cross_link", "index_maintain"), "provenance_archive", "noesis-scribe", None),
     ("osint", ("osint", "timeline", "provenance", "public-source"), "timeline_construct", "noesis-tracer", "noesis-skeptic"),
     ("crypto", ("wallet", "on-chain", "onchain", "crypto", "protocol", "mining"), "protocol_research", "noesis-ledger", "noesis-skeptic"),
     ("advocacy", ("legal", "advocacy", "filing", "administrative"), "legal_research_support", "noesis-advocate", "noesis-skeptic"),
@@ -124,13 +125,14 @@ TASK_RULES: tuple[tuple[str, tuple[str, ...], str, str, str | None], ...] = (
     ("writing", ("write", "runbook", "docs", "documentation", "changelog", "technical writing"), "technical_writing", "noesis-quill", None),
     ("comms", ("comms", "customer", "external", "message", "announce"), "comms_draft", "noesis-herald", "noesis-skeptic"),
     ("planning", ("plan", "dependency", "decompose", "roadmap", "phase"), "plan_artifact", "noesis-cartographer", "noesis-skeptic"),
+    ("stewardship", ("triage", "priorities", "status digest", "backlog", "resource allocation"), "priority_triage", "noesis-steward", None),
 )
 
 ROUTING_FIXTURES = {
     "noesis-steward": "triage priorities and produce a status digest",
     "noesis-cartographer": "create a dependency map and phased plan",
     "noesis-forge": "implement the approved Python patch and tests",
-    "noesis-scribe": "archive the changelog with preserved provenance",
+    "noesis-scribe": "archive the knowledge base with citation preservation",
     "noesis-signal": "research sources and produce a cited brief",
     "noesis-substrate": "diagnose Docker deployment health and observability",
     "noesis-tracer": "build a public-source OSINT timeline with provenance",

@@ -129,6 +129,8 @@ def enforce_enforcer(tmp_path: Path) -> InferenceRoutingEnforcer:
         ("Investigate wallet protocol and on-chain evidence", "noesis-ledger"),
         ("Build a public-source OSINT timeline with provenance", "noesis-tracer"),
         ("Create a dependency map and phased plan", "noesis-cartographer"),
+        ("triage priorities and produce a status digest", "noesis-steward"),
+        ("archive the knowledge base with citation preservation", "noesis-scribe"),
     ],
 )
 def test_representative_tasks_launch_intended_specialist(tmp_path: Path, intent: str, expected: str) -> None:
