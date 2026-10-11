@@ -177,6 +177,22 @@ class TestRefusals:
             store.process(transplant)
         assert store.get("t-auth-11") is None
 
+    def test_tampered_timestamp_after_signing_refused(self, tmp_path: Path) -> None:
+        store = _store(tmp_path)
+        signed = _auth().apply(_assign("t-auth-15"))
+        forged = replace(signed, timestamp="2020-01-01T00:00:00+00:00")
+        with pytest.raises(AuthenticationError):
+            store.process(forged)
+        assert store.get("t-auth-15") is None
+
+    def test_timestamp_populated_by_default_and_signed(self, tmp_path: Path) -> None:
+        store = _store(tmp_path)
+        msg = _assign("t-auth-16")
+        assert msg.timestamp  # criterion 4 §3: every envelope carries issue time
+        signed = _auth().apply(msg)
+        task = store.process(signed)
+        assert task.task_id == "t-auth-16"
+
     def test_authentication_error_is_activation_error(self) -> None:
         assert issubclass(AuthenticationError, ActivationError)
 

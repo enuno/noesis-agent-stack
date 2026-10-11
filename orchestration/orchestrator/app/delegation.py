@@ -120,6 +120,9 @@ class HandoffEnvelope:
     idempotency_key: str | None = None
     expected_task_version: int | None = None
     payload: dict[str, Any] = field(default_factory=dict)
+    # Criterion 4 §3 requires a timestamp on every envelope. Signed: tampering
+    # with it invalidates the signature. Defaults to issue time (UTC ISO-8601).
+    timestamp: str = field(default_factory=_utcnow)
     # HMAC-SHA256 over canonical_envelope_bytes(), hex-encoded. Required iff
     # the receiving store was constructed with an authenticator.
     signature: str | None = None
@@ -129,7 +132,8 @@ def canonical_envelope_bytes(msg: HandoffEnvelope) -> bytes:
     """Deterministic serialization of every signed envelope field.
 
     Covers header fields AND payload, so any tampering with sender identity,
-    task ancestry, epoch, or contract content invalidates the signature.
+    task ancestry, epoch, issue time, or contract content invalidates the
+    signature.
     """
     signed = {
         "protocol_version": msg.protocol_version,
@@ -145,6 +149,7 @@ def canonical_envelope_bytes(msg: HandoffEnvelope) -> bytes:
         "correlation_id": msg.correlation_id,
         "idempotency_key": msg.idempotency_key,
         "expected_task_version": msg.expected_task_version,
+        "timestamp": msg.timestamp,
         "payload": msg.payload,
     }
     return json.dumps(signed, sort_keys=True, separators=(",", ":")).encode("utf-8")
