@@ -11,8 +11,11 @@ they never write a state directly.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -54,8 +57,57 @@ class TransitionError(RuntimeError):
     """Raised when a state transition is not permitted."""
 
 
+class IdentityError(RuntimeError):
+    """Raised when authoritative execution identity is missing or mismatched.
+
+    ``contract_revision``/``baseline`` are derived, never caller-supplied.
+    A derivation that disagrees with an already-persisted value means the
+    task's immutable definition (or the running control-plane code) changed
+    underneath an in-flight execution — a stale/mismatched identity that must
+    block, never silently pass or be overwritten.
+    """
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+_BASELINE_CACHE: str | None = None
+
+
+def compute_baseline() -> str:
+    """Authoritative control-plane baseline: a manifest digest, never a placeholder.
+
+    Sha256 over the bytes of the schema/state-authoritative orchestrator
+    modules (this file plus its sibling store/control_plane/launcher
+    modules), in a fixed order. No git dependency (tests run without a
+    checkout), no caller input, no unchecked default. Computed once per
+    process and cached, mirroring ``HermesCliAdapter._manifest_sha256``.
+    """
+    global _BASELINE_CACHE
+    if _BASELINE_CACHE is not None:
+        return _BASELINE_CACHE
+    root = Path(__file__).resolve().parent
+    digest = hashlib.sha256()
+    for name in ("models.py", "store.py", "control_plane.py", "launcher.py"):
+        path = root / name
+        if path.is_file():
+            digest.update(name.encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(path.read_bytes())
+            digest.update(b"\0")
+    _BASELINE_CACHE = digest.hexdigest()
+    return _BASELINE_CACHE
+
+
+def reset_baseline_cache() -> None:
+    """Test-only: force the next ``compute_baseline()`` to recompute."""
+    global _BASELINE_CACHE
+    _BASELINE_CACHE = None
 
 
 def _iso(value: datetime | None) -> str | None:
@@ -258,6 +310,11 @@ class TaskContract:
             "claimed_at": now,
             "lease_expires_at": now + timedelta(seconds=self.timeout_s),
         }
+        # Execution identity is authoritative from this moment: every claim
+        # path (claim(), mark_dispatched(), reserve_launch()) funnels through
+        # apply_claim, so identity is derived here once, not asserted by a
+        # caller and not left missing for any task that reaches "claimed".
+        self.ensure_execution_identity()
 
     def lease_expired(self, *, now: datetime | None = None) -> bool:
         """True when a claimed/running task has outlived its timeout lease."""
@@ -265,6 +322,65 @@ class TaskContract:
             return False
         now = now or utcnow()
         return now > self.claim["lease_expires_at"]
+
+    # ----------------------------------------------------- execution identity --
+
+    def compute_contract_revision(self) -> str:
+        """Authoritative identity hash of this contract's immutable definition.
+
+        Derived purely from fields that define what this task IS (never from
+        caller-supplied assertions, never from mutable lifecycle state), so
+        the same contract always derives the same revision and a tampered or
+        divergent definition always derives a different one.
+        """
+        payload = {
+            "task_id": str(self.task_id),
+            "correlation_id": str(self.correlation_id),
+            "idempotency_key": self.idempotency_key,
+            "title": self.title,
+            "intent": self.intent,
+            "assignee_profile": self.assignee_profile,
+            "required_capability": self.required_capability,
+            "risk_tier": self.risk_tier,
+            "acceptance_criteria": list(self.acceptance_criteria),
+        }
+        canonical = json.dumps(payload, sort_keys=True, default=str)
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    def ensure_execution_identity(self) -> None:
+        """Populate or verify authoritative ``contract_revision``/``baseline``.
+
+        Values are always derived here, never accepted from a caller. A task
+        entering execution for the first time gets its identity set. A task
+        that already carries an identity (a retry/re-claim within the same
+        process) must re-derive the SAME value; a derivation that disagrees
+        with the persisted value is a stale/mismatched identity and blocks
+        (raises ``IdentityError``) rather than silently overwriting or
+        passing through.
+        """
+        revision = self.compute_contract_revision()
+        if self.delegation.contract_revision is None:
+            self.delegation.contract_revision = revision
+        elif self.delegation.contract_revision != revision:
+            raise IdentityError(
+                "contract_revision_mismatch",
+                f"persisted contract_revision '{self.delegation.contract_revision}' "
+                f"!= derived '{revision}' for task {self.task_id}",
+            )
+        baseline = compute_baseline()
+        if not baseline:
+            raise IdentityError(
+                "baseline_unavailable",
+                "control-plane baseline manifest digest could not be derived",
+            )
+        if self.delegation.baseline is None:
+            self.delegation.baseline = baseline
+        elif self.delegation.baseline != baseline:
+            raise IdentityError(
+                "baseline_mismatch",
+                f"persisted baseline '{self.delegation.baseline}' != derived "
+                f"'{baseline}' for task {self.task_id}",
+            )
 
     # ------------------------------------------------------------ serialize --
 

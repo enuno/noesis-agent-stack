@@ -25,7 +25,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 AGENTS_DIR = REPO_ROOT / "agents"
 LIVE_PROFILES_DIR = REPO_ROOT / "profiles" / "live"
 GENERIC_PROFILES = {"default", "coder", "claude-code-worker"}
-ORDINARY_WORKER_BLOCKLIST = {"noesis-orchestrator", "noesis-core", "main-hermes"}
+ORDINARY_WORKER_BLOCKLIST = {"noesis-orchestrator", "main-hermes"}
 
 
 @dataclass(frozen=True)

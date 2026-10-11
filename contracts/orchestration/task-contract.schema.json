@@ -507,21 +507,19 @@
           }
         },
         "contract_revision": {
-          "type": "string",
-          "description": "Authoritative contract revision derived before reservation; fail-closed on mismatch."
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Authoritative contract revision derived before reservation; null before the task has ever been claimed (deliberate pre-assignment state), a required non-null string from 'claimed' onward (see the root-level conditional); fail-closed on mismatch."
         },
         "baseline": {
-          "type": "string",
-          "description": "Repository HEAD or manifest digest used as the launch baseline; fail-closed on mismatch."
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Repository HEAD or manifest digest used as the launch baseline; null before the task has ever been claimed (deliberate pre-assignment state), a required non-null string from 'claimed' onward (see the root-level conditional); fail-closed on mismatch."
         }
-      },
-      "contract_revision": {
-        "type": "string",
-        "description": "Authoritative contract revision derived before reservation; fail-closed on mismatch."
-      },
-      "baseline": {
-        "type": "string",
-        "description": "Repository HEAD or manifest digest used as the launch baseline; fail-closed on mismatch."
       }
     },
     "created_at": {
@@ -554,6 +552,44 @@
       "default": []
     }
   },
+  "allOf": [
+    {
+      "description": "Valid authoritative identity is required before/during execution. A task that has ever reached 'claimed' or beyond MUST carry a non-null, non-empty contract_revision and baseline (see app/models.py TaskContract.ensure_execution_identity); 'proposed'/'approved'/'queued' may deliberately omit identity (not-yet-assigned, never a fabricated value).",
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "claimed",
+              "running",
+              "awaiting_review",
+              "succeeded"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "delegation": {
+            "type": "object",
+            "required": [
+              "contract_revision",
+              "baseline"
+            ],
+            "properties": {
+              "contract_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "baseline": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "examples": [
     {
       "schema_version": "1.0",

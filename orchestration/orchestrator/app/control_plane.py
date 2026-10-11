@@ -31,6 +31,7 @@ from app.launcher import HermesCliAdapter, RuntimeAdapter
 from app.models import (
     Approval,
     Delegation,
+    IdentityError,
     QUALITY_VERDICTS,
     REVIEW_STAGES,
     Retry,
@@ -275,6 +276,10 @@ class Orchestrator:
         }
         try:
             task, created_now = self.store.reserve_launch(task, reservation)
+        except IdentityError as exc:
+            # Stale/mismatched authoritative identity must block, never pass
+            # through silently and never be papered over with a caller value.
+            raise RoutingBlocked(getattr(exc, "code", "identity_invalid"), str(exc))
         except Exception:
             raise
         if not created_now:
@@ -285,6 +290,16 @@ class Orchestrator:
             raise RoutingBlocked(
                 "invalid_deadline" if remaining is None else "lease_expired",
                 "remaining lease is missing, invalid, or not positive; refusing spawn",
+            )
+        if not task.delegation.contract_revision or not task.delegation.baseline:
+            # Defense in depth: every claim path derives identity via
+            # TaskContract.apply_claim/ensure_execution_identity before a task
+            # can reach here. A missing value at this point is a typed
+            # blocker, never a silent spawn with absent identity.
+            self._quarantine_reservation(task, "missing_identity")
+            raise RoutingBlocked(
+                "missing_identity",
+                "authoritative contract_revision/baseline is missing; refusing spawn",
             )
         capped_timeout = min(float(timeout_s), remaining)
         try:
@@ -402,6 +417,11 @@ class Orchestrator:
                 "launch_blocked",
                 f"fail-closed: {self.store.replay_error or self.breaker.reason or 'dispatch breaker open'}",
             )
+        # F-1: quarantine is fail-closed and strictly stronger than task state — a
+        # quarantined task must never spawn even if its folded state looks healthy.
+        # Release is manual/operator-only; there is no automatic unquarantine.
+        if self.store.is_quarantined(str(task.task_id)):
+            raise RoutingBlocked("quarantined", f"task {task.task_id} is quarantined")
         if expected_epoch is not None and expected_epoch != task.delegation.assignment_epoch:
             raise RoutingBlocked(
                 "stale_epoch",
@@ -540,10 +560,15 @@ class Orchestrator:
         reservation["state"] = state
         reservation["workspace_reusable"] = False
         task.delegation.launch_reservation = reservation
-        try:
-            self.store.put(task, event="launch_uncertain")
-        except Exception:
-            return
+        # D1 repair: the durable quarantine signal is a dedicated "quarantine"
+        # control event — never a task-state put. Replay folds control events
+        # into quarantined_tasks, which gates both admission and dispatch after
+        # restart. The write MUST succeed for the control plane to continue:
+        # a failed durable write raises (fail closed); the caller must not
+        # acknowledge the operation.
+        self.store.append_control_event(
+            "quarantine", {"task_id": str(task.task_id), "reason": state},
+        )
 
     def routing_coverage(self) -> list[dict[str, object]]:
         return self.capability_index.coverage()

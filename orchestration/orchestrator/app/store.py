@@ -61,6 +61,11 @@ class TaskStore:
         self._by_idempotency: dict[str, str] = {}
         # Durable operator stop/resume events, in ledger order.
         self.breaker_events: list[dict[str, Any]] = []
+        # Durable quarantine set, rebuilt by replay from "quarantine" control events
+        # (F-1): a quarantined task stays blocked across restarts until an operator
+        # manually reconciles — there is deliberately no automatic unquarantine and
+        # no release API here.
+        self.quarantined_tasks: set[str] = set()
         # Set when replay hits a malformed/truncated record. The control plane
         # must fail closed (block dispatch) when this is non-None.
         self.replay_error: str | None = None
@@ -93,16 +98,40 @@ class TaskStore:
             "schema_version": LEDGER_SCHEMA_VERSION,
             **payload,
         }
+        quarantine_task_id: str | None = None
+        if event == "quarantine":
+            candidate = payload.get("task_id")
+            if not isinstance(candidate, str) or not candidate:
+                raise ValueError(
+                    "quarantine control event requires a non-empty string task_id"
+                )
+            quarantine_task_id = candidate
+            # D2 repair: apply the in-memory effect BEFORE the durable write so
+            # this process denies work for the task from this moment on — even
+            # if the write below fails (the raised error surfaces the failure
+            # and the caller must not acknowledge).
+            self.quarantined_tasks.add(quarantine_task_id)
         line = json.dumps(record, sort_keys=True, default=str)
         with self.ledger_path.open("a", encoding="utf-8") as fh:
             fh.write(line + "\n")
             fh.flush()
             self._sync(fh.fileno())
-        self.breaker_events.append(record)
+        # D2 repair: quarantine records are NOT breaker events.
+        if quarantine_task_id is None:
+            self.breaker_events.append(record)
         return record
 
     def latest_breaker_event(self) -> dict[str, Any] | None:
         return self.breaker_events[-1] if self.breaker_events else None
+
+    def is_quarantined(self, task_id: str | UUID) -> bool:
+        """True when a durable ``quarantine`` control event names this task.
+
+        Quarantine is authoritative across restarts (rebuilt by ``replay``) and is
+        strictly stronger than task state: a quarantined task is denied admission and
+        dispatch regardless of any later state fold. Release is manual/operator-only.
+        """
+        return str(task_id) in self.quarantined_tasks
 
     def replay(self) -> None:
         """Rebuild current state by folding the append-only log.
@@ -114,6 +143,7 @@ class TaskStore:
         self._tasks.clear()
         self._by_idempotency.clear()
         self.breaker_events.clear()
+        self.quarantined_tasks.clear()
         self.replay_error = None
         with self.ledger_path.open("r", encoding="utf-8") as fh:
             for lineno, line in enumerate(fh, start=1):
@@ -135,6 +165,21 @@ class TaskStore:
                     self._by_idempotency[task.idempotency_key] = str(task.task_id)
                 elif record.get("event") in (BREAKER_TRIP_EVENT, BREAKER_RESET_EVENT):
                     self.breaker_events.append(record)
+                elif record.get("event") == "quarantine":
+                    # F-1 corrected: quarantine control events fold into the durable
+                    # quarantine set so a quarantined task stays blocked across
+                    # restarts. D3 repair: a malformed quarantine record (missing,
+                    # null, empty, or non-string task_id) sets replay_error and
+                    # aborts the fold — fail closed. Both admission and dispatch
+                    # deny whenever replay_error is set.
+                    quarantine_task_id = record.get("task_id")
+                    if not isinstance(quarantine_task_id, str) or not quarantine_task_id:
+                        self.replay_error = (
+                            f"line {lineno}: malformed quarantine record:"
+                            " task_id must be a non-empty string"
+                        )
+                        return
+                    self.quarantined_tasks.add(quarantine_task_id)
                 # Unknown records are ignored for forward compatibility.
 
     @staticmethod
