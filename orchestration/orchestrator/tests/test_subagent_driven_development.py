@@ -202,3 +202,189 @@ def test_final_integration_failure_reopens_affected_work(tmp_path: Path) -> None
         affected_task_ids=["T1"],
     )
     assert workflow.task(run.plan_id, "T1").state == "remediation"
+
+
+# --------------------------------------------------------------------------
+# Criterion 2 §11 additional coverage: clarification pause, critical-finding
+# gate, retry budget, cancellation semantics, reviewer non-mutation, and
+# no-automatic-delivery guarantees.
+# --------------------------------------------------------------------------
+
+
+def _workflow(tmp_path: Path) -> tuple[SDDWorkflow, MockCodingSessionAdapter, object]:
+    adapter = MockCodingSessionAdapter()
+    workflow = SDDWorkflow(tmp_path / "sdd-ledger.jsonl", session_adapter=adapter)
+    run = workflow.ingest_approved_plan(
+        plan_text=APPROVED_PLAN,
+        approval_ref="approval-demo-001",
+        baseline_revision="base-sha",
+    )
+    workflow.mark_ready(run.plan_id, run.tasks[0].task_id)
+    return workflow, adapter, run
+
+
+def test_questions_pause_execution_until_resolved(tmp_path: Path) -> None:
+    workflow, _, run = _workflow(tmp_path)
+    task_id = run.tasks[0].task_id
+
+    workflow.request_clarification(run.plan_id, task_id, question="which repository revision?")
+    task = workflow.task(run.plan_id, task_id)
+    assert task.state == "awaiting_clarification"
+
+    # Dispatch is blocked while awaiting clarification — no silent assumption.
+    with pytest.raises(WorkflowBlocked, match="task_not_ready"):
+        workflow.dispatch_implementation(run.plan_id, task_id, backend="codex")
+
+    workflow.resolve_clarification(
+        run.plan_id, task_id, answer="use baseline base-sha", decision_maker="operator"
+    )
+    assert workflow.task(run.plan_id, task_id).state == "ready"
+
+
+def test_clarification_pause_survives_restart(tmp_path: Path) -> None:
+    workflow, _, run = _workflow(tmp_path)
+    task_id = run.tasks[0].task_id
+    workflow.request_clarification(run.plan_id, task_id, question="ambiguous requirement")
+
+    reloaded = SDDWorkflow(tmp_path / "sdd-ledger.jsonl", session_adapter=MockCodingSessionAdapter())
+    task = reloaded.task(run.plan_id, task_id)
+    assert task.state == "awaiting_clarification"
+    reloaded.resolve_clarification(run.plan_id, task_id, answer="resolved", decision_maker="operator")
+    assert reloaded.task(run.plan_id, task_id).state == "ready"
+
+
+def test_critical_findings_downgrade_spec_pass_to_changes(tmp_path: Path) -> None:
+    workflow, _, run = _workflow(tmp_path)
+    task_id = run.tasks[0].task_id
+    workflow.dispatch_implementation(run.plan_id, task_id, backend="codex")
+    workflow.complete_implementation(
+        run.plan_id, task_id, candidate_revision="rev-1", changed_paths=["a.py"], artifacts={}
+    )
+
+    review = workflow.record_spec_review(
+        run.plan_id,
+        task_id,
+        verdict=ReviewVerdict.PASS,  # attempted PASS carrying a critical finding
+        reviewer_profile="noesis-sentinel",
+        candidate_revision="rev-1",
+        findings=[Finding("critical", "a.py", "missing input validation", "add validation")],
+    )
+    assert review.verdict == ReviewVerdict.REQUEST_CHANGES.value
+    assert workflow.task(run.plan_id, task_id).state == "remediation"
+
+
+def test_retries_consume_budget_and_stop_at_limit(tmp_path: Path) -> None:
+    workflow, adapter, run = _workflow(tmp_path)
+    task_id = run.tasks[0].task_id
+    max_retries = run.tasks[0].max_retries
+
+    for round_no in range(max_retries):
+        workflow.dispatch_remediation(run.plan_id, task_id, backend="codex") if round_no else workflow.dispatch_implementation(run.plan_id, task_id, backend="codex")
+        workflow.complete_implementation(
+            run.plan_id, task_id, candidate_revision=f"rev-{round_no}", changed_paths=["a.py"], artifacts={}
+        )
+        workflow.record_spec_review(
+            run.plan_id, task_id,
+            verdict=ReviewVerdict.REQUEST_CHANGES,
+            reviewer_profile="noesis-sentinel",
+            candidate_revision=f"rev-{round_no}",
+            findings=[],
+        )
+
+    task = workflow.task(run.plan_id, task_id)
+    assert task.retry_count >= max_retries
+    launches_before = len(adapter.launches)
+    with pytest.raises(WorkflowBlocked, match="retry_budget_exhausted"):
+        workflow.dispatch_remediation(run.plan_id, task_id, backend="codex")
+    assert len(adapter.launches) == launches_before, "exhausted retry must not launch new sessions"
+
+
+def test_cancellation_requires_confirmed_termination(tmp_path: Path) -> None:
+    workflow, _, run = _workflow(tmp_path)
+    task_id = run.tasks[0].task_id
+    attempt = workflow.dispatch_implementation(run.plan_id, task_id, backend="codex")
+
+    workflow.request_cancellation(run.plan_id, task_id, reason="operator stop")
+    task = workflow.task(run.plan_id, task_id)
+    assert task.state == "cancelling"
+    assert attempt.state == "cancelling"
+
+    # Uncertain cleanup is an explicit blocker, not a silent cancel.
+    with pytest.raises(WorkflowBlocked, match="cleanup_unconfirmed"):
+        workflow.confirm_cancellation(run.plan_id, task_id, cleanup_status="unknown")
+    assert workflow.task(run.plan_id, task_id).state == "cancelling"
+
+    # New work is prevented while cancelling.
+    with pytest.raises(WorkflowBlocked, match="task_not_ready"):
+        workflow.dispatch_implementation(run.plan_id, task_id, backend="codex")
+
+    workflow.confirm_cancellation(run.plan_id, task_id, cleanup_status="confirmed")
+    task = workflow.task(run.plan_id, task_id)
+    assert task.state == "cancelled"
+    assert attempt.state == "cancelled"
+
+
+def test_cancellation_survives_restart(tmp_path: Path) -> None:
+    workflow, _, run = _workflow(tmp_path)
+    task_id = run.tasks[0].task_id
+    workflow.dispatch_implementation(run.plan_id, task_id, backend="codex")
+    workflow.request_cancellation(run.plan_id, task_id, reason="operator stop")
+    workflow.confirm_cancellation(run.plan_id, task_id, cleanup_status="confirmed")
+
+    reloaded = SDDWorkflow(tmp_path / "sdd-ledger.jsonl", session_adapter=MockCodingSessionAdapter())
+    task = reloaded.task(run.plan_id, task_id)
+    assert task.state == "cancelled"
+    assert all(a.state == "cancelled" for a in task.attempts)
+
+
+def test_reviewers_do_not_mutate_implementation_artifacts(tmp_path: Path) -> None:
+    workflow, _, run = _workflow(tmp_path)
+    task_id = run.tasks[0].task_id
+    workflow.dispatch_implementation(run.plan_id, task_id, backend="codex")
+    workflow.complete_implementation(
+        run.plan_id, task_id,
+        candidate_revision="rev-1",
+        changed_paths=["orchestration/orchestrator/app/specialist_routing.py"],
+        artifacts={"pytest": "passed"},
+    )
+    before = workflow.task(run.plan_id, task_id).attempts[-1].artifacts.copy()
+
+    workflow.record_spec_review(
+        run.plan_id, task_id,
+        verdict=ReviewVerdict.PASS, reviewer_profile="noesis-sentinel",
+        candidate_revision="rev-1", findings=[],
+    )
+    workflow.record_quality_review(
+        run.plan_id, task_id,
+        verdict=ReviewVerdict.APPROVED, reviewer_profile="noesis-sentinel",
+        candidate_revision="rev-1", findings=[],
+    )
+    attempt = workflow.task(run.plan_id, task_id).attempts[-1]
+    assert attempt.artifacts == before, "review path must not mutate implementation artifacts"
+
+
+def test_no_automatic_push_merge_or_deployment(tmp_path: Path) -> None:
+    workflow, _, run = _workflow(tmp_path)
+    task_id = run.tasks[0].task_id
+    workflow.dispatch_implementation(run.plan_id, task_id, backend="codex")
+    workflow.complete_implementation(
+        run.plan_id, task_id, candidate_revision="rev-1", changed_paths=["a.py"], artifacts={}
+    )
+    workflow.record_spec_review(
+        run.plan_id, task_id, verdict=ReviewVerdict.PASS,
+        reviewer_profile="noesis-sentinel", candidate_revision="rev-1", findings=[],
+    )
+    workflow.record_quality_review(
+        run.plan_id, task_id, verdict=ReviewVerdict.APPROVED,
+        reviewer_profile="noesis-sentinel", candidate_revision="rev-1", findings=[],
+    )
+
+    report = workflow.synthesize(run.plan_id)
+    serialized = str(report).lower()
+    for forbidden in ("push", "merge", "deploy"):
+        assert forbidden not in serialized, f"synthesize output must not claim {forbidden}"
+
+    # The task/ workflow vocabulary has no delivery states; completed is terminal.
+    assert workflow.task(run.plan_id, task_id).state == "completed"
+    delivery_states = {"merged", "deployed", "pushed", "published"}
+    assert not (delivery_states & set(dir(workflow.task(run.plan_id, task_id))))

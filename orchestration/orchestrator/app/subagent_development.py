@@ -80,6 +80,8 @@ class SDDTask:
     reviews: list[ReviewRecord] = field(default_factory=list)
     retry_count: int = 0
     max_retries: int = 2
+    # State captured when a question pauses the task; restored on resolution.
+    resumable_state: str | None = None
 
 
 @dataclass
@@ -218,6 +220,60 @@ class SDDWorkflow:
             raise WorkflowBlocked("retry_budget_exhausted", f"task {task_id} exhausted remediation budget")
         return self._launch_attempt(plan_id, task, backend=backend)
 
+    def request_clarification(self, plan_id: str, task_id: str, *, question: str) -> SDDTask:
+        """Pause the task for an authorized decision-maker (§11: questions pause
+        execution instead of triggering assumptions)."""
+        task = self.task(plan_id, task_id)
+        if task.state not in {"ready", "implementing", "remediation"}:
+            raise WorkflowBlocked("clarification_not_allowed", f"task {task_id} is {task.state}")
+        task.resumable_state = task.state
+        task.state = "awaiting_clarification"
+        self._append("clarification_requested", {"plan_id": plan_id, "task_id": task_id, "question": question})
+        return task
+
+    def resolve_clarification(self, plan_id: str, task_id: str, *, answer: str, decision_maker: str) -> SDDTask:
+        task = self.task(plan_id, task_id)
+        if task.state != "awaiting_clarification":
+            raise WorkflowBlocked("not_awaiting_clarification", f"task {task_id} is {task.state}")
+        task.state = task.resumable_state or "ready"
+        task.resumable_state = None
+        self._append("clarification_resolved", {
+            "plan_id": plan_id,
+            "task_id": task_id,
+            "answer": answer,
+            "decision_maker": decision_maker,
+        })
+        return task
+
+    def request_cancellation(self, plan_id: str, task_id: str, *, reason: str) -> SDDTask:
+        """Begin cancellation. New work is prevented immediately; the task is
+        not marked cancelled until termination is confirmed (§10 supervision)."""
+        task = self.task(plan_id, task_id)
+        if task.state in {"completed", "cancelled"}:
+            return task
+        task.state = "cancelling"
+        for attempt in task.attempts:
+            if attempt.state == "running":
+                attempt.state = "cancelling"
+        self._append("cancellation_requested", {"plan_id": plan_id, "task_id": task_id, "reason": reason})
+        return task
+
+    def confirm_cancellation(self, plan_id: str, task_id: str, *, cleanup_status: str) -> SDDTask:
+        """Confirm termination/cleanup. Uncertain cleanup stays an explicit
+        blocker (state remains cancelling) and prevents workspace reuse."""
+        task = self.task(plan_id, task_id)
+        if task.state != "cancelling":
+            raise WorkflowBlocked("not_cancelling", f"task {task_id} is {task.state}")
+        if cleanup_status != "confirmed":
+            self._append("cancellation_cleanup_uncertain", {"plan_id": plan_id, "task_id": task_id, "cleanup_status": cleanup_status})
+            raise WorkflowBlocked("cleanup_unconfirmed", f"cancellation cleanup is {cleanup_status}")
+        for attempt in task.attempts:
+            if attempt.state in {"running", "cancelling"}:
+                attempt.state = "cancelled"
+        task.state = "cancelled"
+        self._append("cancellation_confirmed", {"plan_id": plan_id, "task_id": task_id, "cleanup_status": cleanup_status})
+        return task
+
     def _launch_attempt(self, plan_id: str, task: SDDTask, *, backend: str) -> ImplementationAttempt:
         if not self.session_adapter.backend_available(backend):
             raise WorkflowBlocked("backend_unavailable", f"backend {backend} is not installed/authenticated/authorized")
@@ -291,6 +347,10 @@ class SDDWorkflow:
             raise WorkflowBlocked("candidate_revision_mismatch", "spec review must target current candidate revision")
         if reviewer_profile == IMPLEMENTER_PROFILE:
             raise WorkflowBlocked("reviewer_not_independent", "implementer cannot review its own work")
+        # Open critical/important findings block completion even if the
+        # reviewer attempted a PASS verdict.
+        if verdict == ReviewVerdict.PASS and any(f.severity in {"critical", "important"} for f in findings):
+            verdict = ReviewVerdict.REQUEST_CHANGES
         review = ReviewRecord(str(uuid4()), "spec", verdict.value, reviewer_profile, candidate_revision, findings)
         task.reviews.append(review)
         if verdict == ReviewVerdict.PASS:
@@ -464,6 +524,26 @@ class SDDWorkflow:
             run.status = event["status"]
             for tid in event.get("affected_task_ids") or []:
                 self.task(plan_id, tid).state = "remediation"
+        elif name == "clarification_requested":
+            task = self.task(plan_id, event["task_id"])
+            task.resumable_state = task.state if task.state != "awaiting_clarification" else task.resumable_state
+            task.state = "awaiting_clarification"
+        elif name == "clarification_resolved":
+            task = self.task(plan_id, event["task_id"])
+            task.state = task.resumable_state or "ready"
+            task.resumable_state = None
+        elif name == "cancellation_requested":
+            task = self.task(plan_id, event["task_id"])
+            task.state = "cancelling"
+            for attempt in task.attempts:
+                if attempt.state == "running":
+                    attempt.state = "cancelling"
+        elif name == "cancellation_confirmed":
+            task = self.task(plan_id, event["task_id"])
+            for attempt in task.attempts:
+                if attempt.state in {"running", "cancelling"}:
+                    attempt.state = "cancelled"
+            task.state = "cancelled"
 
 
 def _parse_tasks(plan_text: str) -> list[SDDTask]:
@@ -538,6 +618,7 @@ def _task_from_dict(data: dict[str, Any]) -> SDDTask:
         reviews=[_review_from_dict(r) for r in data.get("reviews", [])],
         retry_count=int(data.get("retry_count", 0)),
         max_retries=int(data.get("max_retries", 2)),
+        resumable_state=data.get("resumable_state"),
     )
 
 
