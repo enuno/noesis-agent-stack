@@ -12,12 +12,25 @@ bound to an assignment epoch (monotonic fencing), an expected task version
 (optimistic concurrency), and an idempotency key so duplicate delivery never
 duplicates work. Backend success (run finished) is kept distinct from task
 acceptance (orchestrator explicitly accepts).
+
+Envelope authentication (optional, opt-in): when a store is constructed with
+an HmacEnvelopeAuthenticator, every HandoffEnvelope entering process() must
+carry a valid HMAC-SHA256 signature over the canonical envelope content. A
+sender_id claim inside a payload is not proof of identity — the signature
+binds sender, recipient, task ancestry, and payload before any authorization
+or state check runs. Key material is injected by the caller (never stored in
+the ledger); without an authenticator the store preserves its previous
+unauthenticated behavior for in-process/test use. Replay of a signed ASSIGN
+is neutralized by idempotency keys and version/epoch fencing, not by the
+signature alone; runtime process fencing remains a launcher-side concern.
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import threading
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timedelta, timezone
 from enum import StrEnum
 from pathlib import Path
@@ -107,6 +120,34 @@ class HandoffEnvelope:
     idempotency_key: str | None = None
     expected_task_version: int | None = None
     payload: dict[str, Any] = field(default_factory=dict)
+    # HMAC-SHA256 over canonical_envelope_bytes(), hex-encoded. Required iff
+    # the receiving store was constructed with an authenticator.
+    signature: str | None = None
+
+
+def canonical_envelope_bytes(msg: HandoffEnvelope) -> bytes:
+    """Deterministic serialization of every signed envelope field.
+
+    Covers header fields AND payload, so any tampering with sender identity,
+    task ancestry, epoch, or contract content invalidates the signature.
+    """
+    signed = {
+        "protocol_version": msg.protocol_version,
+        "message_id": msg.message_id,
+        "message_type": str(msg.message_type),
+        "sender_id": msg.sender_id,
+        "recipient_id": msg.recipient_id,
+        "root_task_id": msg.root_task_id,
+        "task_id": msg.task_id,
+        "attempt_id": msg.attempt_id,
+        "contract_revision": msg.contract_revision,
+        "assignment_epoch": msg.assignment_epoch,
+        "correlation_id": msg.correlation_id,
+        "idempotency_key": msg.idempotency_key,
+        "expected_task_version": msg.expected_task_version,
+        "payload": msg.payload,
+    }
+    return json.dumps(signed, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
 @dataclass
@@ -147,9 +188,49 @@ class BudgetExhausted(ActivationError):
     """A reservation would exceed the root task's shared budget cap."""
 
 
+class AuthenticationError(ActivationError):
+    """A message arrived without a valid envelope signature.
+
+    Raised before protocol, authorization, or state checks when the store is
+    configured with an authenticator. Nothing is persisted: the message is
+    refused, not quarantined into the ledger.
+    """
+
+
+@dataclass(frozen=True)
+class HmacEnvelopeAuthenticator:
+    """HMAC-SHA256 envelope authentication (shared-key, webhook-style).
+
+    Binds sender_id, recipient_id, task ancestry, epoch, and payload to a
+    single signature so a forged sender claim or tampered contract is rejected
+    before any authorization decision. Key material is supplied by the caller
+    and never written to the ledger; key distribution/rotation is an
+    integration-layer concern outside this store.
+    """
+
+    key: bytes
+
+    def sign(self, msg: HandoffEnvelope) -> str:
+        return hmac.new(self.key, canonical_envelope_bytes(msg), hashlib.sha256).hexdigest()
+
+    def verify(self, msg: HandoffEnvelope) -> bool:
+        if not msg.signature:
+            return False
+        expected = hmac.new(self.key, canonical_envelope_bytes(msg), hashlib.sha256).hexdigest()
+        return hmac.compare_digest(expected, msg.signature)
+
+    def apply(self, msg: HandoffEnvelope) -> HandoffEnvelope:
+        """Return a copy of msg carrying its signature (envelope is frozen)."""
+        return replace(msg, signature=self.sign(msg))
+
+
 @dataclass
 class DelegationStore:
     ledger_path: Path
+    # When set, process() refuses any envelope without a valid HMAC signature
+    # before protocol, authorization, or state checks. None preserves the
+    # previous unauthenticated behavior (in-process/test use).
+    authenticator: HmacEnvelopeAuthenticator | None = None
 
     def __post_init__(self) -> None:
         self.ledger_path = Path(self.ledger_path)
@@ -211,6 +292,13 @@ class DelegationStore:
 
     # -------------------------------------------------------------- assign --
     def process(self, msg: HandoffEnvelope) -> DelegatedTask:
+        if self.authenticator is not None and not self.authenticator.verify(msg):
+            # Authentication precedes everything: an unsigned or forged
+            # envelope is refused without touching protocol, authorization,
+            # or state, and nothing is persisted.
+            raise AuthenticationError(
+                f"message {msg.message_id} failed envelope authentication"
+            )
         if msg.protocol_version != PROTOCOL_VERSION:
             raise ActivationError(f"unsupported protocol {msg.protocol_version}")
         if msg.message_type is not MessageType.ASSIGN:
