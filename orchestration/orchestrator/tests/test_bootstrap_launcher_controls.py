@@ -317,14 +317,23 @@ def test_crash_before_and_after_spawn_is_uncertain_and_does_not_relaunch(tmp_pat
     )
     with pytest.raises(RuntimeError, match="crash after spawn"):
         orch.route_and_launch(**kwargs)
+    # F-1: a crash after spawn records the task as quarantined (fail-closed).
+    # A subsequent route_and_launch with the SAME idempotency_key must therefore
+    # be rejected by the quarantine gate, not silently fold a second attempt.
+    # This is the documented behavior in app/control_plane.py:_assert_spawn_gates
+    # ("quarantine is fail-closed and strictly stronger than task state — a
+    # quarantined task must never spawn even if its folded state looks healthy.
+    # Release is manual/operator-only; there is no automatic unquarantine.").
     reloaded = Orchestrator(ledger, runtime_adapter=_adapter(tmp_path, OfflineProcessDouble()), inference_enforcer=None)
-    again = reloaded.route_and_launch(**kwargs)
-    assert again.launch is None or again.launch.ok is False
-    task = reloaded.store.get(again.task.task_id)
-    reservation = task.delegation.launch_reservation
-    assert reservation["state"] in {"spawn_uncertain", "handle_uncertain", "reserved"}
-    assert reservation.get("workspace_reusable") is False
+    with pytest.raises(RoutingBlocked, match="quarantined"):
+        reloaded.route_and_launch(**kwargs)
+    # Confirm the second launch did not actually spawn anything.
     assert reloaded.runtime_adapter.process_runner.spawn_count == 0
+    # Confirm the task is in the quarantine set in the persisted ledger
+    # (recorded as a `quarantine` event with reason `handle_uncertain`).
+    ledger_text = ledger.read_text(encoding="utf-8")
+    assert '"event": "quarantine"' in ledger_text
+    assert '"reason": "handle_uncertain"' in ledger_text
 
 
 def test_dry_run_does_not_consume_attempt_or_claim_canary(tmp_path):
