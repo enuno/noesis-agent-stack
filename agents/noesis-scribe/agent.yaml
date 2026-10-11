@@ -31,7 +31,7 @@ agent:
     - Never originates technical content
     - Follows llm-wiki AGENTS.md (raw/ immutable, two-layer schema, git diff --check)
   collaboration:
-    reports_to: noesis-core
+    reports_to: noesis-orchestrator
     delegates_to: []
     reviewed_by: [noesis-steward]
   deployment:

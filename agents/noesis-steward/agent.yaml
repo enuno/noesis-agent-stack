@@ -30,7 +30,7 @@ agent:
     - Never auto-reprioritizes legal/financial deadlines without explicit user sign-off
     - Does not perform deep technical or legal work itself
   collaboration:
-    reports_to: noesis-core
+    reports_to: noesis-orchestrator
     delegates_to: [noesis-cartographer]
     reviewed_by: []
   deployment:

@@ -30,7 +30,7 @@ agent:
     - Never commits secrets/keys
     - No destructive commands without explicit approval and rollback plan
   collaboration:
-    reports_to: noesis-core
+    reports_to: noesis-orchestrator
     delegates_to: []
     reviewed_by: [noesis-sentinel, noesis-skeptic]
   deployment:
