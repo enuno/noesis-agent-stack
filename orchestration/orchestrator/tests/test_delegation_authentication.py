@@ -181,6 +181,49 @@ class TestRefusals:
         assert issubclass(AuthenticationError, ActivationError)
 
 
+class TestMessageIdBinding:
+    def test_idempotent_redelivery_same_signed_message_returns_existing(
+        self, tmp_path: Path
+    ) -> None:
+        store = _store(tmp_path)
+        signed = _auth().apply(_assign("t-bind-1"))
+        first = store.process(signed)
+        second = store.process(signed)  # identical bytes: idempotent, not refused
+        assert second.task_id == first.task_id
+        assert store.get("t-bind-1") is not None
+
+    def test_message_id_reuse_with_conflicting_content_refused(
+        self, tmp_path: Path
+    ) -> None:
+        store = _store(tmp_path)
+        # Bind "reused-id" to an authentic ASSIGN.
+        original = _auth().apply(replace(_assign("t-bind-2"), message_id="reused-id"))
+        store.process(original)
+        # Same message_id, different content, validly signed: a protocol-level
+        # message_id reuse attack. The binding refuses it even though the
+        # signature itself is valid.
+        attacker = replace(_assign("t-bind-4"), message_id="reused-id")
+        attacker = replace(
+            attacker, payload={**attacker.payload, "intent": "reinterpreted goal"}
+        )
+        attacker = _auth().apply(attacker)
+        with pytest.raises(AuthenticationError, match="reused with conflicting content"):
+            store.process(attacker)
+        assert store.get("t-bind-4") is None
+
+    def test_binding_only_records_verified_messages(self, tmp_path: Path) -> None:
+        store = _store(tmp_path)
+        msg = _assign("t-bind-5")  # unsigned; refused before binding
+        with pytest.raises(AuthenticationError):
+            store.process(msg)
+        # The refused message_id remains unbound: a later validly signed
+        # message under the same id is not falsely accused of reuse.
+        later = replace(_assign("t-bind-6"), message_id=msg.message_id)
+        later = _auth().apply(later)
+        task = store.process(later)
+        assert task.task_id == "t-bind-6"
+
+
 class TestCompatibilityAndRecovery:
     def test_store_without_authenticator_preserves_legacy_behavior(
         self, tmp_path: Path

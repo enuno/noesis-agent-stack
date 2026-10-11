@@ -237,6 +237,11 @@ class DelegationStore:
         self.ledger_path.parent.mkdir(parents=True, exist_ok=True)
         self._tasks: dict[str, DelegatedTask] = {}
         self._idem: dict[str, str] = {}
+        # message_id -> digest binding, populated only for envelopes that pass
+        # signature verification. Per-process (restart re-opens the window);
+        # durable replay defense remains idempotency keys + epoch/version
+        # fencing, not this cache.
+        self._msg_binding: dict[str, str] = {}
         self._lock = threading.Lock()
         self._replay()
 
@@ -299,6 +304,14 @@ class DelegationStore:
             raise AuthenticationError(
                 f"message {msg.message_id} failed envelope authentication"
             )
+        if self.authenticator is not None:
+            digest = hashlib.sha256(canonical_envelope_bytes(msg)).hexdigest()
+            bound = self._msg_binding.get(msg.message_id)
+            if bound is not None and bound != digest:
+                raise AuthenticationError(
+                    f"message_id {msg.message_id} reused with conflicting content"
+                )
+            self._msg_binding[msg.message_id] = digest
         if msg.protocol_version != PROTOCOL_VERSION:
             raise ActivationError(f"unsupported protocol {msg.protocol_version}")
         if msg.message_type is not MessageType.ASSIGN:

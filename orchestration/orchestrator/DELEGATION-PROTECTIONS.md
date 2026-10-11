@@ -24,6 +24,7 @@ where honest limits remain. Last verified against the suite at **334 passed /
 | Cancellation — lease revoked, durable, idempotent; post-cancel mutations rejected | **Production code** | `cancel` + state checks | cancellation tests |
 | Shared-budget reservation — atomic check-and-reserve under `threading.Lock`; exhaustion raises `BudgetExhausted` and persists nothing; consumption ≤ reservation | **Production code** | `_check_budget`, `reserve_budget`, `consume_budget` | `test_delegation_budget.py` (incl. 6-thread race) |
 | **Envelope authentication** — HMAC-SHA256 over canonical envelope content; signature binds sender/recipient/ancestry/epoch/payload; checked before any authorization or state change; refusal persists nothing | **Production code** (opt-in) | `HmacEnvelopeAuthenticator`, `DelegationStore(authenticator=...)`, first check in `process` | `test_delegation_authentication.py` (14 tests) |
+| **message_id content binding** — reuse of a message id with conflicting content refused (even when validly signed); identical redelivery stays idempotent; only verified messages bind | **Production code** (opt-in, in-process) | `DelegationStore._msg_binding` in `process` | `TestMessageIdBinding` (3 tests) |
 | Crash-window recovery — 7 restarts across every lifecycle transition; version monotonic 0→6; exactly one completion | **Production code** | append-only replay in `__post_init__` | crash-window matrix tests |
 | Controller restart preserves accepted state, open findings, reservations | **Production code** | ledger replay | reload tests |
 | Out-of-order / wrong-assignee / forged-sender messages refused | **Production code** | role + binding + version checks | failure-injection tests |
@@ -53,10 +54,13 @@ where honest limits remain. Last verified against the suite at **334 passed /
 
 ### Honest limits of envelope authentication
 
-1. **Replay**: a validly signed message could be replayed. For ASSIGN this is
-   neutralized by idempotency keys and task-existence/epoch checks, not by the
-   signature. Other message types enter through authenticated transport in
-   production wiring; the store itself does not keep a replay cache.
+1. **Replay**: a validly signed message could be replayed. Defenses, in
+   layers: (a) an in-process `message_id -> content digest` binding refuses
+   reuse of a message id with conflicting content (even validly signed); the
+   window re-opens on restart, so (b) for ASSIGN the durable defense remains
+   idempotency keys + task-existence/epoch checks. Other message types enter
+   through authenticated transport in production wiring; the store itself
+   keeps no durable replay cache.
 2. **Shared key**: HMAC is symmetric. Sender and receiver share key material;
    this proves "came from a holder of the key," not "came from profile X" at
    the cryptographic level. Role binding comes from the envelope fields, which
