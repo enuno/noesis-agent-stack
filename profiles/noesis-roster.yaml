@@ -332,6 +332,34 @@ profiles:
     wave: 3
     status: applied
 
+  noesis-optimizer:
+    name: "Noesis Optimizer"
+    role: fleet-configuration-optimizer
+    tier: specialist-operator
+    persistence: on-demand
+    domain: "Noesis fleet model/provider routing, profile configuration audit, repair, and verification"
+    description: >-
+      Audits the Noesis profile fleet, evaluates provider/model fitness by task
+      class, and applies approved configuration repairs with backups, rollback,
+      and verification.
+    model_routing:
+      default: strong tool-capable reasoning/coding model
+      fast: lower-cost model for deterministic inventory and validation
+      cross_check: independent strong model for fleet-wide or high-risk manifests
+      policy: cheapest route that passes role-specific evaluations
+    apply_model:
+      model: gpt-5.6-sol
+      provider: openai-codex
+    fallback_providers:
+      - {provider: anthropic, model: claude-opus-5-5}
+      - {provider: xai-oauth, model: grok-4.20-multi-agent-0309}
+      - {provider: kimi-coding, model: kimi-for-coding}
+      - {provider: nous, model: deepseek/deepseek-v4-pro-0813}
+    toolsets: [web, terminal, file, code_execution, skills, todo, memory, session_search, clarify, delegation]
+    terminal_cwd: /Users/elvis/projects/noesis-agent-stack/workspace/optimizer
+    wave: 3
+    status: applied
+
   noesis-skeptic:
     name: "Noesis Skeptic"
     role: adversarial-reviewer

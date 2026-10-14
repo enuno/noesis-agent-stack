@@ -372,6 +372,28 @@ profiles:
     - resolve_openrouter_catalog_contradiction
     - human_review_before_any_runtime_change
   target_routing_class: supervisor_control_plane
+- profile_id: noesis-optimizer
+  profile_type: operator
+  purpose: Audits the Noesis profile fleet, evaluates provider/model fitness by task class, and applies only approved configuration repairs with backup and rollback verification.
+  observed_runtime:
+    source: active_hermes
+    provider_lane: CODEX_SUBSCRIPTION
+    model_alias_or_id: gpt-5.6-sol
+    evidence: 'active profile metadata: ~/.hermes/profiles/noesis-optimizer/config.yaml; verified model turn session 20261014_161332_d89bda'
+  repo_declared:
+    provider_lane: CODEX_SUBSCRIPTION
+    model_alias_or_id: gpt-5.6-sol
+    evidence: profiles/live/noesis-optimizer/config.yaml
+  alignment: aligned
+  resolution:
+    state: needs_evidence
+    rationale: The installed route matches the repository declaration, but fleet-wide optimization decisions remain gated on role-specific evaluations, independent review, and an operator-approved exact mutation manifest.
+    required_gates:
+    - role_specific_model_evaluation
+    - routing_matrix_review
+    - independent_provider_review_for_high_risk_changes
+    - explicit_human_approval_before_cross_profile_writes
+  target_routing_class: structured_worker
 - profile_id: noesis-skeptic
   profile_type: qa
   purpose: Adversarial / red-team reviewer. Challenges outputs from other Noesis agents pre-high-stakes-use; reviewer-only,

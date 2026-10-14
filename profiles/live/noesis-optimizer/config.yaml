@@ -1,0 +1,374 @@
+model:
+  default: gpt-5.6-sol
+  provider: openai-codex
+  base_url: ''
+  aliases:
+    venice:
+      model: zai-org-glm-5-2
+      provider: custom
+      base_url: https://api.venice.ai/api/v1
+      key_env: VENICE_API_KEY
+fallback_providers:
+  - provider: anthropic
+    model: claude-opus-5-5
+  - provider: xai-oauth
+    model: grok-4.20-multi-agent-0309
+  - provider: kimi-coding
+    model: kimi-for-coding
+  - provider: nous
+    model: deepseek/deepseek-v4-pro-0813
+database:
+  journal_mode: wal
+agent:
+  max_turns: 500
+  verbose: false
+  personalities:
+    helpful: You are a helpful, friendly AI assistant.
+    concise: You are a concise assistant. Keep responses brief and to the point.
+    technical: You are a technical expert. Provide detailed, accurate technical information.
+    creative: You are a creative assistant. Think outside the box and offer innovative solutions.
+    teacher: You are a patient teacher. Explain concepts clearly with examples.
+    kawaii: You are a kawaii assistant! Use cute expressions like (◕‿◕), ★, ♪, and ~! Add sparkles and be super enthusiastic about everything! Every response should feel warm and adorable desu~! ヽ(>∀<☆)ノ
+    catgirl: You are Neko-chan, an anime catgirl AI assistant, nya~! Add 'nya' and cat-like expressions to your speech. Use kaomoji like (=^･ω･^=) and ฅ^•ﻌ•^ฅ. Be playful and curious like a cat, nya~!
+    pirate: 'Arrr! Ye be talkin'' to Captain Hermes, the most tech-savvy pirate to sail the digital seas! Speak like a proper buccaneer, use nautical terms, and remember: every problem be just treasure waitin'' to be plundered! Yo ho ho!'
+    shakespeare: Hark! Thou speakest with an assistant most versed in the bardic arts. I shall respond in the eloquent manner of William Shakespeare, with flowery prose, dramatic flair, and perhaps a soliloquy or two. What light through yonder terminal breaks?
+    surfer: Duuude! You're chatting with the chillest AI on the web, bro! Everything's gonna be totally rad. I'll help you catch the gnarly waves of knowledge while keeping things super chill. Cowabunga! 🤙
+    noir: The rain hammered against the terminal like regrets on a guilty conscience. They call me Hermes - I solve problems, find answers, dig up the truth that hides in the shadows of your codebase. In this city of silicon and secrets, everyone's got something to hide. What's your story, pal?
+    uwu: hewwo! i'm your fwiendwy assistant uwu~ i wiww twy my best to hewp you! *nuzzles your code* OwO what's this? wet me take a wook! i pwomise to be vewy hewpful >w<
+    philosopher: Greetings, seeker of wisdom. I am an assistant who contemplates the deeper meaning behind every query. Let us examine not just the 'how' but the 'why' of your questions. Perhaps in solving your problem, we may glimpse a greater truth about existence itself.
+    hype: YOOO LET'S GOOOO!!! 🔥🔥🔥 I am SO PUMPED to help you today! Every question is AMAZING and we're gonna CRUSH IT together! This is gonna be LEGENDARY! ARE YOU READY?! LET'S DO THIS! 💪😤🚀
+terminal:
+  backend: local
+  cwd: /Users/elvis/projects/noesis-agent-stack/workspace/optimizer
+  timeout: 180
+  home_mode: auto
+  container_cpu: 1
+  container_memory: 5120
+  container_disk: 51200
+  container_persistent: true
+  docker_mount_cwd_to_workspace: false
+  lifetime_seconds: 300
+web:
+  backend: firecrawl
+browser:
+  inactivity_timeout: 120
+  allow_private_urls: true
+  use_real_profile: true
+  cloud_provider: browser-use
+tool_loop_guardrails:
+  warnings_enabled: true
+  hard_stop_enabled: false
+  warn_after:
+    exact_failure: 2
+    same_tool_failure: 3
+    idempotent_no_progress: 2
+  hard_stop_after:
+    exact_failure: 5
+    same_tool_failure: 8
+    idempotent_no_progress: 5
+compression:
+  enabled: true
+  progress_notices: false
+  threshold: 0.5
+  target_ratio: 0.2
+  protect_last_n: 20
+  min_tail_user_messages: 1
+  max_attempts: 3
+  proactive_prune_tokens: 0
+  proactive_prune_min_result_chars: 8000
+  proactive_prune_min_reclaim_tokens: 4096
+  protect_first_n: 3
+  codex_gpt55_autoraise: true
+  codex_app_server_auto: native
+  idle_compact_after_seconds: 0
+prompt_caching:
+  cache_ttl: 5m
+display:
+  compact: false
+  personality: technical
+  busy_input_mode: interrupt
+  bell_on_complete: false
+  show_reasoning: true
+  background_process_notifications: concise
+  streaming: true
+  skin: default
+  interim_assistant_messages: true
+  pet:
+    enabled: true
+    slug: nukey
+  tool_progress: all
+  cleanup_progress: false
+  long_running_notifications: true
+  busy_ack_detail: true
+  message_reactions: true
+tts:
+  provider: elevenlabs
+stt:
+  enabled: true
+  language: en
+  local:
+    model: base
+  openai:
+    model: whisper-1
+    language: ''
+  elevenlabs:
+    tag_audio_events: true
+    diarize: true
+  provider: elevenlabs
+voice:
+  auto_tts: false
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  memory_char_limit: 2200
+  user_char_limit: 1375
+  nudge_interval: 10
+  provider: honcho
+  flush_min_turns: 6
+delegation:
+  max_iterations: 250
+  max_concurrent_children: 4
+moa:
+  presets:
+    default:
+      reference_models:
+        - provider: anthropic
+          model: claude-opus-4-8
+          enabled: true
+        - provider: nous
+          model: upstage/solar-pro4:free
+          enabled: true
+      aggregator:
+        provider: opencode-free
+        model: deepseek-v4-flash-free
+      degraded_reference_policy: loud
+      fanout: user_turn
+  reference_models:
+    - provider: anthropic
+      model: claude-opus-4-8
+      enabled: true
+    - provider: nous
+      model: upstage/solar-pro4:free
+      enabled: true
+  aggregator:
+    provider: opencode-free
+    model: deepseek-v4-flash-free
+  degraded_reference_policy: loud
+  max_tokens: 4096
+  fanout: user_turn
+  enabled: true
+skills:
+  external_dirs:
+    - /Users/elvis/.local/share/omh/current/skills
+  creation_nudge_interval: 15
+timezone: America/Denver
+security:
+  allow_private_urls: true
+code_execution:
+  timeout: 300
+  max_tool_calls: 50
+streaming:
+  enabled: false
+telemetry:
+  shared_metrics:
+    enabled: false
+    send: false
+    offer_version: 2
+updates:
+  pre_update_backup: false
+  backup_keep: 5
+  non_interactive_local_changes: stash
+secrets:
+  bitwarden:
+    enabled: true
+    project_id: 7173d0ef-7c7d-4356-b98f-b3d20010b2e7
+  command:
+    enabled: true
+    command: /usr/local/bin/python3 /Users/elvis/.hermes/scripts/noosphere_keys.py
+    helper_timeout_seconds: 10
+    override_existing: true
+  sources:
+    - bitwarden
+    - command
+_config_version: 50
+session_reset:
+  mode: none
+  idle_minutes: 1440
+  at_hour: 4
+group_sessions_per_user: true
+platform_toolsets:
+  cli:
+    - clarify
+    - code_execution
+    - delegation
+    - file
+    - memory
+    - omh
+    - session_search
+    - skills
+    - terminal
+    - todo
+    - web
+  telegram:
+    - hermes-telegram
+  discord:
+    - hermes-discord
+  whatsapp:
+    - hermes-whatsapp
+  slack:
+    - hermes-slack
+  signal:
+    - hermes-signal
+  qqbot:
+    - hermes-qqbot
+  yuanbao:
+    - hermes-yuanbao
+  teams:
+    - hermes-teams
+  google_chat:
+    - hermes-google_chat
+image_gen:
+  provider: nous
+mcp_servers:
+  hermes-cloud:
+    url: https://portal.nousresearch.com/mcp
+    auth: oauth
+    enabled: false
+  liner:
+    url: https://platform.liner.com/api/v1/mcp
+    auth: oauth
+    enabled: false
+
+  aws-knowledge:
+    url: https://knowledge-mcp.global.api.aws
+    enabled: false
+    tools:
+      exclude:
+        - aws___retrieve_skill
+  betterstack:
+    url: https://mcp.betterstack.com
+    auth: oauth
+    enabled: false
+    tools:
+      exclude:
+        - search_documentation
+        - Search documentation
+        - '*instructions*'
+        - execute_query
+        - Execute query
+        - create_cloud_connection
+        - Create cloud connection
+        - '*team_member*'
+        - '*team member*'
+  cloudflare:
+    url: https://mcp.cloudflare.com/mcp?codemode=false
+    auth: oauth
+    enabled: false
+    tools:
+      exclude:
+        - docs
+        - '*_radar_*'
+        - '*_accounts_magic_*'
+        - '*_accounts_mnm_*'
+        - '*_accounts_cni_*'
+        - '*_accounts_teamnet_*'
+        - '*_accounts_cloudforceone_*'
+        - '*_accounts_dlp_*'
+        - '*_accounts_devices*'
+        - '*_accounts_dex_*'
+        - '*_accounts_datasecurity_*'
+        - '*_accounts_emailsecurity_*'
+        - '*_accounts_scim_*'
+        - '*_accounts_gateway*'
+        - '*_accounts_zerotrust_*'
+        - '*_accounts_one_*'
+        - '*_accounts_brandprotection_*'
+        - '*_accounts_intel_*'
+        - '*_accounts_urlscanner_*'
+        - '*_accounts_vuln_scanner_*'
+        - '*_zones_securitycenter_*'
+        - '*_accounts_securitycenter_*'
+        - '*_zones_api_gateway_*'
+        - '*_zones_schema_validation*'
+        - '*_zones_token_validation*'
+        - '*_zones_waiting_rooms*'
+        - '*_accounts_addressing_*'
+        - '*_accounts_shares*'
+        - '*_accounts_slurper_*'
+        - '*_zones_web3_*'
+        - '*_accounts_flagship_*'
+        - '*_zones_secondary_dns_*'
+        - '*_accounts_secondary_dns_*'
+        - '*_user_load_balancers*'
+  context7:
+    url: https://mcp.context7.com/mcp
+    enabled: false
+  figma:
+    url: https://mcp.figma.com/mcp
+    auth: oauth
+    enabled: false
+  indeed:
+    url: https://mcp.indeed.com/claude/mcp
+    auth: oauth
+    enabled: false
+  hugging_face:
+    url: https://huggingface.co/mcp
+    auth: oauth
+    enabled: false
+  notion:
+    url: https://mcp.notion.com/mcp
+    auth: oauth
+    enabled: false
+  mempalace:
+    command: mempalace-mcp
+    args:
+      - --palace
+      - /Users/elvis/.mempalace/palace
+    enabled: false
+plugins:
+  enabled:
+    - honcho
+    - omh
+  disabled: []
+  entries:
+    omh:
+      settings:
+        omh_home: '/Users/elvis/.omh'
+command_allowlist:
+  - execute_code
+  - script execution via heredoc
+approvals:
+  mode: smart
+  timeout: 900
+known_plugin_toolsets:
+  cli:
+    - a2a
+    - omh
+known_builtin_toolsets:
+  cli:
+    - browser
+    - clarify
+    - code_execution
+    - computer_use
+    - connections
+    - context_engine
+    - cronjob
+    - delegation
+    - discord
+    - discord_admin
+    - file
+    - image_gen
+    - kanban
+    - memory
+    - session_search
+    - skills
+    - stt
+    - terminal
+    - todo
+    - tts
+    - video
+    - video_gen
+    - vision
+    - web
+    - x_search
+    - yuanbao

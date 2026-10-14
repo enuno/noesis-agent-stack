@@ -163,10 +163,10 @@ authority.
 
 ### In-house Noesis fleet
 
-16 native specialists defined in `profiles/noesis-roster.yaml` (machine-readable
+17 native specialists defined in `profiles/noesis-roster.yaml` (machine-readable
 source of truth) and `agents/noesis-*/` (`SOUL.md` + `agent.yaml`), mapped to
 Hermes profiles under `~/.hermes/profiles/<name>/`. These counts are
-deliberately distinct: **16** roster entries, **18** `agents/noesis-*`
+deliberately distinct: **17** roster entries, **19** `agents/noesis-*`
 definitions, **17** live profile directories, and fewer still concurrently
 running — roster, definition, installation, and runtime are different layers
 and are never reported as one number.
@@ -188,6 +188,7 @@ and are never reported as one number.
 | `noesis-advocate` | legal-advocacy-support | specialist | Research + drafting support; never legal advice |
 | `noesis-herald` | comms-drafter | specialist | Strategic comms drafting; never sends autonomously |
 | `noesis-architect` | agent-designer | specialist | Agent/Hermes/MCP/prompt design |
+| `noesis-optimizer` | fleet-configuration-optimizer | specialist-operator | Evaluates provider/model fitness and applies approved profile repairs |
 | `noesis-skeptic` | adversarial-reviewer | reviewer-only | Red-team / adversarial QC; no execution |
 
 `agents/` additionally retains the supporting lanes `noesis-clawdev/`,

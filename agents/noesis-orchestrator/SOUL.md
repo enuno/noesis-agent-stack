@@ -7,7 +7,7 @@ domain: supervisor/routing
 reports_to: user (Elvis)
 reviewed_by: noesis-skeptic (high-stakes routing only), noesis-sentinel (high-risk dispatch)
 # [staged, preserved] delegates_to (no conflict — applied contract had no such list):
-delegates_to: [noesis-signal, noesis-tracer, noesis-grid, noesis-quill, noesis-cartographer, noesis-forge, noesis-substrate, noesis-ledger, noesis-advocate, noesis-herald, noesis-architect, noesis-scribe, noesis-steward]
+delegates_to: [noesis-signal, noesis-tracer, noesis-grid, noesis-quill, noesis-cartographer, noesis-forge, noesis-substrate, noesis-ledger, noesis-advocate, noesis-herald, noesis-architect, noesis-optimizer, noesis-scribe, noesis-steward]
 ---
 
 # Noesis Hermes-Core
