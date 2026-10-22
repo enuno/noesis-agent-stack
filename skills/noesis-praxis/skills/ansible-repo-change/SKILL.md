@@ -150,6 +150,36 @@ only if you actually verify it:
 4. Fix what is verified, re-run the full offline suite after each batch, and report
    remaining findings as explicit blockers rather than closing the task.
 
+## Evidence discipline for negative findings
+
+A claim that something is ABSENT — a pattern, a file, a credential — is a claim
+that must survive four gates:
+
+1. **successful retrieval** (the fetch returned content, not an error page),
+2. **intended artifact** (what came back is the file you meant, checked by
+   name/frontmatter/hash, not merely that bytes arrived),
+3. **sufficient completeness** (enough content was inspected to support the
+   specific claim),
+4. **successful inspection** (the search itself ran to completion).
+
+If any gate fails, the honest result is **UNKNOWN** or **BLOCKED** — never
+"verified absent", "0 occurrences", or "clean".
+
+- **A 404 is a failed retrieval, not an absent result.** `curl` returns a 404
+  body, `grep` finds nothing in it, and that zero is indistinguishable from a
+  genuine absence unless the HTTP status was checked. This is not theoretical: a
+  wrong path produced a 404 here, and the real finding was missed until the path
+  was corrected.
+- **Report negatives with their evidence.** "VERIFIED-ABSENT across 2 files,
+  14,810 chars scanned" is auditable; "clean" is not.
+- **Byte counts from API listings are blob bytes; decoded text is fewer
+  characters.** Multi-byte UTF-8 (em-dashes, arrows) count as one character and
+  three bytes. That gap is expected, not truncation — confirm with the content
+  hash, and do not normalize line endings or encoding when comparing.
+
+Canonical review record with the worked example:
+`provenance/reviews/ansible-candidate-review-2026-10-22.md`.
+
 ## Pitfalls
 
 - **A `.gitignore` pattern can silently swallow a new source file.** Patterns like
