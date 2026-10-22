@@ -1,0 +1,169 @@
+# Deployment map — noesis-praxis skill tree
+#
+# requested skill -> repository-managed directory -> active Hermes runtime
+# discovery path, plus actual discovery status as last verified.
+#
+# Runtime root checked: /home/elvis/.hermes/skills (noesis-praxis / default
+# Hermes profile). Deployment mechanism: `rsync -a --delete` of
+# skills/noesis-praxis/skills/<name>/ to ~/.hermes/skills/noesis-praxis/<name>/
+# from the commit recorded in provenance/manifest.yaml -- a deployed snapshot
+# of a reviewed commit, not a live link to the working tree, per
+# governance/MAINTENANCE.md's runtime-first-exception guidance ("keep the
+# runtime from writing the canonical repository where feasible").
+#
+# Verified via skills_list(category='noesis-praxis') and
+# `tests/validate_skill_tree.py --runtime-root ~/.hermes/skills`
+# (0 drift errors against the files that ARE independently discoverable).
+#
+# discovery_status values:
+#   discovered         - independently loadable under this name right now
+#   shadowed           - deployed, byte-verified, zero drift, but a
+#                        pre-existing skill of the same name in this profile
+#                        wins; this copy is not currently loadable by name
+#   not_installed      - disposition C (blocked); nothing deployed
+
+runtime_root: /home/elvis/.hermes/skills
+deployment_mechanism: "rsync -a --delete (snapshot of a pinned reviewed commit)"
+
+mappings:
+  - skill: tailscale
+    repo_dir: skills/tailscale
+    runtime_path: noesis-praxis/tailscale
+    discovery_status: discovered
+
+  - skill: bash-script-validator
+    repo_dir: skills/bash-script-validator
+    runtime_path: noesis-praxis/bash-script-validator
+    discovery_status: discovered
+
+  - skill: bash-script-generator
+    repo_dir: skills/bash-script-generator
+    runtime_path: noesis-praxis/bash-script-generator
+    discovery_status: discovered
+
+  - skill: github-actions-validator
+    repo_dir: skills/github-actions-validator
+    runtime_path: noesis-praxis/github-actions-validator
+    discovery_status: discovered
+
+  - skill: logql-generator
+    repo_dir: skills/logql-generator
+    runtime_path: noesis-praxis/logql-generator
+    discovery_status: shadowed
+    shadow_note: "pre-existing flat ~/.hermes/skills/logql-generator shares this name and wins"
+
+  - skill: promql-generator
+    repo_dir: skills/promql-generator
+    runtime_path: noesis-praxis/promql-generator
+    discovery_status: shadowed
+    shadow_note: "pre-existing flat ~/.hermes/skills/promql-generator shares this name and wins"
+
+  - skill: promql-validator
+    repo_dir: skills/promql-validator
+    runtime_path: noesis-praxis/promql-validator
+    discovery_status: discovered
+
+  - skill: ansible-generator
+    repo_dir: skills/ansible-generator
+    runtime_path: noesis-praxis/ansible-generator
+    discovery_status: discovered
+
+  - skill: ansible-validator
+    repo_dir: null
+    runtime_path: null
+    discovery_status: not_installed
+    note: "disposition C -- blocked, not copied into the discoverable tree"
+
+  - skill: terraform-generator
+    repo_dir: skills/terraform-generator
+    runtime_path: noesis-praxis/terraform-generator
+    discovery_status: shadowed
+    shadow_note: "pre-existing flat ~/.hermes/skills/terraform-generator shares this name and wins"
+
+  - skill: terraform-validator
+    repo_dir: skills/terraform-validator
+    runtime_path: noesis-praxis/terraform-validator
+    discovery_status: discovered
+
+  - skill: k8s-debug
+    repo_dir: skills/k8s-debug
+    runtime_path: noesis-praxis/k8s-debug
+    discovery_status: shadowed
+    shadow_note: "pre-existing flat ~/.hermes/skills/k8s-debug shares this name and wins"
+
+  - skill: k8s-yaml-generator
+    repo_dir: skills/k8s-yaml-generator
+    runtime_path: noesis-praxis/k8s-yaml-generator
+    discovery_status: shadowed
+    shadow_note: "pre-existing flat ~/.hermes/skills/k8s-yaml-generator shares this name and wins"
+
+  - skill: k8s-yaml-validator
+    repo_dir: skills/k8s-yaml-validator
+    runtime_path: noesis-praxis/k8s-yaml-validator
+    discovery_status: shadowed
+    shadow_note: >
+      pre-existing flat ~/.hermes/skills/k8s-yaml-validator shares this name
+      and wins; that flat copy still has the unpatched silent pip-install
+      behavior fixed in this tree's reviewed adaptation
+
+  - skill: dockerfile-generator
+    repo_dir: skills/dockerfile-generator
+    runtime_path: noesis-praxis/dockerfile-generator
+    discovery_status: discovered
+
+  - skill: dockerfile-validator
+    repo_dir: skills/dockerfile-validator
+    runtime_path: noesis-praxis/dockerfile-validator
+    discovery_status: discovered
+
+  - skill: helm-generator
+    repo_dir: skills/helm-generator
+    runtime_path: noesis-praxis/helm-generator
+    discovery_status: shadowed
+    shadow_note: "pre-existing flat ~/.hermes/skills/helm-generator shares this name and wins"
+
+  - skill: helm-validator
+    repo_dir: skills/helm-validator
+    runtime_path: noesis-praxis/helm-validator
+    discovery_status: discovered
+
+  - skill: k3s
+    repo_dir: skills/k3s
+    runtime_path: noesis-praxis/k3s
+    discovery_status: discovered
+
+  - skill: cloudflare
+    repo_dir: skills/cloudflare
+    runtime_path: noesis-praxis/cloudflare
+    discovery_status: discovered
+
+  - skill: cloudflare-one
+    repo_dir: skills/cloudflare-one
+    runtime_path: noesis-praxis/cloudflare-one
+    discovery_status: shadowed
+    shadow_note: >
+      pre-existing flat ~/.hermes/skills/cloudflare-one shares this name and
+      wins; content is byte-identical (diff-verified), so no functional loss,
+      but it is governed from here now rather than from the flat copy
+
+  - skill: docker-management
+    repo_dir: skills/docker-management
+    runtime_path: noesis-praxis/docker-management
+    discovery_status: discovered
+    note: >
+      loaded under the disambiguated name "noesis-praxis/docker-management" --
+      Hermes auto-prefixed this one rather than hiding it, unlike the 8
+      shadowed entries above; that inconsistency in Hermes's own loader is
+      observed, not something this task changed
+
+summary:
+  installed_total: 21
+  blocked_total: 1
+  discovered: 13
+  shadowed: 8
+  open_item: >
+    Resolving the shadowing (rename the governed copy, or retire/replace the
+    old flat copy with explicit authorization) was not performed here --
+    removing or renaming pre-existing, unrelated content in this profile is
+    outside "minimal configuration changes needed to load reviewed skills"
+    and needs separate, explicit authorization.

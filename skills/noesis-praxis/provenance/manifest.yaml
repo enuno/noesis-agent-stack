@@ -1,0 +1,315 @@
+# Provenance manifest — noesis-praxis managed skill tree
+#
+# One entry per requested skill (22 total). `repository_directory` is the name
+# under skills/noesis-praxis/skills/ in THIS repo (empty/omitted for blocked
+# skills, which are not copied into the discoverable tree). `deployed_path` is
+# the relative path under a Hermes profile's skills/ root once the repo
+# commit is deployed to runtime (see governance/deployment-map.yaml).
+
+skills:
+  - requested_identifier: "tailscale/tailscale-skill: skills/tailscale"
+    upstream_source: "https://github.com/tailscale/tailscale-skill"
+    upstream_branch: main
+    upstream_commit: 4f05d353efc56962546aa26ccc59bb08ca699ad1
+    upstream_path: skills/tailscale
+    repository_directory: tailscale
+    disposition: A
+    status: installed
+    license: BSD-3-Clause
+    license_source: "repo-root LICENSE (Copyright (c) 2026 Tailscale Inc & contributors)"
+    deployed_path: noesis-praxis/tailscale
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/bash-script-validator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/bash-script-validator
+    repository_directory: bash-script-validator
+    disposition: B
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    adaptation: provenance/patches/bash-script-validator/ADAPTATION.md
+    deployed_path: noesis-praxis/bash-script-validator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/bash-script-generator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/bash-script-generator
+    repository_directory: bash-script-generator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/bash-script-generator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/github-actions-validator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/github-actions-validator
+    repository_directory: github-actions-validator
+    disposition: B
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    adaptation: provenance/patches/github-actions-validator/ADAPTATION.md
+    deployed_path: noesis-praxis/github-actions-validator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/logql-generator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/logql-generator
+    repository_directory: logql-generator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/logql-generator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/promql-generator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/promql-generator
+    repository_directory: promql-generator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/promql-generator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/promql-validator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/promql-validator
+    repository_directory: promql-validator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/promql-validator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/ansible-generator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/ansible-generator
+    repository_directory: ansible-generator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/ansible-generator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/ansible-validator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/ansible-validator
+    repository_directory: null
+    disposition: C
+    status: blocked
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    block_reason: >
+      SKILL.md documents, as mandatory default behavior (not opt-in), that any
+      role containing a molecule/ directory is tested by automatically running
+      scripts/test_role.sh, which silently pip-installs molecule/ansible-core/
+      ansible-lint/yamllint into a temp venv with no prompt and then actually
+      executes the role's tasks for real via Molecule's create/converge/verify/
+      destroy cycle (not a dry-run). validate_playbook_security.sh and
+      validate_role_security.sh separately pip-install checkov unprompted.
+      Blocked until the upstream SKILL.md is rewritten to make Molecule
+      execution and any pip install strictly opt-in / explicitly confirmed by
+      the user, per governance/REVIEW.md classification "unsafe automatic
+      behavior". No content from this skill is copied into the discoverable
+      skill tree.
+    deployed_path: null
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/terraform-generator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/terraform-generator
+    repository_directory: terraform-generator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/terraform-generator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/terraform-validator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/terraform-validator
+    repository_directory: terraform-validator
+    disposition: B
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    adaptation: provenance/patches/terraform-validator/ADAPTATION.md
+    deployed_path: noesis-praxis/terraform-validator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/k8s-debug"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/k8s-debug
+    repository_directory: k8s-debug
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    notes: >
+      SKILL.md already states "Default mode is read-only diagnosis first. Only
+      execute disruptive commands after confirming blast radius and rollback."
+      — verified against scripts/ (no unconditional kubectl delete/apply/exec).
+    deployed_path: noesis-praxis/k8s-debug
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/k8s-yaml-generator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/k8s-yaml-generator
+    repository_directory: k8s-yaml-generator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/k8s-yaml-generator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/k8s-yaml-validator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/k8s-yaml-validator
+    repository_directory: k8s-yaml-validator
+    disposition: B
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    adaptation: provenance/patches/k8s-yaml-validator/ADAPTATION.md
+    deployed_path: noesis-praxis/k8s-yaml-validator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/dockerfile-generator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/dockerfile-generator
+    repository_directory: dockerfile-generator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/dockerfile-generator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/dockerfile-validator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/dockerfile-validator
+    repository_directory: dockerfile-validator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/dockerfile-validator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/helm-generator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/helm-generator
+    repository_directory: helm-generator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/helm-generator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/helm-validator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/helm-validator
+    repository_directory: helm-validator
+    disposition: B
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    adaptation: provenance/patches/helm-validator/ADAPTATION.md
+    deployed_path: noesis-praxis/helm-validator
+
+  - requested_identifier: "dashed/claude-marketplace: plugins/k3s/skills/k3s (requested entry point: raw SKILL.md URL; full directory retrieved)"
+    upstream_source: "https://github.com/dashed/claude-marketplace"
+    upstream_branch: master
+    upstream_commit: 8c15cbba6eea860c4161bf3b2e0ea11be9ca4942
+    upstream_path: plugins/k3s/skills/k3s
+    repository_directory: k3s
+    disposition: A
+    status: installed
+    license: MIT
+    license_source: ".claude-plugin/marketplace.json plugin entry (license field); no repo-root LICENSE file"
+    notes: >
+      Corrected path/branch: requested branch was unspecified; repo's actual
+      default branch is "master", not "main". A first delegated review attempt
+      for this skill returned corrupted/incorrect content (verbatim tailscale
+      output) and was discarded; this entry reflects a direct re-review of the
+      real clone on disk.
+    deployed_path: noesis-praxis/k3s
+
+  - requested_identifier: "cloudflare/skills: skills/cloudflare"
+    upstream_source: "https://github.com/cloudflare/skills"
+    upstream_branch: main
+    upstream_commit: 86505e44f87d801aa1864a3c4109e9a8ae5c409f
+    upstream_path: skills/cloudflare
+    repository_directory: cloudflare
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/cloudflare
+
+  - requested_identifier: "cloudflare/skills: skills/cloudflare-one"
+    upstream_source: "https://github.com/cloudflare/skills"
+    upstream_branch: main
+    upstream_commit: 86505e44f87d801aa1864a3c4109e9a8ae5c409f
+    upstream_path: skills/cloudflare-one
+    repository_directory: cloudflare-one
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    notes: >
+      Byte-for-byte identical (diff-verified) to the "cloudflare-one" skill
+      already present in this profile's default/bundled skill set at
+      ~/.hermes/skills/cloudflare-one/SKILL.md. Not a collision: same content,
+      now also tracked and reviewed here as the canonical source.
+    deployed_path: noesis-praxis/cloudflare-one
+
+  - requested_identifier: "official/devops/docker-management"
+    upstream_source: "https://github.com/NousResearch/hermes-agent"
+    upstream_branch: null
+    upstream_commit: 4d04303818b61bf3aa09278af48356315515965b
+    upstream_path: optional-skills/devops/docker-management
+    repository_directory: docker-management
+    disposition: A
+    status: installed
+    license: MIT
+    license_source: "SKILL.md frontmatter (author: sprmn24, license: MIT) — sprmn24 is the credited upstream skill author inside NousResearch's own official packaging, not a separate competing skill"
+    notes: >
+      Resolved via the installed Hermes version's own hermes-agent checkout at
+      /home/elvis/.hermes/hermes-agent (AGENTS.md + git metadata), not guessed.
+      Byte-for-byte identical (diff-verified) to the copy already present in
+      this profile's default skill bundle at
+      ~/.hermes/skills/devops/docker-management/SKILL.md. An earlier working
+      note in this task's history speculated this was a naming collision with
+      a separate third-party skill; re-checked directly and that speculation
+      was incorrect — there is exactly one docker-management skill in the
+      profile, and it matches this entry.
+    deployed_path: noesis-praxis/docker-management
