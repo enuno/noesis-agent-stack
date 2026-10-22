@@ -20,7 +20,9 @@ skills/noesis-praxis/
 ├── provenance/
 │   ├── manifest.yaml         # per-skill source, pinned commit, disposition, license
 │   ├── checksums.sha256      # sha256 of every payload file under skills/
-│   ├── reviews/              # (reserved for longer-form per-skill review notes)
+│   ├── reviews/              # longer-form review notes; also holds reference-only
+│   │                         # material for reviewed-but-blocked packages (outside
+│   │                         # the runtime-discoverable skills/ root)
 │   └── patches/<name>/       # ADAPTATION.md per disposition-B skill: what/why
 └── tests/
     └── validate_skill_tree.py   # static validation, see below
@@ -48,11 +50,13 @@ including the runtime-first exception and the blocked-commit procedure.
 
 ## Review methodology
 
-Every skill here carries one of three dispositions (A: installed unchanged,
+Every skill here carries one of four dispositions (A: installed unchanged,
 B: installed with a documented adaptation, C: staged and blocked — not
-installed). See `governance/REVIEW.md` for the full classification scheme
-and the review log, and `provenance/manifest.yaml` for the per-skill record
-(source, pinned commit, disposition, license, deployed path).
+installed, N: Noesis-authored — not a review of third-party content, cites
+official tool documentation directly). See `governance/REVIEW.md` for the
+full classification scheme and the review log, and `provenance/manifest.yaml`
+for the per-skill record (source, pinned commit, disposition, license,
+deployed path).
 
 ## Validation
 

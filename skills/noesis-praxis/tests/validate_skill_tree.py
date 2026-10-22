@@ -204,8 +204,11 @@ def check_manifest_completeness(result: Result) -> dict:
         if entry is None:
             result.error(f"{skill_dir.name}: no provenance/manifest.yaml entry")
             continue
-        for field in ("requested_identifier", "upstream_source", "upstream_commit",
-                      "disposition", "license"):
+        required_fields = ["requested_identifier", "disposition", "license"]
+        if entry.get("disposition") != "N":
+            # "N" = Noesis-authored content has no upstream revision to pin.
+            required_fields += ["upstream_source", "upstream_commit"]
+        for field in required_fields:
             if not entry.get(field):
                 result.error(f"{skill_dir.name}: manifest entry missing '{field}'")
     for name, entry in by_dir.items():

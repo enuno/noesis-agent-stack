@@ -81,3 +81,45 @@ See `provenance/manifest.yaml` for the authoritative per-skill table (source
 repo, pinned commit, found/corrected path, disposition, deployed location).
 Full per-skill review notes (the complete findings each skill was reviewed
 against) live in `provenance/reviews/<skill>.md`.
+
+### Batch 2026-10-22 (same day, second pass) — network/security/observability extension
+
+Added: 7 Grafana first-party documentation skills (disposition A, 2 of them
+renamed for routing disambiguation against pre-existing promql/logql-named
+skills), 2 Grafana Cloud cardinality skills adapted for self-hosted use
+(disposition B), 1 blocked Grafana Cloud skill (loki-label-analyzer,
+disposition C — see provenance/reviews/grafana-loki-label-analyzer-blocked.md
+for the unresolved instruction-injection finding behind that block), 1
+firewall reference package adapted from linux-skills (disposition B, SSL/
+Certbot content stripped, a sibling claude-dev-suite package deferred as
+redundant), and 11 new Noesis-authored operational skills (disposition N —
+authored directly against official tool documentation, not a review of
+third-party content) covering network scanning, packet analysis, firewall
+audit/change/container-interaction, fail2ban operations, and the full
+observability lifecycle (deploy-discovery, metrics investigation, dashboard
+management, alert management, stack self-health).
+
+10 NetClaw (automateyournetwork/netclaw) packages were reviewed and found to
+depend entirely on MCP tool integrations (nmap-mcp, nsm-mcp, analysis-mcp,
+packet-buddy-mcp, mcp-grafana, prometheus-mcp-server) not installed in this
+Hermes profile. None were installed into the discoverable skill tree. 5 of
+the 10 (packet-analysis, nsm-ids-triage, nsm-session-pivot,
+network-data-analysis, prometheus-monitoring) had genuinely valuable,
+harness-agnostic procedural knowledge worth keeping even unexecutable, and
+are preserved as reviewed reference material under
+`provenance/reviews/netclaw/` (outside active skill discovery, per this
+task's explicit instruction for exactly this situation). The other 5 (3
+nmap-* packages with unverifiable safety claims or stealth/evasion
+techniques presented as routine, gtrace-path-analysis with no backend to
+even inspect, and grafana-observability whose default tool surface allows
+unauthorized dashboard/alert mutation) were judged not worth preserving even
+as inert text — see `provenance/reviews/blocked-and-deferred.md`.
+
+One subagent-retrieval failure was caught and corrected mid-batch during
+the *first* 22-skill batch: a delegated review of `dashed/claude-marketplace`
+(k3s) returned corrupted output (verbatim content from an unrelated
+tailscale-skill review task). That result was discarded entirely and the
+retrieval/review was redone directly against the real clone on disk — see
+that batch's manifest entry for the corrected branch (`master`, not `main`)
+and commit. No equivalent failure occurred in this second batch's 3
+subagents.

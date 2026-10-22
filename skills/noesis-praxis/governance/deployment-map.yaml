@@ -167,3 +167,133 @@ summary:
     removing or renaming pre-existing, unrelated content in this profile is
     outside "minimal configuration changes needed to load reviewed skills"
     and needs separate, explicit authorization.
+
+# ===== Batch 2026-10-22 (network/security/observability extension) =====
+# All 21 new skills discovered cleanly -- zero new name-shadowing introduced
+# by this batch (verified via skills_list(category='noesis-praxis'): count
+# went from 13 to 34, i.e. +21, with the same pre-existing 8 shadowed names
+# from batch 1 still shadowed and unaffected).
+
+mappings_batch2:
+  - skill: grafana-oss
+    repo_dir: skills/grafana-oss
+    runtime_path: noesis-praxis/grafana-oss
+    discovery_status: discovered
+
+  - skill: dashboarding
+    repo_dir: skills/dashboarding
+    runtime_path: noesis-praxis/dashboarding
+    discovery_status: discovered
+
+  - skill: grafana-promql
+    repo_dir: skills/grafana-promql
+    runtime_path: noesis-praxis/grafana-promql
+    discovery_status: discovered
+    note: "renamed from upstream 'promql' for routing disambiguation; discovered cleanly under the new name"
+
+  - skill: alerting-irm
+    repo_dir: skills/alerting-irm
+    runtime_path: noesis-praxis/alerting-irm
+    discovery_status: discovered
+
+  - skill: alloy
+    repo_dir: skills/alloy
+    runtime_path: noesis-praxis/alloy
+    discovery_status: discovered
+
+  - skill: prometheus
+    repo_dir: skills/prometheus
+    runtime_path: noesis-praxis/prometheus
+    discovery_status: discovered
+
+  - skill: grafana-loki
+    repo_dir: skills/grafana-loki
+    runtime_path: noesis-praxis/grafana-loki
+    discovery_status: discovered
+    note: "renamed from upstream 'loki' for routing disambiguation; discovered cleanly under the new name"
+
+  - skill: prometheus-label-strategy
+    repo_dir: skills/prometheus-label-strategy
+    runtime_path: noesis-praxis/prometheus-label-strategy
+    discovery_status: discovered
+
+  - skill: prometheus-cardinality-troubleshooter
+    repo_dir: skills/prometheus-cardinality-troubleshooter
+    runtime_path: noesis-praxis/prometheus-cardinality-troubleshooter
+    discovery_status: discovered
+
+  - skill: linux-firewall-reference
+    repo_dir: skills/linux-firewall-reference
+    runtime_path: noesis-praxis/linux-firewall-reference
+    discovery_status: discovered
+
+  - skill: praxis-network-scan
+    repo_dir: skills/praxis-network-scan
+    runtime_path: noesis-praxis/praxis-network-scan
+    discovery_status: discovered
+
+  - skill: praxis-packet-analysis
+    repo_dir: skills/praxis-packet-analysis
+    runtime_path: noesis-praxis/praxis-packet-analysis
+    discovery_status: discovered
+
+  - skill: praxis-firewall-audit
+    repo_dir: skills/praxis-firewall-audit
+    runtime_path: noesis-praxis/praxis-firewall-audit
+    discovery_status: discovered
+
+  - skill: praxis-firewall-change
+    repo_dir: skills/praxis-firewall-change
+    runtime_path: noesis-praxis/praxis-firewall-change
+    discovery_status: discovered
+
+  - skill: praxis-container-firewall
+    repo_dir: skills/praxis-container-firewall
+    runtime_path: noesis-praxis/praxis-container-firewall
+    discovery_status: discovered
+
+  - skill: praxis-fail2ban-operations
+    repo_dir: skills/praxis-fail2ban-operations
+    runtime_path: noesis-praxis/praxis-fail2ban-operations
+    discovery_status: discovered
+
+  - skill: praxis-observability-deploy
+    repo_dir: skills/praxis-observability-deploy
+    runtime_path: noesis-praxis/praxis-observability-deploy
+    discovery_status: discovered
+
+  - skill: praxis-metrics-investigate
+    repo_dir: skills/praxis-metrics-investigate
+    runtime_path: noesis-praxis/praxis-metrics-investigate
+    discovery_status: discovered
+
+  - skill: praxis-dashboard-management
+    repo_dir: skills/praxis-dashboard-management
+    runtime_path: noesis-praxis/praxis-dashboard-management
+    discovery_status: discovered
+
+  - skill: praxis-alert-management
+    repo_dir: skills/praxis-alert-management
+    runtime_path: noesis-praxis/praxis-alert-management
+    discovery_status: discovered
+
+  - skill: praxis-observability-health
+    repo_dir: skills/praxis-observability-health
+    runtime_path: noesis-praxis/praxis-observability-health
+    discovery_status: discovered
+
+summary_batch2:
+  installed_total: 21
+  blocked_total: 11
+  discovered: 21
+  shadowed: 0
+  new_shadowing_introduced: 0
+  blocked_detail: >
+    1 grafana (loki-label-analyzer), 10 netclaw (3 nmap-* + gtrace-path-analysis
+    + nsm-ids-triage + nsm-session-pivot + network-data-analysis +
+    grafana-observability + prometheus-monitoring), 1 claude-dev-suite firewall
+    (deferred, not "blocked" -- status recorded precisely in
+    provenance/manifest.yaml, not rounded into this count's language loosely).
+    See provenance/manifest.yaml for the authoritative per-package disposition
+    and provenance/reviews/ for the detailed rationale on each blocked/deferred
+    package.
