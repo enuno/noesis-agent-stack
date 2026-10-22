@@ -16,7 +16,20 @@ Use this skill when the request is to generate or scaffold Ansible content, for 
 - "Initialize an Ansible project with ansible.cfg and requirements.yml."
 - "Give me a quick Ansible snippet to install Docker."
 
-Do not use this skill as the primary workflow when the request is validation/debug-only (syntax errors, lint failures, Molecule/test failures). Use `ansible-validator` for those cases.
+Do not use this skill when the request is validation/debug-only (syntax errors, lint failures, Molecule/test failures).
+
+**Check the target before starting this flow.** This skill assumes a blank or
+near-blank project and reaches for `assets/templates/`. If the repo already has
+roles, conventions, and deployed state, you are in the wrong skill — the template
+flow will produce files that ignore the repo's own layout and break callers. Route
+to `ansible-repo-change`, which covers extending an existing repo in place:
+preserving an existing deploy path when adding an alternate one, repo-wide
+`become`/`remote_user` audits, secrets-manager escrow, and offline validation when
+a vault password is unavailable.
+
+There is no `ansible-validator` skill in this library; when no dedicated validator
+is available, run `ansible-lint --offline` plus `ansible-playbook --syntax-check`
+and report exactly which ran.
 
 ## Deterministic Execution Flow
 
@@ -90,8 +103,8 @@ Use the matrix below to keep validation deterministic and non-blocking.
 
 | Scenario | Default behavior | Allowed fallback | What to report |
 | --- | --- | --- | --- |
-| `full-generation` | Run `ansible-validator` after generation and after each fix pass | If validator/tools are unavailable, run manual static checks (YAML shape, placeholder scan, FQCN/idempotency/security review) and provide exact deferred validation commands | Explicitly list which checks ran, which were skipped, and why |
-| `snippet-only` | Skip full validator by default; do inline sanity checks | Run full validator only if user asks or snippet is promoted to full file | State that validation was limited because output is snippet-only |
+| `full-generation` | Run the offline checks that exist: `ansible-lint --offline`, `ansible-playbook --syntax-check` against a real inventory, `yamllint` on non-template YAML, plus manual static review (YAML shape, placeholder scan, FQCN/idempotency/security) | If any tool is unavailable, run the remaining checks and record the exact deferred command for the missing one | Explicitly list which checks ran, which were skipped, and why |
+| `snippet-only` | Skip full validation by default; do inline sanity checks | Run the full offline set only if the user asks or the snippet is promoted to a full file | State that validation was limited because output is snippet-only |
 | `docs-only` | No runtime validation | None needed | State that no executable artifact was generated |
 | Offline environment (no web/docs access) | Continue with local references and templates | Skip external doc lookups; prefer builtin-module implementations; provide notes for later external verification | State offline constraint and impacted checks/lookups |
 
@@ -152,9 +165,10 @@ User prompt: "Create a playbook to deploy nginx with TLS on Ubuntu and RHEL."
 2. Gather/confirm required inputs (hosts, cert paths, become, service name).
 3. Extract required references (`best-practices.md`, `module-patterns.md`) and playbook template.
 4. Generate complete playbook with OS conditionals (`apt`/`dnf`), handlers, validation for config templates.
-5. Run `ansible-validator`.
-6. Fix issues and rerun until checks pass (or apply matrix fallback if tooling unavailable).
-7. Present output with validation summary, usage command, and prerequisites.
+5. Run the offline validation set (`ansible-lint --offline`, `ansible-playbook --syntax-check`, `yamllint`). Never execute the playbook to "see if it works" — that is a deployment, not a validation.
+6. Fix issues and rerun until checks pass, or record the matrix fallback if a tool is unavailable.
+7. Present output with an explicit validation summary: which commands ran, their real results, which did not run and why. Never report a check as passing that was skipped.
+8. Passing validation is NOT authorization to deploy. Deploy only when separately asked.
 
 ### Flow B: Quick Snippet (Task Block)
 

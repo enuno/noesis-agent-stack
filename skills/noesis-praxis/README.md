@@ -40,6 +40,36 @@ auditable convention alongside it — purely additive, no existing skill was
 touched or renamed. This is a proposed repository convention, not an
 existing Hermes API.
 
+## Ansible capability set
+
+| Skill | Role | Disposition |
+|---|---|---|
+| `ansible-generator` | Scaffold new playbooks/roles from templates | A (installed) |
+| `ansible-validator` | — | **C (blocked, not installed)** |
+| `ansible-repo-change` | Change an *existing* repo in place, safely | N (Noesis-authored) |
+
+`ansible-generator` and `ansible-repo-change` are complementary, not redundant.
+`ansible-generator` says so itself: it assumes a blank or near-blank project and
+reaches for `assets/templates/`, which produces files that ignore an existing
+repo's layout. `ansible-repo-change` covers the in-place case — preserving an
+existing deploy path when adding an alternate one, repo-wide
+`become`/`remote_user` audits, secrets-manager escrow, and honest offline
+validation when a vault password is unavailable.
+
+`ansible-validator` is deliberately absent. It was blocked (disposition C)
+because its SKILL.md documents, as mandatory default behaviour, auto-`pip
+install` of molecule/ansible-core/ansible-lint/yamllint and unprompted
+`checkov`, followed by a real Molecule create/converge/verify/destroy cycle —
+not a dry run. Use the offline set instead: `ansible-lint --offline`,
+`ansible-playbook --syntax-check`, `yamllint` on non-template YAML, and
+`helm lint`/`helm template` for charts. Passing those is **not** authorization to
+deploy.
+
+Behaviour fixtures for scenarios A-F live in
+`tests/test_ansible_behaviour_fixtures.py`. They are **static**: they assert the
+guardrails are present in the skill text. They do not drive a model and are not
+evidence of live agent behaviour.
+
 ## Maintenance policy
 
 **Every change to a skill under `skills/noesis-praxis/skills/` — update,

@@ -156,6 +156,14 @@ mappings:
       shadowed entries above; that inconsistency in Hermes's own loader is
       observed, not something this task changed
 
+  - skill: ansible-repo-change
+    repo_dir: skills/ansible-repo-change
+    runtime_path: noesis-praxis/ansible-repo-change
+    discovery_status: discovered
+  - skill: ansible-roles
+    repo_dir: skills/ansible-roles
+    runtime_path: noesis-praxis/ansible-roles
+    discovery_status: discovered
 summary:
   installed_total: 21
   blocked_total: 1

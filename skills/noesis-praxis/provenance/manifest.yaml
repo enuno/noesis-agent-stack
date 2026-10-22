@@ -859,3 +859,172 @@ skills:
       generic firewall guidance rather than installed as a second firewall
       skill. See provenance/reviews/blocked-and-deferred.md.
     deployed_path: null
+
+  # ---------------------------------------------------------------------------
+  # Ansible capability set — 2026-10-22 integration
+  # ---------------------------------------------------------------------------
+  - requested_identifier: "noesis-authored: skills/ansible-repo-change"
+    upstream_source: null
+    upstream_branch: null
+    upstream_commit: null
+    upstream_path: null
+    repository_directory: ansible-repo-change
+    disposition: N
+    status: installed
+    license: MIT
+    license_source: "SKILL.md frontmatter"
+    notes: >
+      Disposition N = Noesis-authored (not a review of upstream content).
+      Covers the in-place-repo-change capability that the third-party
+      `ansible-generator` explicitly disclaims (it scaffolds from templates and
+      says so itself), and that `ansible-validator` was blocked from covering
+      (disposition C: unprompted pip-install + real Molecule converge). Its
+      content was authored in-repo from verified operational failures, not
+      copied from any upstream; every pitfall in it corresponds to a bug that
+      was reproduced during the MCPJungle Kubernetes work. It carries a
+      references/secrets-escrow.md for the Bitwarden SM escrow ordering.
+    deployed_path: noesis-praxis/ansible-repo-change
+
+  # ---------------------------------------------------------------------------
+  # Ansible candidate review — 2026-10-22
+  # Priority P1 accepted; P2 rejected; general pool all rejected/deferred.
+  # Full reasoning: provenance/reviews/ansible-candidate-review-2026-10-22.md
+  # ---------------------------------------------------------------------------
+  - requested_identifier: "skills-sh/vinnie357/claude-skills: plugins/tools/ansible/skills/ansible-roles"
+    upstream_source: "https://github.com/vinnie357/claude-skills"
+    upstream_branch: main
+    upstream_commit: a8152d79589df3299ce4f0e57099bcdca29334ac
+    upstream_path: plugins/tools/ansible/skills/ansible-roles
+    repository_directory: ansible-roles
+    disposition: A
+    status: installed
+    license: MIT
+    license_source: "repo-root LICENSE (GitHub API license spdx_id=MIT)"
+    payload:
+      - "SKILL.md (sha256 dd67f1ff99531b6f...)"
+      - "references/jinja2-filters.md (sha256 cf6bd9e20ed83813...)"
+    notes: >
+      Accepted. Accepted on NON-OVERLAP, not on quality alone: the already-installed
+      ansible-generator ships 2253 lines of references that are module-usage
+      patterns and best practices, and contains ZERO occurrences of import_role,
+      include_role, or variable precedence. This skill supplies exactly those
+      role-semantics gaps (role layout, defaults-vs-vars precedence, static
+      import_role vs dynamic include_role, meta/main.yml dependencies, Jinja2).
+      Markdown-only payload, no installers, no hooks, no privilege or deploy
+      instructions. Its "Anti-fabrication" section documents that its filter
+      claims were verified against a live ansible-core and that two were found
+      inverted and corrected -- an epistemic practice worth keeping.
+    deployed_path: noesis-praxis/ansible-roles
+
+  - requested_identifier: "skills-sh/agentskillexchange/skills: skills/ansible-playbook-dry-run-validator"
+    upstream_source: "https://github.com/agentskillexchange/skills"
+    upstream_branch: main
+    upstream_commit: 5b15eb131d265a7294fb44978a337621ab826a26
+    upstream_path: skills/ansible-playbook-dry-run-validator
+    repository_directory: null
+    disposition: C
+    status: rejected
+    license: MIT
+    license_source: "repo-root LICENSE"
+    block_reason: >
+      Hollow and misleading, and rejected on CONTENT, not licensing -- this skill
+      is properly MIT-licensed. The SKILL.md contains ZERO actual instructions:
+      measured, it has 0 code fences, 0 occurrences of `--check`, and 0 of
+      `--syntax-check`; `ansible-lint` appears only inside the description string,
+      never as an instruction. The body is machine-scraped from the upstream
+      ansible/ansible README, so its name promises dry-run validation while
+      delivering none. It self-asserts verification ("security_reviewed") with no
+      supporting artifact and an unverifiable `github_stars: 68364`, and the
+      repo's own history contains "revert: restore canonical skill files after
+      unsafe sync". Adopting it would manufacture false confidence that validation
+      is covered. Nothing copied into the discoverable tree.
+    deployed_path: null
+
+  - requested_identifier: "skills-sh/greedychipmunk/agent-skills: ansible"
+    upstream_source: "https://github.com/greedychipmunk/agent-skills"
+    upstream_branch: main
+    upstream_commit: 641ae0c15acc340c6c38730fa052453b68318e18
+    upstream_path: ansible
+    repository_directory: null
+    disposition: C
+    status: rejected
+    license: MIT
+    license_source: "repo-root LICENSE"
+    block_reason: >
+      Properly licensed (MIT), and its SKILL.md guardrails are genuinely good
+      (always `--check --diff` first, `--limit` before a full run, avoid
+      command/shell when an idempotent module exists, "`become: true` requires
+      explicit approval", never commit plaintext passwords). REJECTED on the
+      bundled reference that contradicts them: `ansible/resources/install-and-setup.md`
+      recommends `host_key_checking = False` TWICE -- once as a config default
+      "disable for dynamic cloud environments", and once as the prescribed fix
+      for "Host key verification failed" ("set `host_key_checking = False` in
+      `ansible.cfg`"). That is a routine MITM shortcut this tree's policy forbids,
+      and it is the highest-impact finding in the candidate set. Compounding:
+      the skill is self-contradictory (opens with "All modules are idempotent by
+      default", then shows unguarded `shell` tasks), and recommends
+      `groups: [sudo, docker]` and `generate_ssh_key: yes` without an
+      authorization framing.
+    deployed_path: null
+
+  - requested_identifier: "skills-sh/1mangesh1/dev-skills-collection: ansible"
+    upstream_source: "https://github.com/1mangesh1/dev-skills-collection"
+    upstream_branch: main
+    upstream_commit: 23e297e5a4df82b222997d894aa518442db654d6
+    upstream_path: ansible
+    repository_directory: null
+    disposition: C
+    status: rejected
+    license: null
+    license_source: "README claims MIT but LICENSE returns HTTP 404; GitHub API license field is null"
+    block_reason: >
+      Rejected on two independent grounds. (1) NO LICENSE -- the README claims MIT
+      but no LICENSE file exists at HEAD (404) and the API reports license null, so
+      redistribution rights cannot be established and the content must not be
+      vendored. (2) Unsafe content: recommends `host_key_checking = False` (a
+      routine TLS/host-key shortcut this tree's policy forbids) and unprompted
+      `pip install molecule`.
+    deployed_path: null
+
+  - requested_identifier: "skills-sh/alisonaquinas/llm-ci-dev: ansible"
+    upstream_source: "https://github.com/alisonaquinas/llm-ci-dev"
+    upstream_branch: main
+    upstream_commit: 2448f76d61297078cbfc74e8cf026ab504406d3c
+    upstream_path: ansible
+    repository_directory: null
+    disposition: C
+    status: rejected
+    license: MIT
+    license_source: "repo-root LICENSE"
+    block_reason: >
+      Verbatim fork of greedychipmunk/agent-skills. All four shared resource files
+      are byte-identical by sha256 (command-cookbook.md 18c584b99732945e,
+      install-and-setup.md b975b5b422eebd8e, inventory-and-variables.md
+      77759bce747521ac, playbook-patterns.md 4ba01cc348b94243); only SKILL.md
+      differs by path renames. Inherits every rejection reason for G1 and adds a
+      second copy of the same content. Installing both would create a duplicate.
+    deployed_path: null
+
+  - requested_identifier: "skills-sh/nordz0r/skills: ansible-playbook"
+    upstream_source: "https://github.com/nordz0r/skills"
+    upstream_branch: main
+    upstream_commit: 625309c35d188dfec6058f093e8ae1ab5ed245b5
+    upstream_path: ansible-playbook
+    repository_directory: null
+    disposition: C
+    status: blocked
+    license: null
+    license_source: "NO LICENSE FILE ANYWHERE -- GitHub API license field is null, /LICENSE returns 404, and no license file appears among the 39 repo-root entries"
+    block_reason: >
+      Blocked on licensing despite having the strongest anti-unsafe content of all
+      six candidates: `host_key_checking = True`, an explicit warning that
+      `--check` lies when a module does not support check mode, "-vvv prints
+      secrets -- don't paste the full log into chat", CI guidance to use
+      ANSIBLE_VAULT_PASSWORD_FILE rather than --ask-vault-pass in a pipeline, and
+      a two-run idempotency proof procedure. Because no redistribution licence can
+      be established, its content must NOT be vendored into this repository.
+      Those specific lessons are captured Noesis-side as behaviour fixtures in
+      tests/test_ansible_behaviour_fixtures.py instead, which is the permitted
+      mechanism. If the upstream author adds a licence, this becomes a strong
+      candidate for a future review.
+    deployed_path: null
