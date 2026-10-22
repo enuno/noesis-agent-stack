@@ -5,6 +5,8 @@
 #         + description-uniqueness cosine guard.
 # Gate 2: W1b — no hardcoded ROSTER array may reappear in any apply script
 #         (roster yaml files are the single declared source).
+# Gate 3: skill-sync — no noesis-* skill in skills/ may drift from its live
+#         Hermes fleet working copy (shared/GUARDRAILS.global.yaml skills_sync).
 #
 # Self-test:  scripts/hooks/pre-commit --self-test
 #   Plants a fixture containing a hardcoded ROSTER and verifies Gate 2
@@ -16,6 +18,11 @@ cd "$REPO"
 
 W1B_PATTERN='^[[:space:]]*ROSTER=\('
 
+# Files staged in this commit, relative to the repo root.
+staged_files() {
+    git diff --cached --name-only --diff-filter=ACMR
+}
+
 guard_hardcoded_roster() {
     # Returns 0 when clean; prints offenders + returns 1 when found.
     local offenders
@@ -24,6 +31,25 @@ guard_hardcoded_roster() {
         echo "pre-commit: FAIL — hardcoded ROSTER reintroduced (W1b):" >&2
         echo "$offenders" >&2
         echo "Declare profiles in a roster yaml; apply scripts read rosters." >&2
+        return 1
+    fi
+    return 0
+}
+
+guard_skill_sync() {
+    # Gate 3. Skips cleanly when the commit does not touch tracked noesis
+    # skills. When it does, the durable copy must match the fleet copy.
+    local touched
+    touched="$(staged_files | grep -E '^skills/(noesis-[^/]+/|noesis-skills\.manifest\.json$)' || true)"
+    if [[ -z "$touched" ]]; then
+        return 0
+    fi
+    if ! python3 scripts/sync-noesis-skills.py --check; then
+        echo "pre-commit: FAIL — noesis skill drift (skills_sync policy)." >&2
+        echo "Local ~/.hermes profile skills are the working copy. Run:" >&2
+        echo "  scripts/sync-noesis-skills.py --sync" >&2
+        echo "then commit skills/noesis-*/ and skills/noesis-skills.manifest.json" >&2
+        echo "together in this same change." >&2
         return 1
     fi
     return 0
@@ -44,5 +70,6 @@ self_test() {
 [[ "${1:-}" == "--self-test" ]] && self_test
 
 guard_hardcoded_roster
+guard_skill_sync
 python3 agency/validate-specs.py
 echo "pre-commit: agency gates green"

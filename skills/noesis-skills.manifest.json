@@ -1,0 +1,167 @@
+{
+  "version": 2,
+  "generated_at": "2026-10-22T15:53:25+00:00",
+  "generated_by": "scripts/sync-noesis-skills.py --sync",
+  "repo": "noesis-agent-stack",
+  "source_scan_roots": [
+    "/Users/elvis/.hermes/profiles/*/skills",
+    "/Users/elvis/.hermes/skills"
+  ],
+  "selection_rule": "Skill name must start with 'noesis-' and contain SKILL.md. On tie the noesis-orchestrator copy wins, then the default-profile copy.",
+  "excluded_from_repo_copy": [
+    ".DS_Store",
+    "_skill_library_update.json"
+  ],
+  "skills": [
+    {
+      "name": "noesis-control-plane-dev",
+      "repo_path": "skills/noesis-control-plane-dev",
+      "source_profile": "noesis-orchestrator",
+      "source_path": "/Users/elvis/.hermes/profiles/noesis-orchestrator/skills/software-development/noesis-control-plane-dev",
+      "source_relpath": "software-development/noesis-control-plane-dev",
+      "file_count": 19,
+      "source_digest_sha256": "c40f20070e0c97cc3f6f26ea8b47aac91add46d4a3c8ad8dfcbb215d658c5ff2",
+      "synced_at": "2026-10-22T15:53:25+00:00",
+      "repo_digest_sha256": "c40f20070e0c97cc3f6f26ea8b47aac91add46d4a3c8ad8dfcbb215d658c5ff2",
+      "verified": true
+    },
+    {
+      "name": "noesis-delegation-monitoring",
+      "repo_path": "skills/noesis-delegation-monitoring",
+      "source_profile": "noesis-orchestrator",
+      "source_path": "/Users/elvis/.hermes/profiles/noesis-orchestrator/skills/software-development/noesis-delegation-monitoring",
+      "source_relpath": "software-development/noesis-delegation-monitoring",
+      "file_count": 3,
+      "source_digest_sha256": "9bec436d0608ed660d1b7ea096697f2759bcde8382528936e693b67aee6b2036",
+      "synced_at": "2026-10-22T15:53:25+00:00",
+      "repo_digest_sha256": "9bec436d0608ed660d1b7ea096697f2759bcde8382528936e693b67aee6b2036",
+      "verified": true
+    },
+    {
+      "name": "noesis-in-fleet-review",
+      "repo_path": "skills/noesis-in-fleet-review",
+      "source_profile": "noesis-orchestrator",
+      "source_path": "/Users/elvis/.hermes/profiles/noesis-orchestrator/skills/software-development/noesis-in-fleet-review",
+      "source_relpath": "software-development/noesis-in-fleet-review",
+      "file_count": 4,
+      "source_digest_sha256": "fbdbd920fadc45b2615ad601d8543231652b94eb25f0a85973e153c65191cf87",
+      "synced_at": "2026-10-22T15:53:25+00:00",
+      "repo_digest_sha256": "fbdbd920fadc45b2615ad601d8543231652b94eb25f0a85973e153c65191cf87",
+      "verified": true
+    },
+    {
+      "name": "noesis-memory-routing",
+      "repo_path": "skills/noesis-memory-routing",
+      "source_profile": "default",
+      "source_path": "/Users/elvis/.hermes/skills/noesis-memory-routing",
+      "source_relpath": "noesis-memory-routing",
+      "file_count": 1,
+      "source_digest_sha256": "61c8b7a6c0db7b21c84648da50a0d2ca0c2048a4c3fe48d05558c4ba520645a5",
+      "synced_at": "2026-10-22T15:53:25+00:00",
+      "duplicate_copies": [
+        {
+          "source_profile": "noesis-scribe",
+          "source_path": "/Users/elvis/.hermes/profiles/noesis-scribe/skills/noesis-memory-routing"
+        }
+      ],
+      "repo_digest_sha256": "61c8b7a6c0db7b21c84648da50a0d2ca0c2048a4c3fe48d05558c4ba520645a5",
+      "verified": true
+    },
+    {
+      "name": "noesis-operations-prompt-authoring",
+      "repo_path": "skills/noesis-operations-prompt-authoring",
+      "source_profile": "noesis-orchestrator",
+      "source_path": "/Users/elvis/.hermes/profiles/noesis-orchestrator/skills/software-development/noesis-operations-prompt-authoring",
+      "source_relpath": "software-development/noesis-operations-prompt-authoring",
+      "file_count": 2,
+      "source_digest_sha256": "0702f7617fe8a6ded60dd51f8b82aa93539481816f4dc7b4aeb2f2dd0e9ba9ec",
+      "synced_at": "2026-10-22T15:53:25+00:00",
+      "repo_digest_sha256": "0702f7617fe8a6ded60dd51f8b82aa93539481816f4dc7b4aeb2f2dd0e9ba9ec",
+      "verified": true
+    },
+    {
+      "name": "noesis-orchestrator-launch-gate",
+      "repo_path": "skills/noesis-orchestrator-launch-gate",
+      "source_profile": "noesis-forge",
+      "source_path": "/Users/elvis/.hermes/profiles/noesis-forge/skills/software-development/noesis-orchestrator-launch-gate",
+      "source_relpath": "software-development/noesis-orchestrator-launch-gate",
+      "file_count": 1,
+      "source_digest_sha256": "98ac4ceee126443b7e70cfb9e2a44113d4584550fa9cf4d649eddb9ba9714012",
+      "synced_at": "2026-10-22T15:53:25+00:00",
+      "repo_digest_sha256": "98ac4ceee126443b7e70cfb9e2a44113d4584550fa9cf4d649eddb9ba9714012",
+      "verified": true
+    },
+    {
+      "name": "noesis-praxis-ops",
+      "repo_path": "skills/noesis-praxis-ops",
+      "source_profile": "noesis-orchestrator",
+      "source_path": "/Users/elvis/.hermes/profiles/noesis-orchestrator/skills/noesis-praxis-ops",
+      "source_relpath": "noesis-praxis-ops",
+      "file_count": 5,
+      "source_digest_sha256": "d6bb87cfb7d18359ae852102675c6ce8e3a1f38f74fe88cfb66590da8549e9e7",
+      "synced_at": "2026-10-22T15:53:25+00:00",
+      "repo_digest_sha256": "d6bb87cfb7d18359ae852102675c6ce8e3a1f38f74fe88cfb66590da8549e9e7",
+      "verified": true
+    },
+    {
+      "name": "noesis-prompt-library",
+      "repo_path": "skills/noesis-prompt-library",
+      "source_profile": "noesis-forge",
+      "source_path": "/Users/elvis/.hermes/profiles/noesis-forge/skills/noesis-prompt-library",
+      "source_relpath": "noesis-prompt-library",
+      "file_count": 2,
+      "source_digest_sha256": "39873591c7b95764ebc743146e8f982ef5883bc29f4ca1b90c3f0393d034b925",
+      "synced_at": "2026-10-22T15:53:25+00:00",
+      "repo_digest_sha256": "39873591c7b95764ebc743146e8f982ef5883bc29f4ca1b90c3f0393d034b925",
+      "verified": true
+    },
+    {
+      "name": "noesis-skill-sync",
+      "repo_path": "skills/noesis-skill-sync",
+      "source_profile": "noesis-orchestrator",
+      "source_path": "/Users/elvis/.hermes/profiles/noesis-orchestrator/skills/noesis-skill-sync",
+      "source_relpath": "noesis-skill-sync",
+      "file_count": 1,
+      "source_digest_sha256": "15f12c1c47eda3850a1d2b798623200c0a81461afdd6acf9ec0bc47974a6b213",
+      "synced_at": "2026-10-22T15:53:25+00:00",
+      "repo_digest_sha256": "15f12c1c47eda3850a1d2b798623200c0a81461afdd6acf9ec0bc47974a6b213",
+      "verified": true
+    },
+    {
+      "name": "noesis-task-delegation",
+      "repo_path": "skills/noesis-task-delegation",
+      "source_profile": "noesis-orchestrator",
+      "source_path": "/Users/elvis/.hermes/profiles/noesis-orchestrator/skills/software-development/noesis-task-delegation",
+      "source_relpath": "software-development/noesis-task-delegation",
+      "file_count": 4,
+      "source_digest_sha256": "cdc563c3edf02d4c98646fd520f8962cfea577bfe44adb06224b70e4e0ac566e",
+      "synced_at": "2026-10-22T15:53:25+00:00",
+      "repo_digest_sha256": "cdc563c3edf02d4c98646fd520f8962cfea577bfe44adb06224b70e4e0ac566e",
+      "verified": true
+    },
+    {
+      "name": "noesis-track-b-candidate-remediation",
+      "repo_path": "skills/noesis-track-b-candidate-remediation",
+      "source_profile": "noesis-forge",
+      "source_path": "/Users/elvis/.hermes/profiles/noesis-forge/skills/software-development/noesis-track-b-candidate-remediation",
+      "source_relpath": "software-development/noesis-track-b-candidate-remediation",
+      "file_count": 3,
+      "source_digest_sha256": "913d80325daca9eafb7b746668cbcf53e8df0c5f6910688a291a7ee4a7b405ec",
+      "synced_at": "2026-10-22T15:53:25+00:00",
+      "repo_digest_sha256": "913d80325daca9eafb7b746668cbcf53e8df0c5f6910688a291a7ee4a7b405ec",
+      "verified": true
+    },
+    {
+      "name": "noesis-verified-doc-authoring",
+      "repo_path": "skills/noesis-verified-doc-authoring",
+      "source_profile": "noesis-scribe",
+      "source_path": "/Users/elvis/.hermes/profiles/noesis-scribe/skills/noesis-verified-doc-authoring",
+      "source_relpath": "noesis-verified-doc-authoring",
+      "file_count": 2,
+      "source_digest_sha256": "dd9866c24cb1de53c7b59f03301158659c0b2d93012a5cc008ce77265c4ff143",
+      "synced_at": "2026-10-22T15:53:25+00:00",
+      "repo_digest_sha256": "dd9866c24cb1de53c7b59f03301158659c0b2d93012a5cc008ce77265c4ff143",
+      "verified": true
+    }
+  ]
+}

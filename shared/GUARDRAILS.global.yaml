@@ -205,6 +205,38 @@ catalog:
   rollback: last_known_good_signed_config
 
 # ---------------------------------------------------------------------------
+# Local skill sync (fleet working copy -> durable repo copy)
+#
+# The Hermes profile skill dirs are the WORKING COPY for noesis-* skills.
+# noesis-agent-stack/skills/ is the DURABLE, reviewable, versioned copy.
+# Any edit to a local noesis-* skill MUST be followed by a sync + commit in the
+# same work unit. Drift is a hard stop, not a warning.
+# ---------------------------------------------------------------------------
+skills_sync:
+  applies_to: "skills named noesis-* in ~/.hermes/profiles/*/skills and ~/.hermes/skills"
+  source_of_truth_for_editing: local_hermes_profile_skills
+  durable_copy: "noesis-agent-stack:skills/"
+  manifest: "noesis-agent-stack:skills/noesis-skills.manifest.json"
+  sync_command: "scripts/sync-noesis-skills.py --sync"
+  verify_command: "scripts/sync-noesis-skills.py --check"
+  on_local_skill_update:
+    - sync_required: true
+    - commit_required: true
+    - same_work_unit: true
+    - commit_scope: "only skills/noesis-*/ and skills/noesis-skills.manifest.json"
+    - uncommitted_local_edit: forbidden
+  pre_commit_gate: enforced
+  pre_commit_gate_scope: "commits touching skills/, and any noesis skill dispatch"
+  manual_repo_only_edit: forbidden
+  review_requirement: changes_to_tracked_skill_content_require_rereview
+  excluded_from_repo_copy:
+    - _skill_library_update.json
+    - .DS_Store
+    - __pycache__
+  secret_scan_required: true
+  divergent_duplicate_copies: operator_resolution_required
+
+# ---------------------------------------------------------------------------
 # Circuit breakers
 # ---------------------------------------------------------------------------
 circuit_breakers:

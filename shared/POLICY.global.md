@@ -6,7 +6,7 @@ sub-agents). Machine-enforced rules live in `shared/GUARDRAILS.global.yaml`;
 canonical task profiles in `platform/profiles.yaml`; risk tiers in
 `platform/risk-tiers.yaml`.
 
-> Version: 1.0.0 · Updated: 2026-08-19 · Owner: Noesis Praxis (Hermes)
+> Version: 1.1.0 · Updated: 2026-10-22 · Owner: Noesis Praxis (Hermes)
 
 ---
 
@@ -171,7 +171,31 @@ beyond SLO.
 Maintain last-known-good routing + deployment config; automatic rollback,
 manual disablement, and emergency stop for all R2/R3 execution paths.
 
-## 11. Operating principles
+## 11. Local skill sync (`noesis-*`)
+
+The local Hermes profile skill directories are the **working copy** for
+`noesis-*` skills; `noesis-agent-stack/skills/` is the **durable, reviewable,
+versioned** copy.
+
+- Any create/edit/patch to a local `noesis-*` skill is followed, **in the same
+  work unit**, by `scripts/sync-noesis-skills.py --sync` and a commit of
+  `skills/noesis-*/` plus `skills/noesis-skills.manifest.json`.
+- An uncommitted local `noesis-*` skill edit is a policy violation. No "sync
+  later" window, no separate cleanup commit.
+- Drift is a hard stop, enforced by pre-commit Gate 3
+  (`scripts/hooks/pre-commit`). Never bypass with `--no-verify`.
+- The repo copy is derived, never hand-edited to "fix" drift. Sync forward only.
+- Sync is mechanical copy, not review: a skill change still requires an
+  independent reviewer, and the author's own sync is never self-approval.
+- Divergent duplicate copies between profiles go to the operator for resolution.
+  Sync never silently picks a winner.
+- Local bookkeeping (`_skill_library_update.json`, `.DS_Store`, `__pycache__`) is
+  excluded from the durable copy; it leaks private paths.
+
+Detail: `docs/skills-sync-policy.md`. Machine form: `shared/GUARDRAILS.global.yaml`
+§`skills_sync`.
+
+## 12. Operating principles
 
 - Noesis Praxis governs; Noesis ClawDev executes within bounded authority.
 - Persistent agents: exactly two. Everything else ephemeral, scoped, isolated,
