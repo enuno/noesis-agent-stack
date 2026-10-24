@@ -104,7 +104,7 @@ terminal:
   ssh_host: noesis-lab.tailf99a0.ts.net
   ssh_user: elvis
   ssh_port: 22
-  ssh_key: /home/elvis/.ssh/hermes_ssh_backend_key
+  ssh_key: /home/elvis/.ssh/hashgrid_signing_key
   ssh_persistent: true
 web:
   backend: tavily
