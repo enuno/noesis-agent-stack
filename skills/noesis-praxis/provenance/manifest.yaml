@@ -1,0 +1,1077 @@
+# Provenance manifest — noesis-praxis managed skill tree
+#
+# One entry per requested skill (22 total). `repository_directory` is the name
+# under skills/noesis-praxis/skills/ in THIS repo (empty/omitted for blocked
+# skills, which are not copied into the discoverable tree). `deployed_path` is
+# the relative path under a Hermes profile's skills/ root once the repo
+# commit is deployed to runtime (see governance/deployment-map.yaml).
+
+skills:
+  - requested_identifier: "tailscale/tailscale-skill: skills/tailscale"
+    upstream_source: "https://github.com/tailscale/tailscale-skill"
+    upstream_branch: main
+    upstream_commit: 4f05d353efc56962546aa26ccc59bb08ca699ad1
+    upstream_path: skills/tailscale
+    repository_directory: tailscale
+    disposition: A
+    status: installed
+    license: BSD-3-Clause
+    license_source: "repo-root LICENSE (Copyright (c) 2026 Tailscale Inc & contributors)"
+    deployed_path: noesis-praxis/tailscale
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/bash-script-validator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/bash-script-validator
+    repository_directory: bash-script-validator
+    disposition: B
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    adaptation: provenance/patches/bash-script-validator/ADAPTATION.md
+    deployed_path: noesis-praxis/bash-script-validator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/bash-script-generator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/bash-script-generator
+    repository_directory: bash-script-generator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/bash-script-generator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/github-actions-validator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/github-actions-validator
+    repository_directory: github-actions-validator
+    disposition: B
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    adaptation: provenance/patches/github-actions-validator/ADAPTATION.md
+    deployed_path: noesis-praxis/github-actions-validator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/logql-generator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/logql-generator
+    repository_directory: logql-generator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/logql-generator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/promql-generator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/promql-generator
+    repository_directory: promql-generator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/promql-generator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/promql-validator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/promql-validator
+    repository_directory: promql-validator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/promql-validator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/ansible-generator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/ansible-generator
+    repository_directory: ansible-generator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/ansible-generator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/ansible-validator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/ansible-validator
+    repository_directory: null
+    disposition: C
+    status: blocked
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    block_reason: >
+      SKILL.md documents, as mandatory default behavior (not opt-in), that any
+      role containing a molecule/ directory is tested by automatically running
+      scripts/test_role.sh, which silently pip-installs molecule/ansible-core/
+      ansible-lint/yamllint into a temp venv with no prompt and then actually
+      executes the role's tasks for real via Molecule's create/converge/verify/
+      destroy cycle (not a dry-run). validate_playbook_security.sh and
+      validate_role_security.sh separately pip-install checkov unprompted.
+      Blocked until the upstream SKILL.md is rewritten to make Molecule
+      execution and any pip install strictly opt-in / explicitly confirmed by
+      the user, per governance/REVIEW.md classification "unsafe automatic
+      behavior". No content from this skill is copied into the discoverable
+      skill tree.
+    deployed_path: null
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/terraform-generator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/terraform-generator
+    repository_directory: terraform-generator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/terraform-generator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/terraform-validator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/terraform-validator
+    repository_directory: terraform-validator
+    disposition: B
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    adaptation: provenance/patches/terraform-validator/ADAPTATION.md
+    deployed_path: noesis-praxis/terraform-validator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/k8s-debug"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/k8s-debug
+    repository_directory: k8s-debug
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    notes: >
+      SKILL.md already states "Default mode is read-only diagnosis first. Only
+      execute disruptive commands after confirming blast radius and rollback."
+      — verified against scripts/ (no unconditional kubectl delete/apply/exec).
+    deployed_path: noesis-praxis/k8s-debug
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/k8s-yaml-generator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/k8s-yaml-generator
+    repository_directory: k8s-yaml-generator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/k8s-yaml-generator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/k8s-yaml-validator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/k8s-yaml-validator
+    repository_directory: k8s-yaml-validator
+    disposition: B
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    adaptation: provenance/patches/k8s-yaml-validator/ADAPTATION.md
+    deployed_path: noesis-praxis/k8s-yaml-validator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/dockerfile-generator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/dockerfile-generator
+    repository_directory: dockerfile-generator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/dockerfile-generator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/dockerfile-validator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/dockerfile-validator
+    repository_directory: dockerfile-validator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/dockerfile-validator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/helm-generator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/helm-generator
+    repository_directory: helm-generator
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/helm-generator
+
+  - requested_identifier: "akin-ozer/cc-devops-skills: devops-skills-plugin/skills/helm-validator"
+    upstream_source: "https://github.com/akin-ozer/cc-devops-skills"
+    upstream_branch: main
+    upstream_commit: 276af751e659315aaf56d3ad13d7c26f4e72e28a
+    upstream_path: devops-skills-plugin/skills/helm-validator
+    repository_directory: helm-validator
+    disposition: B
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    adaptation: provenance/patches/helm-validator/ADAPTATION.md
+    deployed_path: noesis-praxis/helm-validator
+
+  - requested_identifier: "dashed/claude-marketplace: plugins/k3s/skills/k3s (requested entry point: raw SKILL.md URL; full directory retrieved)"
+    upstream_source: "https://github.com/dashed/claude-marketplace"
+    upstream_branch: master
+    upstream_commit: 8c15cbba6eea860c4161bf3b2e0ea11be9ca4942
+    upstream_path: plugins/k3s/skills/k3s
+    repository_directory: k3s
+    disposition: A
+    status: installed
+    license: MIT
+    license_source: ".claude-plugin/marketplace.json plugin entry (license field); no repo-root LICENSE file"
+    notes: >
+      Corrected path/branch: requested branch was unspecified; repo's actual
+      default branch is "master", not "main". A first delegated review attempt
+      for this skill returned corrupted/incorrect content (verbatim tailscale
+      output) and was discarded; this entry reflects a direct re-review of the
+      real clone on disk.
+    deployed_path: noesis-praxis/k3s
+
+  - requested_identifier: "cloudflare/skills: skills/cloudflare"
+    upstream_source: "https://github.com/cloudflare/skills"
+    upstream_branch: main
+    upstream_commit: 86505e44f87d801aa1864a3c4109e9a8ae5c409f
+    upstream_path: skills/cloudflare
+    repository_directory: cloudflare
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/cloudflare
+
+  - requested_identifier: "cloudflare/skills: skills/cloudflare-one"
+    upstream_source: "https://github.com/cloudflare/skills"
+    upstream_branch: main
+    upstream_commit: 86505e44f87d801aa1864a3c4109e9a8ae5c409f
+    upstream_path: skills/cloudflare-one
+    repository_directory: cloudflare-one
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    notes: >
+      Byte-for-byte identical (diff-verified) to the "cloudflare-one" skill
+      already present in this profile's default/bundled skill set at
+      ~/.hermes/skills/cloudflare-one/SKILL.md. Not a collision: same content,
+      now also tracked and reviewed here as the canonical source.
+    deployed_path: noesis-praxis/cloudflare-one
+
+  - requested_identifier: "official/devops/docker-management"
+    upstream_source: "https://github.com/NousResearch/hermes-agent"
+    upstream_branch: null
+    upstream_commit: 4d04303818b61bf3aa09278af48356315515965b
+    upstream_path: optional-skills/devops/docker-management
+    repository_directory: docker-management
+    disposition: A
+    status: installed
+    license: MIT
+    license_source: "SKILL.md frontmatter (author: sprmn24, license: MIT) — sprmn24 is the credited upstream skill author inside NousResearch's own official packaging, not a separate competing skill"
+    notes: >
+      Resolved via the installed Hermes version's own hermes-agent checkout at
+      /home/elvis/.hermes/hermes-agent (AGENTS.md + git metadata), not guessed.
+      Byte-for-byte identical (diff-verified) to the copy already present in
+      this profile's default skill bundle at
+      ~/.hermes/skills/devops/docker-management/SKILL.md. An earlier working
+      note in this task's history speculated this was a naming collision with
+      a separate third-party skill; re-checked directly and that speculation
+      was incorrect — there is exactly one docker-management skill in the
+      profile, and it matches this entry.
+    deployed_path: noesis-praxis/docker-management
+
+  # ===== Batch 2026-10-22 (network/security/observability extension) =====
+
+  - requested_identifier: "grafana/skills: skills/grafana-core/grafana-oss"
+    upstream_source: "https://github.com/grafana/skills"
+    upstream_branch: main
+    upstream_commit: cc33318b60a7fbc2c69a25122164baf00e805f79
+    upstream_path: skills/grafana-core/grafana-oss
+    repository_directory: grafana-oss
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/grafana-oss
+
+  - requested_identifier: "grafana/skills: skills/grafana-core/dashboarding"
+    upstream_source: "https://github.com/grafana/skills"
+    upstream_branch: main
+    upstream_commit: cc33318b60a7fbc2c69a25122164baf00e805f79
+    upstream_path: skills/grafana-core/dashboarding
+    repository_directory: dashboarding
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/dashboarding
+
+  - requested_identifier: "grafana/skills: skills/grafana-core/promql"
+    upstream_source: "https://github.com/grafana/skills"
+    upstream_branch: main
+    upstream_commit: cc33318b60a7fbc2c69a25122164baf00e805f79
+    upstream_path: skills/grafana-core/promql
+    repository_directory: grafana-promql
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    notes: >
+      Renamed from upstream "promql" to "grafana-promql" (directory +
+      frontmatter name) for routing disambiguation against the pre-existing
+      promql-generator/promql-validator skills (different source, different
+      purpose: those are tool-executing generator/validator skills, this is
+      Grafana's own conceptual PromQL guidance) -- per the parent task's
+      explicit instruction to avoid ambiguous routing between overlapping
+      PromQL/LogQL-named skills from different sources. Content otherwise
+      unchanged.
+    deployed_path: noesis-praxis/grafana-promql
+
+  - requested_identifier: "grafana/skills: skills/grafana-core/alerting-irm"
+    upstream_source: "https://github.com/grafana/skills"
+    upstream_branch: main
+    upstream_commit: cc33318b60a7fbc2c69a25122164baf00e805f79
+    upstream_path: skills/grafana-core/alerting-irm
+    repository_directory: alerting-irm
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/alerting-irm
+
+  - requested_identifier: "grafana/skills: skills/grafana-core/alloy"
+    upstream_source: "https://github.com/grafana/skills"
+    upstream_branch: main
+    upstream_commit: cc33318b60a7fbc2c69a25122164baf00e805f79
+    upstream_path: skills/grafana-core/alloy
+    repository_directory: alloy
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/alloy
+
+  - requested_identifier: "grafana/skills: skills/grafana-lgtm/prometheus"
+    upstream_source: "https://github.com/grafana/skills"
+    upstream_branch: main
+    upstream_commit: cc33318b60a7fbc2c69a25122164baf00e805f79
+    upstream_path: skills/grafana-lgtm/prometheus
+    repository_directory: prometheus
+    disposition: A
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    deployed_path: noesis-praxis/prometheus
+
+  - requested_identifier: "grafana/skills: skills/grafana-lgtm/loki"
+    upstream_source: "https://github.com/grafana/skills"
+    upstream_branch: main
+    upstream_commit: cc33318b60a7fbc2c69a25122164baf00e805f79
+    upstream_path: skills/grafana-lgtm/loki
+    repository_directory: grafana-loki
+    disposition: B
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    adaptation: >
+      Renamed from upstream "loki" to "grafana-loki" for routing
+      disambiguation against the pre-existing logql-generator skill, same
+      rationale as grafana-promql above. Separately: the upstream "References"
+      section links to references/logql.md, references/configuration.md,
+      and references/send-data.md, none of which exist anywhere in the
+      grafana/skills repository at the pinned commit (confirmed by a full
+      repo-tree search -- a pre-existing upstream defect, also independently
+      flagged by the retrieving subagent as "cosmetic only" but still a real
+      dangling reference per this skill tree's own validator). Converted
+      those 3 dangling links to plain text pointing at Grafana's own public
+      documentation instead of fabricating the missing files' content.
+    deployed_path: noesis-praxis/grafana-loki
+
+  - requested_identifier: "grafana/skills: skills/grafana-cloud/prometheus-label-strategy"
+    upstream_source: "https://github.com/grafana/skills"
+    upstream_branch: main
+    upstream_commit: cc33318b60a7fbc2c69a25122164baf00e805f79
+    upstream_path: skills/grafana-cloud/prometheus-label-strategy
+    repository_directory: prometheus-label-strategy
+    disposition: B
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    adaptation: >
+      Prepended a NOESIS ADAPTATION NOTE explaining that this skill
+      originates from Grafana's Cloud-focused package; the label-strategy
+      principles apply equally to self-hosted Prometheus/Mimir, but the
+      repeated hand-off to an `adaptive-metrics` skill (a Grafana
+      Cloud-hosted feature) is NOT installed here and has no automatic
+      self-hosted equivalent -- the note states the manual
+      recording-rule-based self-hosted alternative explicitly. Also
+      corrected one internal cross-reference from `promql` to
+      `grafana-promql` to match this batch's routing-disambiguation rename.
+    deployed_path: noesis-praxis/prometheus-label-strategy
+
+  - requested_identifier: "grafana/skills: skills/grafana-cloud/prometheus-cardinality-troubleshooter"
+    upstream_source: "https://github.com/grafana/skills"
+    upstream_branch: main
+    upstream_commit: cc33318b60a7fbc2c69a25122164baf00e805f79
+    upstream_path: skills/grafana-cloud/prometheus-cardinality-troubleshooter
+    repository_directory: prometheus-cardinality-troubleshooter
+    disposition: B
+    status: installed
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    adaptation: >
+      Same adaptation pattern as prometheus-label-strategy above: prepended
+      NOESIS ADAPTATION NOTE clarifying `adaptive-metrics`/`dpm-finder`
+      hand-offs are Grafana Cloud-only and not installed, with the
+      self-hosted alternative stated explicitly. Corrected one internal
+      cross-reference from `promql` to `grafana-promql`.
+    deployed_path: noesis-praxis/prometheus-cardinality-troubleshooter
+
+  - requested_identifier: "grafana/skills: skills/grafana-cloud/loki-label-analyzer"
+    upstream_source: "https://github.com/grafana/skills"
+    upstream_branch: main
+    upstream_commit: cc33318b60a7fbc2c69a25122164baf00e805f79
+    upstream_path: skills/grafana-cloud/loki-label-analyzer
+    repository_directory: null
+    disposition: C
+    status: blocked
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    block_reason: >
+      Two independent problems: (1) Cloud-only content (a mandatory "Cost
+      Impact" output section using Grafana Cloud-only billing metrics) is
+      baked into the skill's required output contract, not cleanly
+      separable from the generic label-analysis content without a real
+      rewrite; (2) the retrieving subagent found the package embeds
+      instructions coercing any loading agent to inject and defensively
+      re-assert a fixed "Confidential Information of Raintank, Inc." legal
+      disclaimer in every output, which was classified
+      suspicious/unresolved and not complied with. See
+      provenance/reviews/grafana-loki-label-analyzer-blocked.md for full
+      detail. Not staged as reference material even in inert form, unlike
+      the NetClaw blocked packages, because of the unresolved
+      instruction-injection finding.
+    deployed_path: null
+
+  - requested_identifier: "peterbamuhigire/linux-skills: 07-security-and-hardening/linux-firewall-ssl (firewall-only subset)"
+    upstream_source: "https://github.com/peterbamuhigire/linux-skills"
+    upstream_branch: main
+    upstream_commit: 47a46ac3d732df9eac7ffd410899494968d0888e
+    upstream_path: 07-security-and-hardening/linux-firewall-ssl
+    repository_directory: linux-firewall-reference
+    disposition: B
+    status: installed
+    license: MIT
+    license_source: "SKILL.md frontmatter (license: MIT) + repo-root LICENSE"
+    adaptation: >
+      Renamed from upstream "linux-firewall-ssl" to "linux-firewall-reference"
+      (directory + frontmatter name) because the SSL/Certbot-specific content
+      was deliberately NOT imported, per the parent task's explicit
+      instruction not to pull in certificate-management procedures merely
+      because they share a source package with firewall content. Removed:
+      the "SSL Certificates (Certbot)" and "Troubleshoot Renewal Failure"
+      SKILL.md sections, and the certbot-reference.md/ssl-config.md
+      reference files (confirmed cleanly separable -- the only connective
+      tissue was 2-3 cross-reference sentences, no shared code path).
+      Retained unchanged: all UFW/firewalld/raw-nftables content,
+      nftables-and-iptables.md, firewalld-reference.md, ufw-reference.md,
+      and the two sk-nft-* scripts (copied as non-executable reference
+      material only -- see SKILL.md's own "Scripts" section: they depend on
+      a shared common.sh distro-detection library from their origin repo
+      that is not vendored here, so script execution is explicitly marked
+      blocked in the adapted SKILL.md, consistent with this installation
+      task not installing system packages or running upstream installers).
+      A sibling package (claude-dev-suite's skills/infrastructure/firewall,
+      commit c9145f88f077e4fb279e8c8632f62e73af8c6a0d) was reviewed and
+      found substantially redundant with this one; deferred rather than
+      installed as a second firewall skill -- see
+      provenance/reviews/blocked-and-deferred.md.
+    deployed_path: noesis-praxis/linux-firewall-reference
+
+  - requested_identifier: "Noesis-authored: praxis-network-scan"
+    upstream_source: "Noesis-authored (cites https://nmap.org/book/)"
+    upstream_branch: null
+    upstream_commit: null
+    upstream_path: null
+    repository_directory: praxis-network-scan
+    disposition: N
+    status: installed
+    license: "internal (Noesis Praxis operational skill)"
+    license_source: "SKILL.md frontmatter"
+    notes: >
+      Disposition N = Noesis-authored (not a review of upstream content).
+      Supersedes the need to adapt NetClaw's nmap-* packages (all 3 blocked,
+      see provenance/reviews/blocked-and-deferred.md) by covering the same
+      authorized-scan-planning need without their unverifiable safety claims
+      or stealth/idle-scan examples, and without inventing an execution
+      interface this profile doesn't have.
+    deployed_path: noesis-praxis/praxis-network-scan
+
+  - requested_identifier: "Noesis-authored: praxis-packet-analysis"
+    upstream_source: "Noesis-authored (cites https://www.wireshark.org/docs/)"
+    upstream_branch: null
+    upstream_commit: null
+    upstream_path: null
+    repository_directory: praxis-packet-analysis
+    disposition: N
+    status: installed
+    license: "internal (Noesis Praxis operational skill)"
+    license_source: "SKILL.md frontmatter"
+    notes: >
+      Covers the same need as NetClaw's packet-analysis (reference-only, see
+      provenance/reviews/netclaw/packet-analysis.md) without assuming the
+      missing packet-buddy-mcp/tshark tool integration exists.
+    deployed_path: noesis-praxis/praxis-packet-analysis
+
+  - requested_identifier: "Noesis-authored: praxis-firewall-audit"
+    upstream_source: "Noesis-authored (cites man iptables/nft, UFW, firewalld, nftables docs)"
+    upstream_branch: null
+    upstream_commit: null
+    upstream_path: null
+    repository_directory: praxis-firewall-audit
+    disposition: N
+    status: installed
+    license: "internal (Noesis Praxis operational skill)"
+    license_source: "SKILL.md frontmatter"
+    deployed_path: noesis-praxis/praxis-firewall-audit
+
+  - requested_identifier: "Noesis-authored: praxis-firewall-change"
+    upstream_source: "Noesis-authored"
+    upstream_branch: null
+    upstream_commit: null
+    upstream_path: null
+    repository_directory: praxis-firewall-change
+    disposition: N
+    status: installed
+    license: "internal (Noesis Praxis operational skill)"
+    license_source: "SKILL.md frontmatter"
+    deployed_path: noesis-praxis/praxis-firewall-change
+
+  - requested_identifier: "Noesis-authored: praxis-container-firewall"
+    upstream_source: "Noesis-authored (cites https://docs.docker.com/engine/network/packet-filtering-firewalls/)"
+    upstream_branch: null
+    upstream_commit: null
+    upstream_path: null
+    repository_directory: praxis-container-firewall
+    disposition: N
+    status: installed
+    license: "internal (Noesis Praxis operational skill)"
+    license_source: "SKILL.md frontmatter"
+    deployed_path: noesis-praxis/praxis-container-firewall
+
+  - requested_identifier: "Noesis-authored: praxis-fail2ban-operations"
+    upstream_source: "Noesis-authored (cites https://github.com/fail2ban/fail2ban/wiki)"
+    upstream_branch: null
+    upstream_commit: null
+    upstream_path: null
+    repository_directory: praxis-fail2ban-operations
+    disposition: N
+    status: installed
+    license: "internal (Noesis Praxis operational skill)"
+    license_source: "SKILL.md frontmatter"
+    deployed_path: noesis-praxis/praxis-fail2ban-operations
+
+  - requested_identifier: "Noesis-authored: praxis-observability-deploy"
+    upstream_source: "Noesis-authored (cites Grafana/Prometheus/Loki/Alloy official docs + this environment's noesis-ansible repo)"
+    upstream_branch: null
+    upstream_commit: null
+    upstream_path: null
+    repository_directory: praxis-observability-deploy
+    disposition: N
+    status: installed
+    license: "internal (Noesis Praxis operational skill)"
+    license_source: "SKILL.md frontmatter"
+    deployed_path: noesis-praxis/praxis-observability-deploy
+
+  - requested_identifier: "Noesis-authored: praxis-metrics-investigate"
+    upstream_source: "Noesis-authored (cites https://prometheus.io/docs/prometheus/latest/querying/basics/)"
+    upstream_branch: null
+    upstream_commit: null
+    upstream_path: null
+    repository_directory: praxis-metrics-investigate
+    disposition: N
+    status: installed
+    license: "internal (Noesis Praxis operational skill)"
+    license_source: "SKILL.md frontmatter"
+    notes: >
+      Covers the same need as NetClaw's prometheus-monitoring (reference-only,
+      see provenance/reviews/netclaw/prometheus-monitoring.md) without
+      assuming the missing prometheus-mcp-server tool integration exists.
+    deployed_path: noesis-praxis/praxis-metrics-investigate
+
+  - requested_identifier: "Noesis-authored: praxis-dashboard-management"
+    upstream_source: "Noesis-authored (cites https://grafana.com/docs/grafana/latest/dashboards/)"
+    upstream_branch: null
+    upstream_commit: null
+    upstream_path: null
+    repository_directory: praxis-dashboard-management
+    disposition: N
+    status: installed
+    license: "internal (Noesis Praxis operational skill)"
+    license_source: "SKILL.md frontmatter"
+    deployed_path: noesis-praxis/praxis-dashboard-management
+
+  - requested_identifier: "Noesis-authored: praxis-alert-management"
+    upstream_source: "Noesis-authored (cites Prometheus/Alertmanager/Prometheus Operator/Grafana alerting official docs)"
+    upstream_branch: null
+    upstream_commit: null
+    upstream_path: null
+    repository_directory: praxis-alert-management
+    disposition: N
+    status: installed
+    license: "internal (Noesis Praxis operational skill)"
+    license_source: "SKILL.md frontmatter"
+    deployed_path: noesis-praxis/praxis-alert-management
+
+  - requested_identifier: "Noesis-authored: praxis-observability-health"
+    upstream_source: "Noesis-authored (cites Prometheus/Alertmanager/Alloy official docs)"
+    upstream_branch: null
+    upstream_commit: null
+    upstream_path: null
+    repository_directory: praxis-observability-health
+    disposition: N
+    status: installed
+    license: "internal (Noesis Praxis operational skill)"
+    license_source: "SKILL.md frontmatter"
+    deployed_path: noesis-praxis/praxis-observability-health
+
+  # Blocked NetClaw packages (automateyournetwork/netclaw @ 45a333ed18b75643c2d1589eb884be7b303817c1) --
+  # not installed, 5 preserved as reference-only material under provenance/reviews/netclaw/,
+  # the other 5 recorded here with no reference material staged (see provenance/reviews/blocked-and-deferred.md)
+
+  - requested_identifier: "netclaw: nmap-network-scan"
+    upstream_source: "https://github.com/automateyournetwork/netclaw"
+    upstream_branch: main
+    upstream_commit: 45a333ed18b75643c2d1589eb884be7b303817c1
+    upstream_path: workspace/skills/nmap-network-scan
+    repository_directory: null
+    disposition: C
+    status: blocked
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    block_reason: >
+      Backing MCP server (sbmilburn/nmap-mcp) is external/unvendored; claimed
+      CIDR-allowlist/audit safety mechanism unverifiable. Documents a stealth
+      SYN scan as a routine step. No Hermes tool integration exists. See
+      provenance/reviews/blocked-and-deferred.md.
+    deployed_path: null
+
+  - requested_identifier: "netclaw: nmap-service-detection"
+    upstream_source: "https://github.com/automateyournetwork/netclaw"
+    upstream_branch: main
+    upstream_commit: 45a333ed18b75643c2d1589eb884be7b303817c1
+    upstream_path: workspace/skills/nmap-service-detection
+    repository_directory: null
+    disposition: C
+    status: blocked
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    block_reason: >
+      Same unverifiable backend as nmap-network-scan, plus arbitrary NSE
+      script execution and CVE-category vuln scanning presented as routine
+      with no authorization gate. See provenance/reviews/blocked-and-deferred.md.
+    deployed_path: null
+
+  - requested_identifier: "netclaw: nmap-scan-management"
+    upstream_source: "https://github.com/automateyournetwork/netclaw"
+    upstream_branch: main
+    upstream_commit: 45a333ed18b75643c2d1589eb884be7b303817c1
+    upstream_path: workspace/skills/nmap-scan-management
+    repository_directory: null
+    disposition: C
+    status: blocked
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    block_reason: >
+      Documents an idle/"zombie" scan (source-spoofing evasion technique)
+      with no authorization/legality caveat, on the same unverifiable
+      backend. See provenance/reviews/blocked-and-deferred.md.
+    deployed_path: null
+
+  - requested_identifier: "netclaw: packet-analysis"
+    upstream_source: "https://github.com/automateyournetwork/netclaw"
+    upstream_branch: main
+    upstream_commit: 45a333ed18b75643c2d1589eb884be7b303817c1
+    upstream_path: workspace/skills/packet-analysis
+    repository_directory: null
+    disposition: C
+    status: blocked
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    block_reason: >
+      Reusable read-only tshark-wrapper procedure, but the backing tool
+      (packet-buddy-mcp) is not installed in this profile; superseded by
+      Noesis-authored praxis-packet-analysis. Reference material preserved
+      at provenance/reviews/netclaw/packet-analysis.md.
+    deployed_path: null
+
+  - requested_identifier: "netclaw: gtrace-path-analysis"
+    upstream_source: "https://github.com/automateyournetwork/netclaw"
+    upstream_branch: main
+    upstream_commit: 45a333ed18b75643c2d1589eb884be7b303817c1
+    upstream_path: workspace/skills/gtrace-path-analysis
+    repository_directory: null
+    disposition: C
+    status: blocked
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    block_reason: >
+      Backing binary (hervehildenbrand/gtrace) is external and not vendored
+      in this repo; no Hermes tool integration exists. See
+      provenance/reviews/blocked-and-deferred.md.
+    deployed_path: null
+
+  - requested_identifier: "netclaw: nsm-ids-triage"
+    upstream_source: "https://github.com/automateyournetwork/netclaw"
+    upstream_branch: main
+    upstream_commit: 45a333ed18b75643c2d1589eb884be7b303817c1
+    upstream_path: workspace/skills/nsm-ids-triage
+    repository_directory: null
+    disposition: C
+    status: blocked
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    block_reason: >
+      Strong, genuinely reusable read-only IDS-triage procedure, but backing
+      tool (nsm-mcp, Docker+Suricata) is not installed in this profile. No
+      system packages/containers installed per this task's authorization.
+      Reference material preserved at
+      provenance/reviews/netclaw/nsm-ids-triage.md.
+    deployed_path: null
+
+  - requested_identifier: "netclaw: nsm-session-pivot"
+    upstream_source: "https://github.com/automateyournetwork/netclaw"
+    upstream_branch: main
+    upstream_commit: 45a333ed18b75643c2d1589eb884be7b303817c1
+    upstream_path: workspace/skills/nsm-session-pivot
+    repository_directory: null
+    disposition: C
+    status: blocked
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    block_reason: >
+      Same missing nsm-mcp/Docker+Zeek backend as nsm-ids-triage. Reference
+      material preserved at provenance/reviews/netclaw/nsm-session-pivot.md.
+    deployed_path: null
+
+  - requested_identifier: "netclaw: network-data-analysis"
+    upstream_source: "https://github.com/automateyournetwork/netclaw"
+    upstream_branch: main
+    upstream_commit: 45a333ed18b75643c2d1589eb884be7b303817c1
+    upstream_path: workspace/skills/network-data-analysis
+    repository_directory: null
+    disposition: C
+    status: blocked
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    block_reason: >
+      Sound sandboxed-SQL design, but backing tool (analysis-mcp, DuckDB) is
+      not installed in this profile. Reference material preserved at
+      provenance/reviews/netclaw/network-data-analysis.md.
+    deployed_path: null
+
+  - requested_identifier: "netclaw: grafana-observability"
+    upstream_source: "https://github.com/automateyournetwork/netclaw"
+    upstream_branch: main
+    upstream_commit: 45a333ed18b75643c2d1589eb884be7b303817c1
+    upstream_path: workspace/skills/grafana-observability
+    repository_directory: null
+    disposition: C
+    status: blocked
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    block_reason: >
+      Wraps the real upstream grafana/mcp-grafana server, whose default tool
+      surface includes write/alert-mutation tools enabled unless
+      --disable-write is explicitly passed; the skill's "approval required"
+      language rides on NetClaw's ServiceNow/GAIT systems Hermes doesn't
+      have. Superseded by Noesis-authored praxis-dashboard-management /
+      praxis-alert-management / praxis-metrics-investigate. See
+      provenance/reviews/blocked-and-deferred.md.
+    deployed_path: null
+
+  - requested_identifier: "netclaw: prometheus-monitoring"
+    upstream_source: "https://github.com/automateyournetwork/netclaw"
+    upstream_branch: main
+    upstream_commit: 45a333ed18b75643c2d1589eb884be7b303817c1
+    upstream_path: workspace/skills/prometheus-monitoring
+    repository_directory: null
+    disposition: C
+    status: blocked
+    license: Apache-2.0
+    license_source: repo-root LICENSE
+    block_reason: >
+      Clean, read-only-by-design tool surface (prometheus-mcp-server, a real
+      PyPI package), minimal adaptation needed -- but the tool itself is not
+      installed in this profile. Superseded by Noesis-authored
+      praxis-metrics-investigate. Reference material preserved at
+      provenance/reviews/netclaw/prometheus-monitoring.md.
+    deployed_path: null
+
+  - requested_identifier: "claude-dev-suite: skills/infrastructure/firewall"
+    upstream_source: "https://github.com/claude-dev-suite/claude-dev-suite"
+    upstream_branch: main
+    upstream_commit: c9145f88f077e4fb279e8c8632f62e73af8c6a0d
+    upstream_path: skills/infrastructure/firewall
+    repository_directory: null
+    disposition: C
+    status: deferred
+    license: MIT
+    license_source: repo-root LICENSE
+    block_reason: >
+      Safe, well-written content (no unsafe findings) but substantially
+      redundant with the installed linux-firewall-reference package;
+      deferred per this task's instruction to avoid redundant/conflicting
+      generic firewall guidance rather than installed as a second firewall
+      skill. See provenance/reviews/blocked-and-deferred.md.
+    deployed_path: null
+
+  # ---------------------------------------------------------------------------
+  # Hermes plugin configuration — 2026-10-25
+  # ---------------------------------------------------------------------------
+  - requested_identifier: "noesis-authored: skills/praxis-hermes-plugin-config"
+    upstream_source: null
+    upstream_branch: null
+    upstream_commit: null
+    upstream_path: null
+    repository_directory: praxis-hermes-plugin-config
+    disposition: N
+    status: installed
+    license: "internal (Noesis Praxis operational skill)"
+    license_source: "SKILL.md frontmatter"
+    notes: >
+      Disposition N = Noesis-authored (not a review of upstream content).
+      Covers the host-side mechanics of applying and verifying a Hermes plugin
+      settings block: resolving the target profile, checking whether the
+      config file is Ansible/repo-managed before writing, validating the
+      requested keys against the plugin's own config_schema, applying one key
+      per `hermes config set` call, and proving the result by parsing
+      config.yaml and diffing it against the requested block rather than
+      trusting `hermes config get` output. Its pitfalls were reproduced
+      directly while applying the hermes-switchyard settings block: the
+      empty-string argument trap (shell-quoting `''` stores the two-character
+      string, not an empty value), and the need to confirm that a
+      load-time-read setting is actually live in a fresh process. It changes
+      configuration only, never plugin code, and never restarts a running
+      gateway without explicit approval.
+      Reconciled 2026-10-25 under the maintenance policy's runtime-first
+      exception: a concurrent process (Goose tooling) edited the RUNTIME copy
+      of this skill, correcting two factual errors in the originally
+      committed text. Both corrections were independently re-verified before
+      adoption: (1) `hermes config set` does NOT validate keys against the
+      plugin's config_schema -- a bogus key under plugins.entries.<id>. is
+      accepted without --force and without warning (reproduced with a
+      throwaway probe key, then removed), so the agent's own schema diff is
+      the only gate; and (2) an entry-level plugins.entries.<id>.enabled is
+      inert for load-time gating, which comes from the plugins.enabled
+      allow-list (hermes_cli/plugins_discovery.py gate_manifest). The
+      runtime version also added scripts/apply_settings_block.py, reviewed
+      for safety (it invokes only `hermes config set` and `hermes config
+      path` via argv without a shell, and verifies read-only via YAML parse;
+      no unset, delete, network, or eval) and adopted along with the
+      corrected prose. The pre-adoption runtime copy is preserved for review
+      at provenance/patches/praxis-hermes-plugin-config-runtime-2026-10-25/.
+    deployed_path: noesis-praxis/praxis-hermes-plugin-config
+
+  # ---------------------------------------------------------------------------
+  # Ansible capability set — 2026-10-22 integration
+  # ---------------------------------------------------------------------------
+  - requested_identifier: "noesis-authored: skills/ansible-repo-change"
+    upstream_source: null
+    upstream_branch: null
+    upstream_commit: null
+    upstream_path: null
+    repository_directory: ansible-repo-change
+    disposition: N
+    status: installed
+    license: MIT
+    license_source: "SKILL.md frontmatter"
+    notes: >
+      Disposition N = Noesis-authored (not a review of upstream content).
+      Covers the in-place-repo-change capability that the third-party
+      `ansible-generator` explicitly disclaims (it scaffolds from templates and
+      says so itself), and that `ansible-validator` was blocked from covering
+      (disposition C: unprompted pip-install + real Molecule converge). Its
+      content was authored in-repo from verified operational failures, not
+      copied from any upstream; every pitfall in it corresponds to a bug that
+      was reproduced during the MCPJungle Kubernetes work. It carries a
+      references/secrets-escrow.md for the Bitwarden SM escrow ordering.
+    deployed_path: noesis-praxis/ansible-repo-change
+
+  # ---------------------------------------------------------------------------
+  # Ansible candidate review — 2026-10-22
+  # Priority P1 accepted; P2 rejected; general pool all rejected/deferred.
+  # Full reasoning: provenance/reviews/ansible-candidate-review-2026-10-22.md
+  # ---------------------------------------------------------------------------
+  - requested_identifier: "skills-sh/vinnie357/claude-skills: plugins/tools/ansible/skills/ansible-roles"
+    upstream_source: "https://github.com/vinnie357/claude-skills"
+    upstream_branch: main
+    upstream_commit: a8152d79589df3299ce4f0e57099bcdca29334ac
+    upstream_path: plugins/tools/ansible/skills/ansible-roles
+    repository_directory: ansible-roles
+    disposition: A
+    status: installed
+    license: MIT
+    license_source: "repo-root LICENSE (GitHub API license spdx_id=MIT)"
+    payload:
+      - "SKILL.md (sha256 dd67f1ff99531b6f...)"
+      - "references/jinja2-filters.md (sha256 cf6bd9e20ed83813...)"
+    notes: >
+      Accepted. Accepted on NON-OVERLAP, not on quality alone: the already-installed
+      ansible-generator ships 2253 lines of references that are module-usage
+      patterns and best practices, and contains ZERO occurrences of import_role,
+      include_role, or variable precedence. This skill supplies exactly those
+      role-semantics gaps (role layout, defaults-vs-vars precedence, static
+      import_role vs dynamic include_role, meta/main.yml dependencies, Jinja2).
+      Markdown-only payload, no installers, no hooks, no privilege or deploy
+      instructions. Its "Anti-fabrication" section documents that its filter
+      claims were verified against a live ansible-core and that two were found
+      inverted and corrected -- an epistemic practice worth keeping.
+    deployed_path: noesis-praxis/ansible-roles
+
+  - requested_identifier: "skills-sh/agentskillexchange/skills: skills/ansible-playbook-dry-run-validator"
+    upstream_source: "https://github.com/agentskillexchange/skills"
+    upstream_branch: main
+    upstream_commit: 5b15eb131d265a7294fb44978a337621ab826a26
+    upstream_path: skills/ansible-playbook-dry-run-validator
+    repository_directory: null
+    disposition: C
+    status: rejected
+    license: MIT
+    license_source: "repo-root LICENSE"
+    block_reason: >
+      Hollow and misleading, and rejected on CONTENT, not licensing -- this skill
+      is properly MIT-licensed. The SKILL.md contains ZERO actual instructions:
+      measured, it has 0 code fences, 0 occurrences of `--check`, and 0 of
+      `--syntax-check`; `ansible-lint` appears only inside the description string,
+      never as an instruction. The body is machine-scraped from the upstream
+      ansible/ansible README, so its name promises dry-run validation while
+      delivering none. It self-asserts verification ("security_reviewed") with no
+      supporting artifact and an unverifiable `github_stars: 68364`, and the
+      repo's own history contains "revert: restore canonical skill files after
+      unsafe sync". Adopting it would manufacture false confidence that validation
+      is covered. Nothing copied into the discoverable tree.
+    deployed_path: null
+
+  - requested_identifier: "skills-sh/greedychipmunk/agent-skills: ansible"
+    upstream_source: "https://github.com/greedychipmunk/agent-skills"
+    upstream_branch: main
+    upstream_commit: 641ae0c15acc340c6c38730fa052453b68318e18
+    upstream_path: ansible
+    repository_directory: null
+    disposition: C
+    status: rejected
+    license: MIT
+    license_source: "repo-root LICENSE"
+    block_reason: >
+      Properly licensed (MIT), and its SKILL.md guardrails are genuinely good
+      (always `--check --diff` first, `--limit` before a full run, avoid
+      command/shell when an idempotent module exists, "`become: true` requires
+      explicit approval", never commit plaintext passwords). REJECTED on the
+      bundled reference that contradicts them: `ansible/resources/install-and-setup.md`
+      recommends `host_key_checking = False` TWICE -- once as a config default
+      "disable for dynamic cloud environments", and once as the prescribed fix
+      for "Host key verification failed" ("set `host_key_checking = False` in
+      `ansible.cfg`"). That is a routine MITM shortcut this tree's policy forbids,
+      and it is the highest-impact finding in the candidate set. Compounding:
+      the skill is self-contradictory (opens with "All modules are idempotent by
+      default", then shows unguarded `shell` tasks), and recommends
+      `groups: [sudo, docker]` and `generate_ssh_key: yes` without an
+      authorization framing.
+    deployed_path: null
+
+  - requested_identifier: "skills-sh/1mangesh1/dev-skills-collection: ansible"
+    upstream_source: "https://github.com/1mangesh1/dev-skills-collection"
+    upstream_branch: main
+    upstream_commit: 23e297e5a4df82b222997d894aa518442db654d6
+    upstream_path: ansible
+    repository_directory: null
+    disposition: C
+    status: rejected
+    license: null
+    license_source: "README claims MIT but LICENSE returns HTTP 404; GitHub API license field is null"
+    block_reason: >
+      Rejected on two independent grounds. (1) NO LICENSE -- the README claims MIT
+      but no LICENSE file exists at HEAD (404) and the API reports license null, so
+      redistribution rights cannot be established and the content must not be
+      vendored. (2) Unsafe content: recommends `host_key_checking = False` (a
+      routine TLS/host-key shortcut this tree's policy forbids) and unprompted
+      `pip install molecule`.
+    deployed_path: null
+
+  - requested_identifier: "skills-sh/alisonaquinas/llm-ci-dev: ansible"
+    upstream_source: "https://github.com/alisonaquinas/llm-ci-dev"
+    upstream_branch: main
+    upstream_commit: 2448f76d61297078cbfc74e8cf026ab504406d3c
+    upstream_path: ansible
+    repository_directory: null
+    disposition: C
+    status: rejected
+    license: MIT
+    license_source: "repo-root LICENSE"
+    block_reason: >
+      Verbatim fork of greedychipmunk/agent-skills. All four shared resource files
+      are byte-identical by sha256 (command-cookbook.md 18c584b99732945e,
+      install-and-setup.md b975b5b422eebd8e, inventory-and-variables.md
+      77759bce747521ac, playbook-patterns.md 4ba01cc348b94243); only SKILL.md
+      differs by path renames. Inherits every rejection reason for G1 and adds a
+      second copy of the same content. Installing both would create a duplicate.
+    deployed_path: null
+
+  - requested_identifier: "skills-sh/nordz0r/skills: ansible-playbook"
+    upstream_source: "https://github.com/nordz0r/skills"
+    upstream_branch: main
+    upstream_commit: 625309c35d188dfec6058f093e8ae1ab5ed245b5
+    upstream_path: ansible-playbook
+    repository_directory: null
+    disposition: C
+    status: blocked
+    license: null
+    license_source: "NO LICENSE FILE ANYWHERE -- GitHub API license field is null, /LICENSE returns 404, and no license file appears among the 39 repo-root entries"
+    block_reason: >
+      Blocked on licensing despite having the strongest anti-unsafe content of all
+      six candidates: `host_key_checking = True`, an explicit warning that
+      `--check` lies when a module does not support check mode, "-vvv prints
+      secrets -- don't paste the full log into chat", CI guidance to use
+      ANSIBLE_VAULT_PASSWORD_FILE rather than --ask-vault-pass in a pipeline, and
+      a two-run idempotency proof procedure. Because no redistribution licence can
+      be established, its content must NOT be vendored into this repository.
+      Those specific lessons are captured Noesis-side as behaviour fixtures in
+      tests/test_ansible_behaviour_fixtures.py instead, which is the permitted
+      mechanism. If the upstream author adds a licence, this becomes a strong
+      candidate for a future review.
+    deployed_path: null
