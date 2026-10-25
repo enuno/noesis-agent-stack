@@ -1,7 +1,7 @@
 ---
 name: noesis-task-delegation
 description: "Plan and delegate tasks to Noesis specialist profiles."
-version: 0.4.1
+version: 0.4.2
 author: Elvis Nuno (enuno), Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -223,7 +223,7 @@ inventories before writing new ones.
    child manifest digest, and spawn environment; any identifier or manifest
    mismatch blocks before inference and records `dispatch_not_delivered`.
 
-   **Verify credential reachability in the exact spawn home before consuming an inference attempt.** An installed profile may have a `.env`, `auth.json`, or configured secret sources while an isolated fallback-denial home contains only its generated route config plus identity files. Inspect the launcher implementation to determine whether it hydrates the target profile's secret scope or merely copies the parent's environment. Treat `No usable credentials` before a model turn as `credential_unavailable_to_child`, not provider rejection; validity, quota, and funding remain unknown until a separately authorized live request. Never copy the whole `.env` or secret-source output into the isolated home. A repair must resolve into a private mapping, inject only the approved provider's documented credential variable names into the child environment, redact stdout/stderr, and test unrelated-secret exclusion, wrong-profile isolation, missing-source failure, and fallback denial.
+   **Verify credential reachability in the exact spawn home before consuming an inference attempt.** An installed profile may have a `.env`, `auth.json`, or configured secret sources while an isolated fallback-denial home contains only its generated route config plus identity files. Inspect the launcher implementation to determine whether it hydrates the target profile's secret scope or merely copies the parent's environment. Treat `No usable credentials` before a model turn as `credential_unavailable_to_child`, not provider rejection; validity, quota, and funding remain unknown until a separately authorized live request. The parent session's own working provider is **not** evidence of child reachability: when the parent hermes process resolved secrets at its own startup (Bitwarden SM project, keyring), spawned launcher children start cold even while the supervisor's own inference works — run a trivial one-shot `hermes -p <profile> chat` probe from the exact launch environment as the cheapest pre-flight check, and when a launch is refused, read the child's captured error text from the process log for the mechanism instead of inferring it from routing-event flags (`model_driven_canary`, `verification_pending` are static fields, not live provider state — see `noesis-delegation-monitoring`). Never copy the whole `.env` or secret-source output into the isolated home. A repair must resolve into a private mapping, inject only the approved provider's documented credential variable names into the child environment, redact stdout/stderr, and test unrelated-secret exclusion, wrong-profile isolation, missing-source failure, and fallback denial.
 
    **Qualify the route, not merely the profile name.** Before every launch, record separate evidence for profile-local authentication, launcher-selected lane/provider/model, isolated-child credential reachability, provider acceptance, model entitlement, quota/rate/account capacity, and approved monetary budget. Label each fact `verified`, `currently_callable`, `unknown`, or `blocked`, with observation time and expiry. A local auth row, model listing, dry-run, or tiny accepted request cannot prove full-task capacity. Select for price only among routes that already pass policy, privacy, workload-quality, execution-boundary, and reviewer-independence gates. Decompose canary limits into deadline, runtime budget, turns, provider requests, input/output tokens, USD admission, and provider/account caps; never treat one as another. If any required hard bound is unsupported, hold launch and present one revised approval envelope. Use `references/credential-diagnostics.md` for the readiness matrix, source-convergence gate, probe sequence, and control checklist.
 
@@ -293,7 +293,9 @@ inventories before writing new ones.
    follows; any open `critical` or `important` finding blocks
    `completed`.
 
-   **Default: run reviewers in-fleet, not via operator hand-carry.**
+   **Default: run reviewers in-fleet, not via operator hand-carry —
+   except for formal qualification rounds, which are operator-mediated
+   by standing policy.**
    Spec and quality reviewers are themselves Noesis profiles
    (`noesis-sentinel` for spec, `noesis-skeptic` for adversarial quality).
    Dispatch each as a bounded child task through the same canonical
@@ -336,9 +338,12 @@ inventories before writing new ones.
    **Reviewer process shape.** Launch each reviewer as a one-shot
    `hermes -p <reviewer> chat --query-file <contract.md> --oneshot
    --provider <authorized-lane> -m <authorized-model> -t file,terminal
-   --ignore-user-config --in <worktree> --run-budget 1800 --max-turns
+   --ignore-user-config --in <worktree> --max-turns
    300 --format stream-json --reasoning high` as a tracked background
-   process with PID/session-id recorded in the task. The explicit pair
+   process with PID/session-id recorded in the task. (Do not add
+   `--run-budget` — the installed gateway CLI rejects the flag; wall
+   clock is bounded only by `--max-turns` plus external supervision,
+   which the route amendment must disclose.) The explicit pair
    selects the primary lane, but neither it nor `--ignore-user-config`
    proves fallback suppression. Inspect startup output and the session
    record: any `Model fallback:` to an unapproved provider/model makes
@@ -415,7 +420,161 @@ inventories before writing new ones.
       one candidate does not transfer to a new implementation attempt or a
       changed candidate digest.
 
+## Native-delegation governed pilot (Path B — official Hermes backend)
+
+Use when the operator authorizes a bounded pilot of native `delegate_task`
+with the `advanced-delegation` plugin's `profile_routes` backend instead of
+the canonical control-plane launcher. The canonical launcher and its gates
+remain the qualified authority; a native pilot is evidence-gathering, not a
+replacement dispatch system.
+
+1. **Reconcile the installed state with bounded fields only:** core
+   version/revision and install-tree cleanliness, plugin version, the
+   enabled delegation backend, and conflicting active sessions/delegations
+   (process list + the native `async_delegations` store). Never upgrade,
+   reinstall, or enable anything to make a route work.
+2. **Verify the restriction surface before promising any child shape**
+   (see `references/native-delegation-enforcement.md`): a delegate child's
+   toolsets derive from the parent's *in-memory* toolset, and the per-task
+   toolset-narrowing parameter is not necessarily exposed on the current
+   session's `delegate_task` surface. If it is not, the only native route
+   to a minimal child is a FRESH parent session launched with
+   `-t/--toolsets`.
+3. **Prefer a zero-tool child.** Launch the fresh parent with
+   `-t delegation`: the parent holds exactly `delegate_task`; the leaf-role
+   strip removes `delegation` from the inherited child toolsets, leaving
+   the child with zero tools. Supply the complete sanitized brief inline in
+   the task goal/context; the child's final message returns through the
+   inline synchronous join (oneshot stateless channel). The restriction is
+   schema-level — the tools never enter the child's function schema — not a
+   prompt instruction.
+4. **Bind the pilot in a durable brief:** pilot id, exact named profile,
+   task and permitted inputs, the actual selected provider/model per
+   profile, effective tools, limits, expected result, stop conditions. Do
+   not fabricate `expected_epoch`/approved-pair enforcement the native
+   backend does not supply; record route checks as procedural observations.
+5. **Config hygiene, pilot-scoped only:** `delegation.backend:
+   profile_routes` with an allowlist of exactly the named profile and a
+   `default:` route; `delegation.max_iterations` as the child cap (it is
+   config-authoritative); `inherit_mcp_toolsets: false`; a child-profile
+   route/fallback amendment only when the configured route is
+   unauthenticated, preserving the exact old settings for restoration. 0600
+   backups; record a non-secret diff.
+6. **Operator-executed launch; the supervisor stands down.** Prepare the
+   exact command (`hermes -p <profile> chat --query-file <q> --oneshot -t
+   delegation --format stream-json ...` — no `--ignore-user-config` when
+   the pilot needs the delegation config, no `--yolo`) and a compact
+   handoff. Never mutate the running supervisor's tool surface and assume
+   it took effect, and never leave two supervisors dispatching the same
+   pilot.
+7. **Validate provenance:** parent session id and profile manifest pin;
+   `delegate_task` result JSON with requested == loaded profile and child
+   session id; child init model/provider and absence of fallback events;
+   zero tool-call events in the child transcript; child exit_reason within
+   the iteration cap; usage evidence. Correlate the native SQLite
+   delegation id with the pilot id — it is the single execution-state
+   authority. Never hand-append invented lifecycle events to
+   `tasks.jsonl`; use a distinctly labeled pilot evidence artifact.
+8. **Independent review before any expansion.** An eligible reviewer
+   inspects brief + config diff + session log + result. If none is
+   available, report execution verification separately and keep reviewed
+   adoption pending; do not expand the allowlist automatically.
+9. **Rollback:** restore configs from backup and stop/reconcile pilot work
+   through supported mechanisms. Rollback does not erase durable sessions,
+   SQLite records, logs, or artifacts — and does not claim to.
+
+### Operator-executed launch packets (the packet + companion + drill pattern)
+
+When the operator authorizes a pilot but reserves execution ("the operator
+will execute the exact packet"), deliver three artifacts, then stand down:
+
+1. **Launch packet (Markdown), revisioned by filename.** Each correction
+   produces a NEW file (`...-pilot-003.md`), never an in-place rewrite; the
+   superseded revision is preserved byte-identical and its reported hashes
+   stay valid. The packet states design facts, exact operator commands, the
+   authorized config delta, scope guard, and honest limitations.
+2. **Companion script (stdlib-only Python or sh).** Implements bounded
+   non-secret identity extraction, guarded apply, and verifiable restore:
+   - Precondition mismatch or refused check = exit 2 with ZERO writes; never
+     weaken a precondition to make apply pass.
+   - Refuse symlinks and non-regular files at every boundary (live config,
+     preimage, script copy, attempt dir).
+   - Refuse-if-exists on the attempt directory; create it 0700 with umask
+     077; noclobber for every evidence file; never `>`-truncate prior logs.
+   - Two individually-atomic replacements are NOT one transaction: validate
+     everything first, preflight writability beside each target, then write
+     with a progress marker between the two replaces; a crash mid-apply
+     leaves marker-tracked partial state that `restore` completes.
+   - Record ORIGINAL config modes separately from backup-file modes
+     (backups are 0600 regardless of source); restore re-applies the
+     recorded original mode and verifies bytes AND mode programmatically.
+   - Whole-config hashes never reach the terminal or public receipts — only
+     a 0600 private-integrity ledger; terminal output is MATCH/MISMATCH
+     tokens and sanitized status. Preimages may contain secrets.
+   - Restore refuses on any live-vs-post-apply hash mismatch (concurrent
+     modification); investigate, never bypass.
+3. **Operator runbook (single executable script).** One command runs the
+   whole flow; per-phase exit codes are recorded to files; a launch failure
+   cannot skip cleanup (no `set -e` on the cleanup path, explicit RC capture);
+   parent termination is verified before restore; NO automatic retry of any
+   failed phase; a manual recovery command is documented for SIGKILL/
+   terminal loss (shell traps cannot cover those).
+
+**Drill the procedure on synthetic fixtures before handing over.** Build
+fixture profile dirs with the exact preimage shapes plus a canary-secret line
+outside every affected window; stub the CLI binary (PATH-prepended shim that
+answers `--help` and exits nonzero at launch); run the full runbook via the
+script's env-override hooks. Verify: fresh setup, refuse-if-exists,
+precondition refusal with zero writes (check the live file CONTENT, don't
+assume), simulated partial apply completed by restore, nonzero launch outcome
+still restores, concurrent-modification refusal then success after untamper,
+original-mode restoration, and zero canary leakage into any emitted artifact
+(preimages excepted). In the drill, every REFUSED message is evidence: read
+its actual text before attributing it to a guard — most anomalies in a drill
+pass are harness errors (wrong fixture shape, stale fixture state), and the
+script's correct refusal is not a script defect. Reset fixtures to pristine
+between drills. Never claim the live procedure passed from compilation or
+identity-only dry runs.
+
 ## Pitfalls
+
+- **Keep capability claims honest across native and custom paths.** Native
+  child-command approval (deny-by-default) is not a Noesis pre-spawn
+  contract gate; toolset restriction is not an OS boundary (a process still
+  reaches what its OS identity can reach); procedural approval, route, and
+  reviewer boundaries remain procedural, and past successful reviews do not
+  establish bypass resistance; rollback restores configuration but does not
+  erase durable sessions, SQLite records, logs, or artifacts; and an
+  offline-qualified custom backend HAS code enforcement even when it is
+  not installed — never word a record so these distinctions disappear.
+
+- **No native hard wall-clock cap exists for delegate sessions.**
+  `--max-turns` bounds the parent CLI only; a child's iteration cap is the
+  config-authoritative `delegation.max_iterations`. State supervision
+  honestly — never represent it as a hard timeout or promise unattended
+  cancellation.
+
+- **`delegation.max_iterations` is config-authoritative.** `delegate_task`
+  explicitly ignores a caller-supplied max_iterations; set the cap in the
+  active profile's config and verify the child's recorded `exit_reason`.
+
+- **`inherit_mcp_toolsets` defaults true.** A narrowed delegate child
+  re-gains the parent's MCP toolsets unless `delegation.inherit_mcp_toolsets:
+  false` is set — network/MCP access is not removed by narrowing alone.
+
+- **Profile-config toolset keys do not narrow a delegate child.** The child
+  receives explicit parent-derived constructor arguments that override the
+  child profile's own `enabled_toolsets`; only a fresh parent's `-t`
+  restriction or an actually-exposed per-task toolset parameter narrows the
+  child. Verify exposure in the installed source before relying on it, and
+  stop before dispatch if the required restriction cannot be established
+  through the real path.
+
+- **One specialist's provider is not another's.** Check the named
+  profile's own provider/model and its presence in the authenticated pool
+  (presence only — never read values); do not assume a route that worked
+  for one profile is ready for another, and do not retry a historically
+  exhausted route without new readiness evidence.
 
 - **Do not bypass the planner.** Calling `route_and_launch` directly
   with a multi-domain intent produces a single best-fit specialist and
@@ -429,7 +588,7 @@ inventories before writing new ones.
   client setup, media, and relay diagnosis, not cluster install
   automation.
 
-- **Run reviewers in the fleet by default; never silently replace a mandatory reviewer.** Spec and quality reviewers are Noesis profiles dispatched through the same `Orchestrator.propose → approve → claim → start` lifecycle as the implementer. If that route is unavailable, return the precise blocker. Use an operator-launched external reviewer only when the operator explicitly authorizes a bootstrap path; bind it to the exact frozen candidate, label it bootstrap review, and keep mandatory Sentinel/Skeptic qualification outstanding. External bootstrap review is degraded evidence, not canonical reviewer delivery.
+- **Run reviewers in the fleet by default; never silently replace a mandatory reviewer.** Spec and quality reviewers are Noesis profiles dispatched through the same `Orchestrator.propose → approve → claim → start` lifecycle as the implementer. If that route is unavailable, return the precise blocker. Use an operator-launched external reviewer only when the operator explicitly authorizes a bootstrap path; bind it to the exact frozen candidate, label it bootstrap review, and keep mandatory Sentinel/Skeptic qualification outstanding. External bootstrap review is degraded evidence, not canonical reviewer delivery. The one standing exception to in-fleet dispatch is a **formal qualification round** (frozen-candidate Sentinel/Skeptic receipt chain): there the operator-mediated launch is the authorized path and the orchestrator never launches reviewer inference — see `noesis-in-fleet-review` → `references/formal-qualification-rounds.md`.
 
 - **The `reviewer_profile` field is reviewer-only and is not the
   orchestrator.** Policy rejects a non-reviewer `reviewer_profile`
@@ -581,6 +740,14 @@ inventories before writing new ones.
   authorizes an available route or a pre-authorized retry budget applies. Never
   mark the missing assignee artifact complete or spend another provider turn
   merely to repair the record.
+
+- **Do not bypass a refused guard to make a drill or apply pass.** When a
+  companion script or drill refuses, the refusal IS the evidence: read the
+  actual message, fix the fixture or the precondition, and re-run. Most
+  "failures" in a fixture drill turn out to be harness errors (fixture
+  shaped unlike the real preimage, fixture left in a mutated state by a
+  prior drill) — resetting to pristine and re-running is the repair, not
+  editing the guard.
 
 - **Never infer worker success from a shell pipeline exit code.** Commands such
   as `hermes ... | tee log` and `... | tail` normally return the final filter's
@@ -789,7 +956,12 @@ inventories before writing new ones.
   are unverified claims. The orchestrator must bind each child's
   identity and artifact paths in its own records, verify the artifacts
   itself before accepting anything, and name the route deviation in the
-  final report. Never route r2/r3 remote mutations (SSH writes,
+  final report. For code work, cross-check the child's reported
+  changed-paths against `git status -s` and `git diff --stat HEAD` in
+  the worktree — git is the authoritative changed set, and a self-report
+  can omit a path that did change; the omission is either a reporting
+  gap or evidence of an edit the report does not account for, and both
+  must be resolved before the result is frozen or accepted. Never route r2/r3 remote mutations (SSH writes,
   installs, exposure changes, spending) through them without an explicit
   operator approval manifest.
 
@@ -871,3 +1043,8 @@ Plus four invariant tests prove the negative space:
 - `references/noncanonical-bootstrap.md` — explicitly authorized external
   development/review bootstrap when canonical implementers and reviewers are
   unavailable, including provenance, digest binding, and status separation.
+- `references/native-delegation-enforcement.md` — verified mechanics of
+  native `delegate_task` and the `advanced-delegation` `profile_routes`
+  backend: child toolset derivation, leaf-role blocks, config-authoritative
+  iteration caps, MCP inheritance, the restricted-parent zero-tool-child
+  recipe, and the profile_routes configuration shape.
