@@ -1,0 +1,11 @@
+{
+  "name": "platform-administration",
+  "description": "Change who can read a deployment, its custom domains, git sources, org members and dashboard settings.",
+  "included_tools": [
+    "mintlify__manage_access_auth",
+    "mintlify__manage_custom_domain",
+    "mintlify__manage_git_source",
+    "mintlify__manage_members_sharing",
+    "mintlify__update_deployment_settings"
+  ]
+}

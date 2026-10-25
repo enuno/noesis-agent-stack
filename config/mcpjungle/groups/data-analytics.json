@@ -1,0 +1,9 @@
+{
+  "name": "data-analytics",
+  "description": "Query the documentation site's analytics tables and read prebuilt analytics reports.",
+  "included_tools": [
+    "mintlify__get_analytics_report",
+    "mintlify__get_analytics_schema",
+    "mintlify__query_analytics"
+  ]
+}

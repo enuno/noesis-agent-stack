@@ -1,0 +1,13 @@
+{
+  "name": "workflow-execution",
+  "description": "Execute, test and publish n8n workflows and agents, and manage their external integrations.",
+  "included_tools": [
+    "n8n__call_agent",
+    "n8n__execute_workflow",
+    "n8n__publish_agent",
+    "n8n__publish_workflow",
+    "n8n__test_workflow",
+    "n8n__update_agent_integration",
+    "n8n__verify_agent_mcp_server"
+  ]
+}

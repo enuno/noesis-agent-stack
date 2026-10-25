@@ -1,0 +1,8 @@
+{
+  "name": "autonomous-coding",
+  "description": "Delegate implementation to the GitHub Copilot coding agent and request automated reviews.",
+  "included_tools": [
+    "github__create_pull_request_with_copilot",
+    "github__request_copilot_review"
+  ]
+}

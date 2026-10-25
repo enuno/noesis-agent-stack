@@ -1,0 +1,33 @@
+{
+  "name": "legal-regulations-research",
+  "description": "Authoritative retrieval of codified federal regulations, Federal Register documents and live rulemaking dockets and public comments.",
+  "included_tools": [
+    "CourtListener__ecfr_get_ancestry",
+    "CourtListener__ecfr_get_daily_search_counts",
+    "CourtListener__ecfr_get_hierarchy_search_counts",
+    "CourtListener__ecfr_get_search_count",
+    "CourtListener__ecfr_get_search_suggestions",
+    "CourtListener__ecfr_get_search_summary",
+    "CourtListener__ecfr_get_source_xml",
+    "CourtListener__ecfr_get_title_search_counts",
+    "CourtListener__ecfr_get_title_structure",
+    "CourtListener__ecfr_get_title_versions",
+    "CourtListener__ecfr_list_agencies",
+    "CourtListener__ecfr_list_all_corrections",
+    "CourtListener__ecfr_list_corrections_by_title",
+    "CourtListener__ecfr_list_titles",
+    "CourtListener__ecfr_search_regulations",
+    "GovInfo__describePackageOrGranule",
+    "GovInfo__searchGovInfo",
+    "eCFR__get_regulation",
+    "eCFR__list_titles",
+    "eCFR__search_regulations",
+    "federal-regulations__regulations_browse_cfr",
+    "federal-regulations__regulations_find_comments",
+    "federal-regulations__regulations_get_cfr_section",
+    "federal-regulations__regulations_get_docket",
+    "federal-regulations__regulations_get_document",
+    "federal-regulations__regulations_list_open_comments",
+    "federal-regulations__regulations_search_rules"
+  ]
+}

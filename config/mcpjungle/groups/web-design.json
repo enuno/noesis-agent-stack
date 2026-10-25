@@ -1,0 +1,11 @@
+{
+  "name": "web-design",
+  "description": "Inspect Framer workspaces, projects, project documentation and assets.",
+  "included_tools": [
+    "framer__list_projects",
+    "framer__list_workspaces",
+    "framer__open_project",
+    "framer__read_docs",
+    "framer__view_image"
+  ]
+}

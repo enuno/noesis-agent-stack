@@ -1,0 +1,11 @@
+{
+  "name": "academic-research",
+  "description": "Search and read peer-reviewed academic literature.",
+  "included_tools": [
+    "firecrawl-search__firecrawl_research_inspect_paper",
+    "firecrawl-search__firecrawl_research_read_paper",
+    "firecrawl-search__firecrawl_research_related_papers",
+    "firecrawl-search__firecrawl_research_search_papers",
+    "linear__search_scholar"
+  ]
+}

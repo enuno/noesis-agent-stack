@@ -1,0 +1,9 @@
+{
+  "name": "docs-site-publish",
+  "description": "Publish staged documentation changes, and manage Mintlify workflow runs and the pull requests they open.",
+  "included_tools": [
+    "mintlify__manage_workflow",
+    "mintlify__manage_workflow_prs",
+    "mintlify__publish"
+  ]
+}

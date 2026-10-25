@@ -1,0 +1,24 @@
+{
+  "name": "source-control-readonly",
+  "description": "Read repository content, history, branches, tags, releases, collaborators and organisation and user directory data.",
+  "included_tools": [
+    "github__get_commit",
+    "github__get_file_contents",
+    "github__get_label",
+    "github__get_latest_release",
+    "github__get_me",
+    "github__get_release_by_tag",
+    "github__get_tag",
+    "github__get_team_members",
+    "github__get_teams",
+    "github__list_branches",
+    "github__list_commits",
+    "github__list_releases",
+    "github__list_repository_collaborators",
+    "github__list_tags",
+    "github__search_code",
+    "github__search_commits",
+    "github__search_repositories",
+    "github__search_users"
+  ]
+}

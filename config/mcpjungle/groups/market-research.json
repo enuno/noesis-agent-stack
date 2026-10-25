@@ -1,0 +1,10 @@
+{
+  "name": "market-research",
+  "description": "Read-only company, market and filings research, plus the data-provider catalogue those workflows depend on.",
+  "included_tools": [
+    "firecrawl-search__firecrawl_find_tools",
+    "firecrawl-search__firecrawl_recommended_providers",
+    "linear__search_business",
+    "linear__search_finance"
+  ]
+}

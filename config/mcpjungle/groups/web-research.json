@@ -1,0 +1,20 @@
+{
+  "name": "web-research",
+  "description": "General-purpose web search, page fetch and question answering.",
+  "included_tools": [
+    "exa__web_fetch_exa",
+    "exa__web_search_exa",
+    "firecrawl-search__firecrawl_gov_search",
+    "firecrawl-search__firecrawl_map",
+    "firecrawl-search__firecrawl_search",
+    "linear__quick_answer_agent",
+    "linear__search_agent",
+    "linear__search_legal",
+    "linear__search_medical",
+    "linear__search_web",
+    "perplexity__perplexity_ask",
+    "perplexity__perplexity_reason",
+    "perplexity__perplexity_research",
+    "perplexity__perplexity_search"
+  ]
+}

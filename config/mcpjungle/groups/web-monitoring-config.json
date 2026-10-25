@@ -1,0 +1,10 @@
+{
+  "name": "web-monitoring-config",
+  "description": "Create, edit, trigger and delete recurring web monitors.",
+  "included_tools": [
+    "firecrawl-search__firecrawl_monitor_create",
+    "firecrawl-search__firecrawl_monitor_delete",
+    "firecrawl-search__firecrawl_monitor_run",
+    "firecrawl-search__firecrawl_monitor_update"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "database-readonly",
+  "description": "Read n8n data-table rows and the Mintlify deployment databases.",
+  "included_tools": [
+    "mintlify__list_databases",
+    "mintlify__read_database",
+    "n8n__get_data_table_rows",
+    "n8n__search_data_tables"
+  ]
+}

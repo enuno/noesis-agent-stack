@@ -1,0 +1,8 @@
+{
+  "name": "browser-automation",
+  "description": "Drive a live browser session: navigate, click, fill forms, run browser code.",
+  "included_tools": [
+    "firecrawl-search__firecrawl_interact",
+    "firecrawl-search__firecrawl_interact_stop"
+  ]
+}

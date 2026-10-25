@@ -1,0 +1,13 @@
+{
+  "name": "observability",
+  "description": "Read deployment status and settings, workflow run history, reachable deployments and provider usage and cost.",
+  "included_tools": [
+    "beacon-managed__beacon_usage",
+    "firecrawl-search__firecrawl_credit_usage",
+    "firecrawl-search__firecrawl_usage_dashboard",
+    "mintlify__deployment_status",
+    "mintlify__get_deployment_settings",
+    "mintlify__get_workflows",
+    "mintlify__list_deployments"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "security-audit",
+  "description": "Scan for leaked secrets and review the security findings Beacon raised about agent activity.",
+  "included_tools": [
+    "beacon-managed__beacon_findings_list",
+    "beacon-managed__beacon_get_finding",
+    "github__run_secret_scanning"
+  ]
+}

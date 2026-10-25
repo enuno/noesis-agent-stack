@@ -1,0 +1,16 @@
+{
+  "name": "source-control-issues-readonly",
+  "description": "Read issues, pull requests, issue metadata and review state.",
+  "included_tools": [
+    "github__get_copilot_job_status",
+    "github__issue_read",
+    "github__list_issue_fields",
+    "github__list_issue_types",
+    "github__list_issues",
+    "github__list_pull_requests",
+    "github__pull_request_read",
+    "github__search_issues",
+    "github__search_pull_requests",
+    "github__ui_get"
+  ]
+}

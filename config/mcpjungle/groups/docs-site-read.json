@@ -1,0 +1,13 @@
+{
+  "name": "docs-site-read",
+  "description": "Read pages, navigation, branches and status of the operator's Mintlify documentation site.",
+  "included_tools": [
+    "mintlify__diff",
+    "mintlify__list_branches",
+    "mintlify__list_nodes",
+    "mintlify__list_repos_and_prs",
+    "mintlify__read",
+    "mintlify__search",
+    "mintlify__status"
+  ]
+}

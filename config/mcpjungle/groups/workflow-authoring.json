@@ -1,0 +1,11 @@
+{
+  "name": "workflow-authoring",
+  "description": "Create, update, archive, restore and unpublish n8n workflows.",
+  "included_tools": [
+    "n8n__archive_workflow",
+    "n8n__create_workflow_from_code",
+    "n8n__restore_workflow_version",
+    "n8n__unpublish_workflow",
+    "n8n__update_workflow"
+  ]
+}

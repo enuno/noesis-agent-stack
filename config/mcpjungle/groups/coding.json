@@ -1,0 +1,18 @@
+{
+  "name": "coding",
+  "description": "Code search, SDK and schema references, and workflow-code authoring helpers.",
+  "included_tools": [
+    "firecrawl-search__firecrawl_developer_search",
+    "github__get_file_contents",
+    "github__search_code",
+    "n8n__create_workflow_from_code",
+    "n8n__explore_node_resources",
+    "n8n__get_node_types",
+    "n8n__get_workflow_best_practices",
+    "n8n__get_workflow_sdk_reference",
+    "n8n__prepare_workflow_pin_data",
+    "n8n__search_nodes",
+    "n8n__validate_node_config",
+    "n8n__validate_workflow"
+  ]
+}

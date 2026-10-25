@@ -1,0 +1,10 @@
+{
+  "name": "platform-docs",
+  "description": "Search the MCPJungle and Mintlify documentation sets, including the virtual documentation filesystem.",
+  "included_tools": [
+    "mcpjungle-docs__query_docs_filesystem_mcpjungle",
+    "mcpjungle-docs__search_mcpjungle",
+    "mintlify-docs__query_docs_filesystem_mintlify",
+    "mintlify-docs__search_mintlify"
+  ]
+}

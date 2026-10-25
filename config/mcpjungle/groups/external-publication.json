@@ -1,0 +1,12 @@
+{
+  "name": "external-publication",
+  "description": "Publish Beacon lenses to the shared marketplace so other agents can install them.",
+  "included_tools": [
+    "beacon-managed__beacon_lenses_complete_upload",
+    "beacon-managed__beacon_lenses_create",
+    "beacon-managed__beacon_lenses_list",
+    "beacon-managed__beacon_lenses_prepare_upload",
+    "beacon-managed__beacon_lenses_release_version",
+    "beacon-managed__beacon_lenses_update"
+  ]
+}

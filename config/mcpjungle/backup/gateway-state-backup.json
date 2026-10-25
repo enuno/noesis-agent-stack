@@ -1,0 +1,1001 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "mcpjungle-gateway-state-backup",
+  "captured_at": "2026-10-25T21:53:09.532264+00:00",
+  "target": {
+    "registry_base_url": "https://mcpjungle.tailf99a0.ts.net",
+    "mcp_endpoint": "https://mcpjungle.tailf99a0.ts.net/mcp",
+    "mcpjungle_cli_version": "v0.4.6",
+    "mcpjungle_server_version": "v0.4.6",
+    "server_mode": "development",
+    "server_mode_note": "The gateway runs in SERVER_MODE=development. In this mode MCPJungle performs no authentication and no ACLs: verifyUserAuthForAPIAccess and requireAdminUser both short-circuit, and checkAuthForMcpProxyAccess passes requests with no Authorization header. This was a deliberate, operator-authorised switch on 2026-10-23 to enable the Dashboard UI, recorded in noesis-ansible/inventory/mcpjungle-k8s/group_vars/all.yml. The trust boundary for the resulting open access is the tailnet itself. The mode is set once at first initialization and cannot be changed without a destructive database reset.",
+    "capture_method": "Authenticated read-only GETs against the admin API (/api/v0/servers, /api/v0/server_configs, /api/v0/tool-groups) plus an MCP initialize + tools/list against the main /mcp endpoint. No tool was invoked."
+  },
+  "main_gateway_servers": {
+    "count": 20,
+    "source": "GET /api/v0/servers",
+    "description": "The upstream MCP servers registered on the main gateway. This view carries no credentials: every entry has null env, null args and null command, and the only non-empty fields are name, transport, url, description and enabled.",
+    "servers": [
+      {
+        "name": "CourtListener",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "CourtListener legal database (US federal/state courts, PACER, eCFR)",
+        "url": "https://courtlistener-mcp.vaquill.ai/mcp/",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "GovInfo",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Official federal publications, including legislation, laws, regulations, and publication metadata",
+        "url": "https://api.govinfo.gov/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "OpenStates",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Search bills, legislators, committees, and events across all 50 US states, DC, and Puerto Rico",
+        "url": "https://openstates.caseyjhand.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "beacon-managed",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Beacon managed MCP server",
+        "url": "https://mcp.beacon.sh",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "context7",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "context7 mcp server",
+        "url": "https://mcp.context7.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "court-listener",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Federal/state opinions, federal RECAP/PACER records, judges, oral arguments, citation extraction/verification, and alerts",
+        "url": "https://mcp.courtlistener.com/",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "deepwiki",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "DeepWiki Code Repository Documentation",
+        "url": "https://mcp.deepwiki.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "eCFR",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Search and retrieval of federal regulations with citations",
+        "url": "https://ecfr.io/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "exa",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Deep web search and web crawling",
+        "url": "https://mcp.exa.ai/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "federal-regulations",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Search and trace US federal rules across the Federal Register (proposed/final rules and notices), the eCFR (codified, point-in-time CFR full text, locally mirrored), and Regulations.gov (rulemaking dockets and public comments)",
+        "url": "https://federal-regulations.caseyjhand.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "firecrawl-search",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Web scraping of big data sets",
+        "url": "https://mcp.firecrawl.dev/v2/mcp-oauth",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "framer",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Framer MCP server",
+        "url": "https://mcp.framer.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "github",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Official GitHub MCP server",
+        "url": "https://api.githubcopilot.com/mcp/",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "linear",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Linear.ai research tool",
+        "url": "https://platform.liner.com/api/v1/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "mcpjungle-docs",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "MCPJungle",
+        "url": "https://docs.mcpjungle.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "mintlify",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Mintlify Docs",
+        "url": "https://mcp.mintlify.com",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "mintlify-docs",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Mintlify Docs",
+        "url": "https://www.mintlify.com/docs/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "misjusticeallinace-ywcaofmissoula-pub",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Public research and legal documentation published by MISJustice Alliance on ywcaofmissoula.com",
+        "url": "https://www.ywcaofmissoula.com/~gitbook/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "n8n",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Noesis lab N8N automation",
+        "url": "https://n8n.tailf99a0.ts.net/mcp-server/http",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "perplexity",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Perplexity hosted search, answers, research, and reasoning",
+        "url": "https://api.perplexity.ai/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      }
+    ]
+  },
+  "server_configs_redacted": {
+    "count": 20,
+    "source": "GET /api/v0/server_configs",
+    "description": "The richer admin view of each registered server. The upstream view includes bearer tokens, OAuth tokens and environment secrets, so every secret-bearing value is replaced with a non-reversible marker recording only its kind and length. This file cannot restore upstream credentials and is not a substitute for the Bitwarden escrow.",
+    "redactions_applied": 22,
+    "redaction_policy": "A value is replaced by <REDACTED:kind:len=N> where kind is one of opaque-token, jwt, hex-32, uuid. No secret material is recoverable from this file.",
+    "configs": [
+      {
+        "name": "CourtListener",
+        "transport": "streamable_http",
+        "description": "CourtListener legal database (US federal/state courts, PACER, eCFR)",
+        "url": "https://courtlistener-mcp.vaquill.ai/mcp/",
+        "headers": {
+          "X-CourtListener-Token": "<REDACTED:opaque-token:len=40>"
+        },
+        "session_mode": "stateless"
+      },
+      {
+        "name": "GovInfo",
+        "transport": "streamable_http",
+        "description": "Official federal publications, including legislation, laws, regulations, and publication metadata",
+        "url": "https://api.govinfo.gov/mcp",
+        "headers": {
+          "x-api-key": "<REDACTED:opaque-token:len=40>"
+        },
+        "session_mode": "stateless"
+      },
+      {
+        "name": "OpenStates",
+        "transport": "streamable_http",
+        "description": "Search bills, legislators, committees, and events across all 50 US states, DC, and Puerto Rico",
+        "url": "https://openstates.caseyjhand.com/mcp",
+        "session_mode": "stateless"
+      },
+      {
+        "name": "beacon-managed",
+        "transport": "streamable_http",
+        "description": "Beacon managed MCP server",
+        "url": "https://mcp.beacon.sh",
+        "bearer_token": "<REDACTED:opaque-token:len=51>",
+        "session_mode": "stateless"
+      },
+      {
+        "name": "context7",
+        "transport": "streamable_http",
+        "description": "context7 mcp server",
+        "url": "https://mcp.context7.com/mcp",
+        "bearer_token": "<REDACTED:opaque-token:len=43>",
+        "session_mode": "stateless"
+      },
+      {
+        "name": "court-listener",
+        "transport": "streamable_http",
+        "description": "Federal/state opinions, federal RECAP/PACER records, judges, oral arguments, citation extraction/verification, and alerts",
+        "url": "https://mcp.courtlistener.com/",
+        "session_mode": "stateless",
+        "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+        "oauth_client_id": "<REDACTED:uuid:len=36>"
+      },
+      {
+        "name": "deepwiki",
+        "transport": "streamable_http",
+        "description": "DeepWiki Code Repository Documentation",
+        "url": "https://mcp.deepwiki.com/mcp",
+        "session_mode": "stateless"
+      },
+      {
+        "name": "eCFR",
+        "transport": "streamable_http",
+        "description": "Search and retrieval of federal regulations with citations",
+        "url": "https://ecfr.io/mcp",
+        "session_mode": "stateless"
+      },
+      {
+        "name": "exa",
+        "transport": "streamable_http",
+        "description": "Deep web search and web crawling",
+        "url": "https://mcp.exa.ai/mcp",
+        "headers": {
+          "x-api-key": "<REDACTED:uuid:len=36>"
+        },
+        "session_mode": "stateless"
+      },
+      {
+        "name": "federal-regulations",
+        "transport": "streamable_http",
+        "description": "Search and trace US federal rules across the Federal Register (proposed/final rules and notices), the eCFR (codified, point-in-time CFR full text, locally mirrored), and Regulations.gov (rulemaking dockets and public comments)",
+        "url": "https://federal-regulations.caseyjhand.com/mcp",
+        "headers": {
+          "x-api-key": "<REDACTED:opaque-token:len=40>"
+        },
+        "session_mode": "stateless"
+      },
+      {
+        "name": "firecrawl-search",
+        "transport": "streamable_http",
+        "description": "Web scraping of big data sets",
+        "url": "https://mcp.firecrawl.dev/v2/mcp-oauth",
+        "session_mode": "stateless",
+        "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+        "oauth_client_id": "<REDACTED:opaque-token:len=36>"
+      },
+      {
+        "name": "framer",
+        "transport": "streamable_http",
+        "description": "Framer MCP server",
+        "url": "https://mcp.framer.com/mcp",
+        "session_mode": "stateless",
+        "oauth_redirect_uri": "<REDACTED:opaque-token:len=37>",
+        "oauth_client_id": "<REDACTED:opaque-token:len=16>",
+        "oauth_scopes": [
+          "<REDACTED:opaque-token:len=11>"
+        ]
+      },
+      {
+        "name": "github",
+        "transport": "streamable_http",
+        "description": "Official GitHub MCP server",
+        "url": "https://api.githubcopilot.com/mcp/",
+        "session_mode": "stateless",
+        "oauth_redirect_uri": "<REDACTED:opaque-token:len=37>",
+        "oauth_client_id": "<REDACTED:opaque-token:len=20>",
+        "oauth_client_secret": "<REDACTED:opaque-token:len=40>"
+      },
+      {
+        "name": "linear",
+        "transport": "streamable_http",
+        "description": "Linear.ai research tool",
+        "url": "https://platform.liner.com/api/v1/mcp",
+        "bearer_token": "<REDACTED:opaque-token:len=48>",
+        "session_mode": "stateless",
+        "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+        "oauth_client_id": "<REDACTED:opaque-token:len=27>"
+      },
+      {
+        "name": "mcpjungle-docs",
+        "transport": "streamable_http",
+        "description": "MCPJungle",
+        "url": "https://docs.mcpjungle.com/mcp",
+        "session_mode": "stateless"
+      },
+      {
+        "name": "mintlify",
+        "transport": "streamable_http",
+        "description": "Mintlify Docs",
+        "url": "https://mcp.mintlify.com",
+        "session_mode": "stateless",
+        "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+        "oauth_client_id": "<REDACTED:oauth-client-id:len=55>"
+      },
+      {
+        "name": "mintlify-docs",
+        "transport": "streamable_http",
+        "description": "Mintlify Docs",
+        "url": "https://www.mintlify.com/docs/mcp",
+        "session_mode": "stateless"
+      },
+      {
+        "name": "misjusticeallinace-ywcaofmissoula-pub",
+        "transport": "streamable_http",
+        "description": "Public research and legal documentation published by MISJustice Alliance on ywcaofmissoula.com",
+        "url": "https://www.ywcaofmissoula.com/~gitbook/mcp",
+        "session_mode": "stateless"
+      },
+      {
+        "name": "n8n",
+        "transport": "streamable_http",
+        "description": "Noesis lab N8N automation",
+        "url": "https://n8n.tailf99a0.ts.net/mcp-server/http",
+        "bearer_token": "<REDACTED:jwt:len=272>",
+        "session_mode": "stateless"
+      },
+      {
+        "name": "perplexity",
+        "transport": "streamable_http",
+        "description": "Perplexity hosted search, answers, research, and reasoning",
+        "url": "https://api.perplexity.ai/mcp",
+        "bearer_token": "<REDACTED:opaque-token:len=53>",
+        "session_mode": "stateless"
+      }
+    ]
+  },
+  "tool_groups": {
+    "count": 41,
+    "source": "GET /api/v0/tool-groups",
+    "description": "The live tool-group definitions. These are directly restorable: each entry maps 1:1 onto the deployable file under config/mcpjungle/groups/, and the deployed definitions were verified byte-identical to those files.",
+    "groups": [
+      {
+        "name": "academic-research",
+        "included_tools": [
+          "firecrawl-search__firecrawl_research_inspect_paper",
+          "firecrawl-search__firecrawl_research_read_paper",
+          "firecrawl-search__firecrawl_research_related_papers",
+          "firecrawl-search__firecrawl_research_search_papers",
+          "linear__search_scholar"
+        ],
+        "description": "Search and read peer-reviewed academic literature."
+      },
+      {
+        "name": "agent-infrastructure",
+        "included_tools": [
+          "n8n__create_agent",
+          "n8n__delete_agent",
+          "n8n__get_agent",
+          "n8n__get_agent_builder_reference",
+          "n8n__list_agent_versions",
+          "n8n__mutate_agent",
+          "n8n__revert_agent",
+          "n8n__search_agents",
+          "n8n__unpublish_agent",
+          "n8n__validate_agent"
+        ],
+        "description": "Create, mutate, validate, version and retire n8n agent drafts."
+      },
+      {
+        "name": "autonomous-coding",
+        "included_tools": [
+          "github__create_pull_request_with_copilot",
+          "github__request_copilot_review"
+        ],
+        "description": "Delegate implementation to the GitHub Copilot coding agent and request automated reviews."
+      },
+      {
+        "name": "autonomous-research",
+        "included_tools": [
+          "exa__agent_run",
+          "firecrawl-search__firecrawl_agent",
+          "linear__deep_research_agent"
+        ],
+        "description": "Multi-step autonomous research agents that keep working after the initiating call."
+      },
+      {
+        "name": "browser-automation",
+        "included_tools": [
+          "firecrawl-search__firecrawl_interact",
+          "firecrawl-search__firecrawl_interact_stop"
+        ],
+        "description": "Drive a live browser session: navigate, click, fill forms, run browser code."
+      },
+      {
+        "name": "coding",
+        "included_tools": [
+          "firecrawl-search__firecrawl_developer_search",
+          "github__get_file_contents",
+          "github__search_code",
+          "n8n__create_workflow_from_code",
+          "n8n__explore_node_resources",
+          "n8n__get_node_types",
+          "n8n__get_workflow_best_practices",
+          "n8n__get_workflow_sdk_reference",
+          "n8n__prepare_workflow_pin_data",
+          "n8n__search_nodes",
+          "n8n__validate_node_config",
+          "n8n__validate_workflow"
+        ],
+        "description": "Code search, SDK and schema references, and workflow-code authoring helpers."
+      },
+      {
+        "name": "communications-readonly",
+        "included_tools": [
+          "mintlify__read_comments"
+        ],
+        "description": "Read the comment and suggestion threads on the operator's documentation site."
+      },
+      {
+        "name": "communications-send",
+        "included_tools": [
+          "beacon-managed__beacon_share_session",
+          "firecrawl-search__firecrawl_feedback",
+          "firecrawl-search__firecrawl_search_feedback",
+          "github__add_comment_to_pending_review",
+          "github__add_issue_comment",
+          "github__add_reply_to_pull_request_comment",
+          "github__update_issue_comment",
+          "mcpjungle-docs__submit_feedback",
+          "mintlify-docs__submit_feedback",
+          "mintlify__add_comment",
+          "mintlify__reply_to_comment",
+          "mintlify__resolve_comment",
+          "misjusticeallinace-ywcaofmissoula-pub__sendFeedback"
+        ],
+        "description": "Send comments, replies, reactions, feedback and shared traces to external services."
+      },
+      {
+        "name": "credential-inventory",
+        "included_tools": [
+          "n8n__list_credentials"
+        ],
+        "description": "Enumerate the n8n credentials the authenticated user can reference."
+      },
+      {
+        "name": "data-analytics",
+        "included_tools": [
+          "mintlify__get_analytics_report",
+          "mintlify__get_analytics_schema",
+          "mintlify__query_analytics"
+        ],
+        "description": "Query the documentation site's analytics tables and read prebuilt analytics reports."
+      },
+      {
+        "name": "database-readonly",
+        "included_tools": [
+          "mintlify__list_databases",
+          "mintlify__read_database",
+          "n8n__get_data_table_rows",
+          "n8n__search_data_tables"
+        ],
+        "description": "Read n8n data-table rows and the Mintlify deployment databases."
+      },
+      {
+        "name": "database-write",
+        "included_tools": [
+          "mintlify__edit_database_columns",
+          "mintlify__edit_database_rows",
+          "n8n__add_data_table_column",
+          "n8n__add_data_table_rows",
+          "n8n__create_data_table",
+          "n8n__delete_data_table_column",
+          "n8n__rename_data_table",
+          "n8n__rename_data_table_column"
+        ],
+        "description": "Create, extend, rename and delete n8n data tables and columns, and edit Mintlify database rows and columns."
+      },
+      {
+        "name": "docs-site-authoring",
+        "included_tools": [
+          "mintlify__create_branch",
+          "mintlify__create_node",
+          "mintlify__delete_node",
+          "mintlify__discard",
+          "mintlify__edit_page",
+          "mintlify__finalize_image_upload",
+          "mintlify__move_node",
+          "mintlify__suggest_edit",
+          "mintlify__update_config",
+          "mintlify__update_node",
+          "mintlify__upload_image",
+          "mintlify__write_page"
+        ],
+        "description": "Edit documentation content, navigation and images on the operator's Mintlify site without publishing."
+      },
+      {
+        "name": "docs-site-publish",
+        "included_tools": [
+          "mintlify__manage_workflow",
+          "mintlify__manage_workflow_prs",
+          "mintlify__publish"
+        ],
+        "description": "Publish staged documentation changes, and manage Mintlify workflow runs and the pull requests they open."
+      },
+      {
+        "name": "docs-site-read",
+        "included_tools": [
+          "mintlify__diff",
+          "mintlify__list_branches",
+          "mintlify__list_nodes",
+          "mintlify__list_repos_and_prs",
+          "mintlify__read",
+          "mintlify__search",
+          "mintlify__status"
+        ],
+        "description": "Read pages, navigation, branches and status of the operator's Mintlify documentation site."
+      },
+      {
+        "name": "external-publication",
+        "included_tools": [
+          "beacon-managed__beacon_lenses_complete_upload",
+          "beacon-managed__beacon_lenses_create",
+          "beacon-managed__beacon_lenses_list",
+          "beacon-managed__beacon_lenses_prepare_upload",
+          "beacon-managed__beacon_lenses_release_version",
+          "beacon-managed__beacon_lenses_update"
+        ],
+        "description": "Publish Beacon lenses to the shared marketplace so other agents can install them."
+      },
+      {
+        "name": "legal-alerts",
+        "included_tools": [
+          "court-listener__create_search_alert",
+          "court-listener__delete_search_alert",
+          "court-listener__pray_for_document",
+          "court-listener__subscribe_to_docket_alert",
+          "court-listener__unsubscribe_from_docket_alert",
+          "court-listener__withdraw_prayer"
+        ],
+        "description": "Create, cancel and withdraw CourtListener search and docket subscriptions, and request documents CourtListener does not yet hold."
+      },
+      {
+        "name": "legal-citation-analysis",
+        "included_tools": [
+          "CourtListener__citation_batch_lookup_citations",
+          "CourtListener__citation_enhanced_citation_lookup",
+          "CourtListener__citation_extract_citations_from_text",
+          "CourtListener__citation_lookup_citation",
+          "CourtListener__citation_parse_citation_with_citeurl",
+          "CourtListener__citation_verify_citation_format",
+          "court-listener__analyze_citations",
+          "court-listener__extract_citations",
+          "court-listener__resume_citation_analysis"
+        ],
+        "description": "Extract, parse, verify and batch-resolve legal citations."
+      },
+      {
+        "name": "legal-regulations-research",
+        "included_tools": [
+          "CourtListener__ecfr_get_ancestry",
+          "CourtListener__ecfr_get_daily_search_counts",
+          "CourtListener__ecfr_get_hierarchy_search_counts",
+          "CourtListener__ecfr_get_search_count",
+          "CourtListener__ecfr_get_search_suggestions",
+          "CourtListener__ecfr_get_search_summary",
+          "CourtListener__ecfr_get_source_xml",
+          "CourtListener__ecfr_get_title_search_counts",
+          "CourtListener__ecfr_get_title_structure",
+          "CourtListener__ecfr_get_title_versions",
+          "CourtListener__ecfr_list_agencies",
+          "CourtListener__ecfr_list_all_corrections",
+          "CourtListener__ecfr_list_corrections_by_title",
+          "CourtListener__ecfr_list_titles",
+          "CourtListener__ecfr_search_regulations",
+          "GovInfo__describePackageOrGranule",
+          "GovInfo__searchGovInfo",
+          "eCFR__get_regulation",
+          "eCFR__list_titles",
+          "eCFR__search_regulations",
+          "federal-regulations__regulations_browse_cfr",
+          "federal-regulations__regulations_find_comments",
+          "federal-regulations__regulations_get_cfr_section",
+          "federal-regulations__regulations_get_docket",
+          "federal-regulations__regulations_get_document",
+          "federal-regulations__regulations_list_open_comments",
+          "federal-regulations__regulations_search_rules"
+        ],
+        "description": "Authoritative retrieval of codified federal regulations, Federal Register documents and live rulemaking dockets and public comments."
+      },
+      {
+        "name": "legal-research",
+        "included_tools": [
+          "CourtListener__get_audio",
+          "CourtListener__get_cluster",
+          "CourtListener__get_court",
+          "CourtListener__get_docket",
+          "CourtListener__get_opinion",
+          "CourtListener__get_person",
+          "CourtListener__search_audio",
+          "CourtListener__search_dockets",
+          "CourtListener__search_dockets_with_documents",
+          "CourtListener__search_opinions",
+          "CourtListener__search_people",
+          "CourtListener__search_recap_documents",
+          "CourtListener__status",
+          "court-listener__get_api_usage",
+          "court-listener__get_choices",
+          "court-listener__get_counts",
+          "court-listener__get_endpoint_item",
+          "court-listener__get_endpoint_schema",
+          "court-listener__get_more_results",
+          "court-listener__read_document",
+          "court-listener__search",
+          "court-listener__search_document",
+          "misjusticeallinace-ywcaofmissoula-pub__getPage",
+          "misjusticeallinace-ywcaofmissoula-pub__searchDocumentation"
+        ],
+        "description": "Authoritative retrieval of US case law: opinions, opinion clusters, dockets, courts, judges, oral argument, filed documents, and the published MISJustice Alliance / YWCA Missoula documentation corpus."
+      },
+      {
+        "name": "legislative-research",
+        "included_tools": [
+          "OpenStates__openstates_get_bill",
+          "OpenStates__openstates_get_committee",
+          "OpenStates__openstates_get_event",
+          "OpenStates__openstates_get_jurisdiction",
+          "OpenStates__openstates_get_legislators_by_location",
+          "OpenStates__openstates_list_jurisdictions",
+          "OpenStates__openstates_search_bills",
+          "OpenStates__openstates_search_committees",
+          "OpenStates__openstates_search_events",
+          "OpenStates__openstates_search_people"
+        ],
+        "description": "Retrieval of state legislative bills, committees, legislators and events across all 50 states, DC and Puerto Rico."
+      },
+      {
+        "name": "library-docs",
+        "included_tools": [
+          "context7__query-docs",
+          "context7__resolve-library-id"
+        ],
+        "description": "Resolve library identifiers and query current library and framework documentation."
+      },
+      {
+        "name": "market-research",
+        "included_tools": [
+          "firecrawl-search__firecrawl_find_tools",
+          "firecrawl-search__firecrawl_recommended_providers",
+          "linear__search_business",
+          "linear__search_finance"
+        ],
+        "description": "Read-only company, market and filings research, plus the data-provider catalogue those workflows depend on."
+      },
+      {
+        "name": "memory-management",
+        "included_tools": [
+          "beacon-managed__beacon_finding_feedback",
+          "beacon-managed__beacon_memory_candidate_create",
+          "beacon-managed__beacon_memory_candidate_review",
+          "beacon-managed__beacon_shared_trace_update"
+        ],
+        "description": "File memory candidates, record review decisions and adjust shared-trace visibility."
+      },
+      {
+        "name": "memory-retrieval",
+        "included_tools": [
+          "beacon-managed__beacon_findings_list",
+          "beacon-managed__beacon_get_event",
+          "beacon-managed__beacon_get_finding",
+          "beacon-managed__beacon_grep",
+          "beacon-managed__beacon_lookup",
+          "beacon-managed__beacon_memory_candidate_get",
+          "beacon-managed__beacon_memory_candidates_list",
+          "beacon-managed__beacon_memory_get",
+          "beacon-managed__beacon_memory_search",
+          "beacon-managed__beacon_memory_skill",
+          "beacon-managed__beacon_read_session",
+          "beacon-managed__beacon_search_sessions",
+          "beacon-managed__beacon_shared_traces_list"
+        ],
+        "description": "Recall approved lessons, search prior sessions, and read findings and shared trace metadata without changing them."
+      },
+      {
+        "name": "observability",
+        "included_tools": [
+          "beacon-managed__beacon_usage",
+          "firecrawl-search__firecrawl_credit_usage",
+          "firecrawl-search__firecrawl_usage_dashboard",
+          "mintlify__deployment_status",
+          "mintlify__get_deployment_settings",
+          "mintlify__get_workflows",
+          "mintlify__list_deployments"
+        ],
+        "description": "Read deployment status and settings, workflow run history, reachable deployments and provider usage and cost."
+      },
+      {
+        "name": "platform-administration",
+        "included_tools": [
+          "mintlify__manage_access_auth",
+          "mintlify__manage_custom_domain",
+          "mintlify__manage_git_source",
+          "mintlify__manage_members_sharing",
+          "mintlify__update_deployment_settings"
+        ],
+        "description": "Change who can read a deployment, its custom domains, git sources, org members and dashboard settings."
+      },
+      {
+        "name": "platform-docs",
+        "included_tools": [
+          "mcpjungle-docs__query_docs_filesystem_mcpjungle",
+          "mcpjungle-docs__search_mcpjungle",
+          "mintlify-docs__query_docs_filesystem_mintlify",
+          "mintlify-docs__search_mintlify"
+        ],
+        "description": "Search the MCPJungle and Mintlify documentation sets, including the virtual documentation filesystem."
+      },
+      {
+        "name": "repository-docs",
+        "included_tools": [
+          "deepwiki__ask_wiki_question",
+          "deepwiki__read_wiki_contents",
+          "deepwiki__read_wiki_structure"
+        ],
+        "description": "Read AI-generated wiki documentation and structure for a source repository."
+      },
+      {
+        "name": "security-audit",
+        "included_tools": [
+          "beacon-managed__beacon_findings_list",
+          "beacon-managed__beacon_get_finding",
+          "github__run_secret_scanning"
+        ],
+        "description": "Scan for leaked secrets and review the security findings Beacon raised about agent activity."
+      },
+      {
+        "name": "source-control-issues-readonly",
+        "included_tools": [
+          "github__get_copilot_job_status",
+          "github__issue_read",
+          "github__list_issue_fields",
+          "github__list_issue_types",
+          "github__list_issues",
+          "github__list_pull_requests",
+          "github__pull_request_read",
+          "github__search_issues",
+          "github__search_pull_requests",
+          "github__ui_get"
+        ],
+        "description": "Read issues, pull requests, issue metadata and review state."
+      },
+      {
+        "name": "source-control-readonly",
+        "included_tools": [
+          "github__get_commit",
+          "github__get_file_contents",
+          "github__get_label",
+          "github__get_latest_release",
+          "github__get_me",
+          "github__get_release_by_tag",
+          "github__get_tag",
+          "github__get_team_members",
+          "github__get_teams",
+          "github__list_branches",
+          "github__list_commits",
+          "github__list_releases",
+          "github__list_repository_collaborators",
+          "github__list_tags",
+          "github__search_code",
+          "github__search_commits",
+          "github__search_repositories",
+          "github__search_users"
+        ],
+        "description": "Read repository content, history, branches, tags, releases, collaborators and organisation and user directory data."
+      },
+      {
+        "name": "source-control-write",
+        "included_tools": [
+          "github__assign_copilot_to_issue",
+          "github__create_branch",
+          "github__create_or_update_file",
+          "github__create_pull_request",
+          "github__create_repository",
+          "github__delete_file",
+          "github__fork_repository",
+          "github__issue_write",
+          "github__merge_pull_request",
+          "github__pull_request_review_write",
+          "github__push_files",
+          "github__sub_issue_write",
+          "github__update_pull_request",
+          "github__update_pull_request_branch"
+        ],
+        "description": "Change repository content and metadata: branches, files, pull requests, issues and reviews."
+      },
+      {
+        "name": "web-design",
+        "included_tools": [
+          "framer__list_projects",
+          "framer__list_workspaces",
+          "framer__open_project",
+          "framer__read_docs",
+          "framer__view_image"
+        ],
+        "description": "Inspect Framer workspaces, projects, project documentation and assets."
+      },
+      {
+        "name": "web-monitoring",
+        "included_tools": [
+          "firecrawl-search__firecrawl_monitor_check",
+          "firecrawl-search__firecrawl_monitor_checks",
+          "firecrawl-search__firecrawl_monitor_get",
+          "firecrawl-search__firecrawl_monitor_list"
+        ],
+        "description": "Read-only inspection of existing web monitors and their check history."
+      },
+      {
+        "name": "web-monitoring-config",
+        "included_tools": [
+          "firecrawl-search__firecrawl_monitor_create",
+          "firecrawl-search__firecrawl_monitor_delete",
+          "firecrawl-search__firecrawl_monitor_run",
+          "firecrawl-search__firecrawl_monitor_update"
+        ],
+        "description": "Create, edit, trigger and delete recurring web monitors."
+      },
+      {
+        "name": "web-research",
+        "included_tools": [
+          "exa__web_fetch_exa",
+          "exa__web_search_exa",
+          "firecrawl-search__firecrawl_gov_search",
+          "firecrawl-search__firecrawl_map",
+          "firecrawl-search__firecrawl_search",
+          "linear__quick_answer_agent",
+          "linear__search_agent",
+          "linear__search_legal",
+          "linear__search_medical",
+          "linear__search_web",
+          "perplexity__perplexity_ask",
+          "perplexity__perplexity_reason",
+          "perplexity__perplexity_research",
+          "perplexity__perplexity_search"
+        ],
+        "description": "General-purpose web search, page fetch and question answering."
+      },
+      {
+        "name": "web-retrieval",
+        "included_tools": [
+          "firecrawl-search__firecrawl_agent_status",
+          "firecrawl-search__firecrawl_check_crawl_status",
+          "firecrawl-search__firecrawl_crawl",
+          "firecrawl-search__firecrawl_parse",
+          "firecrawl-search__firecrawl_scrape"
+        ],
+        "description": "Fetch, parse and crawl specific documents and sites on demand."
+      },
+      {
+        "name": "workflow-authoring",
+        "included_tools": [
+          "n8n__archive_workflow",
+          "n8n__create_workflow_from_code",
+          "n8n__restore_workflow_version",
+          "n8n__unpublish_workflow",
+          "n8n__update_workflow"
+        ],
+        "description": "Create, update, archive, restore and unpublish n8n workflows."
+      },
+      {
+        "name": "workflow-execution",
+        "included_tools": [
+          "n8n__call_agent",
+          "n8n__execute_workflow",
+          "n8n__publish_agent",
+          "n8n__publish_workflow",
+          "n8n__test_workflow",
+          "n8n__update_agent_integration",
+          "n8n__verify_agent_mcp_server"
+        ],
+        "description": "Execute, test and publish n8n workflows and agents, and manage their external integrations."
+      },
+      {
+        "name": "workflow-inspection",
+        "included_tools": [
+          "n8n__discover_agent_assets",
+          "n8n__get_workflow_details",
+          "n8n__get_workflow_execution",
+          "n8n__get_workflow_history",
+          "n8n__get_workflow_version",
+          "n8n__get_workflow_versions_diff",
+          "n8n__list_n8n_gateway_services",
+          "n8n__list_workflow_tags",
+          "n8n__search_projects",
+          "n8n__search_workflow_executions",
+          "n8n__search_workflows"
+        ],
+        "description": "Read n8n workflows, versions, executions, tags, projects and gateway coverage."
+      }
+    ]
+  },
+  "main_endpoint_tool_inventory": {
+    "count": 308,
+    "source": "MCP initialize + tools/list against https://mcpjungle.tailf99a0.ts.net/mcp",
+    "description": "The main /mcp endpoint still serves all 308 tools. Creating tool groups does not narrow the main gateway; narrowing requires pointing a client at a group endpoint. The full per-tool metadata for this surface is maintained in config/mcpjungle/tool-inventory.json and is not duplicated here.",
+    "inventory_file": "../tool-inventory.json"
+  },
+  "restore_procedure": {
+    "servers": "mcpjungle register -c <file> for each entry in main_gateway_servers. Note that upstream credentials are NOT recoverable from this backup: re-apply them from the Bitwarden escrow.",
+    "groups": "mcpjungle create group --conf config/mcpjungle/groups/<group-name>.json for any group absent from tool_groups. To update an existing group to its backed-up definition, use mcpjungle update group --conf <file>.",
+    "ordering": "Restore servers before groups: group creation validates every listed tool against the registry and fails if a tool does not exist or is disabled."
+  },
+  "integrity": {
+    "leak_check": "Every non-trivial string value in the live server_configs was treated as a secret and checked against the emitted file. The emitted file contains none of them. Only field NAMES and the redacted shape markers survive.",
+    "note": "This backup is a point-in-time snapshot. It records what the gateway looked like at captured_at and does not detect later drift. Re-capture and diff against main_gateway_servers and tool_groups to review drift."
+  }
+}

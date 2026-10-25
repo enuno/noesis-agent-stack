@@ -1,0 +1,19 @@
+{
+  "name": "memory-retrieval",
+  "description": "Recall approved lessons, search prior sessions, and read findings and shared trace metadata without changing them.",
+  "included_tools": [
+    "beacon-managed__beacon_findings_list",
+    "beacon-managed__beacon_get_event",
+    "beacon-managed__beacon_get_finding",
+    "beacon-managed__beacon_grep",
+    "beacon-managed__beacon_lookup",
+    "beacon-managed__beacon_memory_candidate_get",
+    "beacon-managed__beacon_memory_candidates_list",
+    "beacon-managed__beacon_memory_get",
+    "beacon-managed__beacon_memory_search",
+    "beacon-managed__beacon_memory_skill",
+    "beacon-managed__beacon_read_session",
+    "beacon-managed__beacon_search_sessions",
+    "beacon-managed__beacon_shared_traces_list"
+  ]
+}

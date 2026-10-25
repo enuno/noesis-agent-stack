@@ -1,0 +1,16 @@
+{
+  "name": "legislative-research",
+  "description": "Retrieval of state legislative bills, committees, legislators and events across all 50 states, DC and Puerto Rico.",
+  "included_tools": [
+    "OpenStates__openstates_get_bill",
+    "OpenStates__openstates_get_committee",
+    "OpenStates__openstates_get_event",
+    "OpenStates__openstates_get_jurisdiction",
+    "OpenStates__openstates_get_legislators_by_location",
+    "OpenStates__openstates_list_jurisdictions",
+    "OpenStates__openstates_search_bills",
+    "OpenStates__openstates_search_committees",
+    "OpenStates__openstates_search_events",
+    "OpenStates__openstates_search_people"
+  ]
+}

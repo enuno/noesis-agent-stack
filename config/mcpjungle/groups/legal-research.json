@@ -1,0 +1,30 @@
+{
+  "name": "legal-research",
+  "description": "Authoritative retrieval of US case law: opinions, opinion clusters, dockets, courts, judges, oral argument, filed documents, and the published MISJustice Alliance / YWCA Missoula documentation corpus.",
+  "included_tools": [
+    "CourtListener__get_audio",
+    "CourtListener__get_cluster",
+    "CourtListener__get_court",
+    "CourtListener__get_docket",
+    "CourtListener__get_opinion",
+    "CourtListener__get_person",
+    "CourtListener__search_audio",
+    "CourtListener__search_dockets",
+    "CourtListener__search_dockets_with_documents",
+    "CourtListener__search_opinions",
+    "CourtListener__search_people",
+    "CourtListener__search_recap_documents",
+    "CourtListener__status",
+    "court-listener__get_api_usage",
+    "court-listener__get_choices",
+    "court-listener__get_counts",
+    "court-listener__get_endpoint_item",
+    "court-listener__get_endpoint_schema",
+    "court-listener__get_more_results",
+    "court-listener__read_document",
+    "court-listener__search",
+    "court-listener__search_document",
+    "misjusticeallinace-ywcaofmissoula-pub__getPage",
+    "misjusticeallinace-ywcaofmissoula-pub__searchDocumentation"
+  ]
+}

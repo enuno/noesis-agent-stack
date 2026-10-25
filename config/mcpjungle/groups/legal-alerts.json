@@ -1,0 +1,12 @@
+{
+  "name": "legal-alerts",
+  "description": "Create, cancel and withdraw CourtListener search and docket subscriptions, and request documents CourtListener does not yet hold.",
+  "included_tools": [
+    "court-listener__create_search_alert",
+    "court-listener__delete_search_alert",
+    "court-listener__pray_for_document",
+    "court-listener__subscribe_to_docket_alert",
+    "court-listener__unsubscribe_from_docket_alert",
+    "court-listener__withdraw_prayer"
+  ]
+}

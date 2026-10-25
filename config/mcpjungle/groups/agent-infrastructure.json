@@ -1,0 +1,16 @@
+{
+  "name": "agent-infrastructure",
+  "description": "Create, mutate, validate, version and retire n8n agent drafts.",
+  "included_tools": [
+    "n8n__create_agent",
+    "n8n__delete_agent",
+    "n8n__get_agent",
+    "n8n__get_agent_builder_reference",
+    "n8n__list_agent_versions",
+    "n8n__mutate_agent",
+    "n8n__revert_agent",
+    "n8n__search_agents",
+    "n8n__unpublish_agent",
+    "n8n__validate_agent"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "web-retrieval",
+  "description": "Fetch, parse and crawl specific documents and sites on demand.",
+  "included_tools": [
+    "firecrawl-search__firecrawl_agent_status",
+    "firecrawl-search__firecrawl_check_crawl_status",
+    "firecrawl-search__firecrawl_crawl",
+    "firecrawl-search__firecrawl_parse",
+    "firecrawl-search__firecrawl_scrape"
+  ]
+}

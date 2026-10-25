@@ -1,0 +1,7 @@
+{
+  "name": "communications-readonly",
+  "description": "Read the comment and suggestion threads on the operator's documentation site.",
+  "included_tools": [
+    "mintlify__read_comments"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "autonomous-research",
+  "description": "Multi-step autonomous research agents that keep working after the initiating call.",
+  "included_tools": [
+    "exa__agent_run",
+    "firecrawl-search__firecrawl_agent",
+    "linear__deep_research_agent"
+  ]
+}

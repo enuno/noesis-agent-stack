@@ -1,0 +1,15 @@
+{
+  "name": "legal-citation-analysis",
+  "description": "Extract, parse, verify and batch-resolve legal citations.",
+  "included_tools": [
+    "CourtListener__citation_batch_lookup_citations",
+    "CourtListener__citation_enhanced_citation_lookup",
+    "CourtListener__citation_extract_citations_from_text",
+    "CourtListener__citation_lookup_citation",
+    "CourtListener__citation_parse_citation_with_citeurl",
+    "CourtListener__citation_verify_citation_format",
+    "court-listener__analyze_citations",
+    "court-listener__extract_citations",
+    "court-listener__resume_citation_analysis"
+  ]
+}

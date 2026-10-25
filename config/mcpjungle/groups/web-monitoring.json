@@ -1,0 +1,10 @@
+{
+  "name": "web-monitoring",
+  "description": "Read-only inspection of existing web monitors and their check history.",
+  "included_tools": [
+    "firecrawl-search__firecrawl_monitor_check",
+    "firecrawl-search__firecrawl_monitor_checks",
+    "firecrawl-search__firecrawl_monitor_get",
+    "firecrawl-search__firecrawl_monitor_list"
+  ]
+}

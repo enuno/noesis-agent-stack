@@ -1,0 +1,9 @@
+{
+  "name": "repository-docs",
+  "description": "Read AI-generated wiki documentation and structure for a source repository.",
+  "included_tools": [
+    "deepwiki__ask_wiki_question",
+    "deepwiki__read_wiki_contents",
+    "deepwiki__read_wiki_structure"
+  ]
+}

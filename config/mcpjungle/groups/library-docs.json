@@ -1,0 +1,8 @@
+{
+  "name": "library-docs",
+  "description": "Resolve library identifiers and query current library and framework documentation.",
+  "included_tools": [
+    "context7__query-docs",
+    "context7__resolve-library-id"
+  ]
+}

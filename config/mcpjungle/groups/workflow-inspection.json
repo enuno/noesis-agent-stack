@@ -1,0 +1,17 @@
+{
+  "name": "workflow-inspection",
+  "description": "Read n8n workflows, versions, executions, tags, projects and gateway coverage.",
+  "included_tools": [
+    "n8n__discover_agent_assets",
+    "n8n__get_workflow_details",
+    "n8n__get_workflow_execution",
+    "n8n__get_workflow_history",
+    "n8n__get_workflow_version",
+    "n8n__get_workflow_versions_diff",
+    "n8n__list_n8n_gateway_services",
+    "n8n__list_workflow_tags",
+    "n8n__search_projects",
+    "n8n__search_workflow_executions",
+    "n8n__search_workflows"
+  ]
+}

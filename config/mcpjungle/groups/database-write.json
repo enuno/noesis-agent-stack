@@ -1,0 +1,14 @@
+{
+  "name": "database-write",
+  "description": "Create, extend, rename and delete n8n data tables and columns, and edit Mintlify database rows and columns.",
+  "included_tools": [
+    "mintlify__edit_database_columns",
+    "mintlify__edit_database_rows",
+    "n8n__add_data_table_column",
+    "n8n__add_data_table_rows",
+    "n8n__create_data_table",
+    "n8n__delete_data_table_column",
+    "n8n__rename_data_table",
+    "n8n__rename_data_table_column"
+  ]
+}
