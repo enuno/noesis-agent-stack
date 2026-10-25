@@ -294,11 +294,21 @@ mappings_batch2:
     repo_dir: skills/praxis-hermes-plugin-config
     runtime_path: noesis-praxis/praxis-hermes-plugin-config
     discovery_status: discovered
+    deployed_commit: e79aeee7810c593e1870253c7e134acce0d42cd2
+    deployment_verified: > 
+      rsync -a --delete to ~/.hermes/skills/noesis-praxis/praxis-hermes-plugin-config/;
+      repo and runtime SKILL.md sha256 both c1b32d7a95b0dde45c9423f3647ed9a6dd91c1e6a635b75d18bc54b34b571df2;
+      discovery confirmed via `hermes skills list` (praxis-hermes-plugin-config,
+      category noesis-praxis, enabled) and via skill_view by exact name;
+      validate_skill_tree.py --runtime-root ~/.hermes/skills reports no drift
+      for this skill (the 6 errors it reports are pre-existing drift in
+      ansible-repo-change, helm-validator, k3s and tailscale, verified
+      identical at the parent commit e79aeee^ and unrelated to this skill).
 
 summary_batch2:
-  installed_total: 21
+  installed_total: 22
   blocked_total: 11
-  discovered: 21
+  discovered: 22
   shadowed: 0
   new_shadowing_introduced: 0
   blocked_detail: >
