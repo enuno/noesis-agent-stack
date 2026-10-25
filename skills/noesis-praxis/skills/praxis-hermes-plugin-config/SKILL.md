@@ -22,12 +22,23 @@ is silent — the command succeeds and the change goes nowhere you expected.
 hermes config path          # the file actually being written
 ```
 
+**Two different "enabled" switches.** A supplied config often carries an
+entry-level `plugins.entries.<id>.enabled: true`. The CLI writes it, but it
+does not decide whether the plugin loads: load-time gating comes from the
+`plugins.enabled` allow-list, with `plugins.disabled` as a deny-list that
+wins over it. An entry-level `enabled` is inert for loading — treat it as
+documentation of intent, never as proof the plugin is active, and confirm
+activation from the plugin's own status output.
+
 Two writers exist and they are not interchangeable:
 
 - `hermes config set <dotted.path> <value>` — the supported writer. It
-  validates the path against the plugin's `config_schema` and refuses an
-  unknown path without `--force`. It merges into the existing tree without
-  disturbing sibling entries.
+  merges into the existing tree without disturbing sibling entries. It does
+  NOT check your keys against the plugin's `config_schema`: a bogus key
+  under `plugins.entries.<id>.` is accepted without `--force` and without
+  warning, because the host never reads the plugin's schema. Your own
+  schema diff is the only gate — run it before writing, and diff for extra
+  keys after.
 - Direct editing of `config.yaml` — avoid. A stray indent corrupts the file
   and can break the live gateway.
 
@@ -64,6 +75,10 @@ Diff the requested block against it before writing:
   value even when it is syntactically absolute. Ask for the real path, or
   set the feature to off, rather than shipping a placeholder that registers
   a feature which then finds nothing.
+- The schema's declared `default` is the value that applies when a key is
+  ABSENT. Writing the default explicitly is harmless but adds noise; omit
+  it unless you want the value pinned against a future upstream default
+  change.
 
 Load the plugin's own operations skill and its configuration reference —
 they are authoritative for defaults and for which settings are opt-in.
@@ -90,6 +105,11 @@ coerces them to the schema type.
 hermes config set plugins.entries.<plugin-id>.settings.<key> <value>
 ```
 
+`scripts/apply_settings_block.py` does the batch apply and the post-write
+diff in one run, passing every value as an argument list (never a shell
+string) so an empty string stays an empty string. Use it for a whole
+supplied block; use the single-key form above when changing one setting.
+
 ## Step 5 — verify by parsing the file, not by reading the CLI's echo
 
 `hermes config get` renders empty strings and quoted-empty strings
@@ -104,7 +124,10 @@ stored = cfg['plugins']['entries']['<plugin-id>']['settings']
 ```
 
 Diff key sets AND values, and report per key: missing, extra, or mismatched.
-Treat any mismatch as a failure of the whole apply, not a footnote.
+Treat any mismatch as a failure of the whole apply, not a footnote. The
+extra-key check is not optional: nothing in the toolchain rejects a key the
+plugin does not define, so a typo lands in the file silently and the plugin
+ignores it forever.
 
 Then confirm the plugin accepts the result in a *fresh* process — settings are
 read at plugin load, so the running session still holds the old values:
@@ -117,7 +140,10 @@ hermes plugins doctor <plugin-id>
 For a setting whose effect is a registered hook or tool, prove the
 difference rather than assuming it: count the registrations with the
 feature on and off (`HERMES_PLUGINS_DEBUG=1` prints
-`registered hook: <name>` lines) and show that the count changes.
+`registered hook: <name>` lines) and show that the count changes. Probing
+by toggling the setting mutates the config — restore the requested value
+and re-verify it before calling the apply finished, or the probe becomes
+the final state.
 
 ## Step 6 — report what is live and what is not
 

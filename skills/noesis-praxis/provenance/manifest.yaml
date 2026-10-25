@@ -888,6 +888,23 @@ skills:
       load-time-read setting is actually live in a fresh process. It changes
       configuration only, never plugin code, and never restarts a running
       gateway without explicit approval.
+      Reconciled 2026-10-25 under the maintenance policy's runtime-first
+      exception: a concurrent process (Goose tooling) edited the RUNTIME copy
+      of this skill, correcting two factual errors in the originally
+      committed text. Both corrections were independently re-verified before
+      adoption: (1) `hermes config set` does NOT validate keys against the
+      plugin's config_schema -- a bogus key under plugins.entries.<id>. is
+      accepted without --force and without warning (reproduced with a
+      throwaway probe key, then removed), so the agent's own schema diff is
+      the only gate; and (2) an entry-level plugins.entries.<id>.enabled is
+      inert for load-time gating, which comes from the plugins.enabled
+      allow-list (hermes_cli/plugins_discovery.py gate_manifest). The
+      runtime version also added scripts/apply_settings_block.py, reviewed
+      for safety (it invokes only `hermes config set` and `hermes config
+      path` via argv without a shell, and verifies read-only via YAML parse;
+      no unset, delete, network, or eval) and adopted along with the
+      corrected prose. The pre-adoption runtime copy is preserved for review
+      at provenance/patches/praxis-hermes-plugin-config-runtime-2026-10-25/.
     deployed_path: noesis-praxis/praxis-hermes-plugin-config
 
   # ---------------------------------------------------------------------------
