@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "artifact_type": "mcpjungle-gateway-state-backup",
-  "captured_at": "2026-10-25T21:53:09.532264+00:00",
+  "captured_at": "2026-10-25T22:00:32.430208+00:00",
   "target": {
     "registry_base_url": "https://mcpjungle.tailf99a0.ts.net",
     "mcp_endpoint": "https://mcpjungle.tailf99a0.ts.net/mcp",
@@ -242,8 +242,14 @@
     "count": 20,
     "source": "GET /api/v0/server_configs",
     "description": "The richer admin view of each registered server. The upstream view includes bearer tokens, OAuth tokens and environment secrets, so every secret-bearing value is replaced with a non-reversible marker recording only its kind and length. This file cannot restore upstream credentials and is not a substitute for the Bitwarden escrow.",
-    "redactions_applied": 22,
-    "redaction_policy": "A value is replaced by <REDACTED:kind:len=N> where kind is one of opaque-token, jwt, hex-32, uuid. No secret material is recoverable from this file.",
+    "redactions_applied": 23,
+    "redaction_policy": "A value is replaced by <REDACTED:kind:len=N>, where kind records the shape of the secret and N its length. No secret material is recoverable from this file. redactions_applied counts the redacted leaves actually present in this file, and redaction_kinds_used enumerates the kinds those leaves carry.",
+    "redaction_kinds_used": [
+      "jwt",
+      "oauth-client-id",
+      "opaque-token",
+      "uuid"
+    ],
     "configs": [
       {
         "name": "CourtListener",

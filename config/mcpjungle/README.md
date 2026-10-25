@@ -96,7 +96,7 @@ All claims below are verified against **MCPJungle 0.4.6**, whose release tag is
 | Group endpoint paths | `/v0/groups/{group-name}/mcp` (streamable HTTP, preferred); `/v0/groups/{group-name}/sse` and `/v0/groups/{group-name}/message` (SSE, deprecated upstream) | `internal/api/tool_groups.go` (`getToolGroupEndpoints`), `internal/api/server.go` (`V0PathPrefix = "/v0"`) |
 | Unavailable / disabled / removed tools | Creation **fails** if a listed tool does not exist or is disabled. A tool disabled globally is removed from every group endpoint, though the group definition still lists it. On restart, a group whose tools cannot be resolved initialises **empty** rather than failing startup. | `internal/service/toolgroup/toolgroup.go` (`CreateToolGroup`, `initToolGroupMCPServers`) |
 | Group name changes | Not possible — `update group` keeps the original name | `internal/service/toolgroup/toolgroup.go` (`UpdateToolGroup`) |
-| Who may create groups | Admins only in enterprise mode. The local credential is a **user** token, so it cannot create groups. | MCPJungle 0.4.6 docs, *Limitations*; confirmed locally: `mcpjungle list mcp-clients` returns *"this request is only allowed in enterprise mode"* |
+| Who may create groups | **Depends on server mode.** In enterprise mode only an admin may; in development mode `requireAdminUser` short-circuits and any caller may. **This gateway is in development mode**, so group creation succeeded with no admin token — see "Server mode" in section 7. | MCPJungle 0.4.6 source, `internal/api/middleware.go` (`requireAdminUser`); live server behaviour verified 2026-10-25 |
 
 ### Allowlist policy
 
@@ -163,7 +163,7 @@ it is held in `communications-send` rather than in the read-only legal group.
 | `source-control-issues-readonly` | 10 | low | forge, sentinel, skeptic, cartographer, substrate | Issues, pull requests, issue metadata, review state |
 | `source-control-write` | 14 | high | forge | Branches, files, pull requests, issues, reviews |
 | `autonomous-coding` | 2 | high | forge | Delegate to the Copilot coding agent; request automated review |
-| `coding` | 12 | medium | forge, sentinel, architect, quill | Code search, SDK references, workflow-code authoring |
+| `coding` | 12 | medium | forge, architect, quill | Code search, SDK references, workflow-code authoring |
 | `workflow-inspection` | 11 | medium | substrate, sentinel, architect | Read n8n workflows, versions, executions, tags |
 | `workflow-authoring` | 5 | high | substrate | Create, update, archive, restore, unpublish workflows |
 | `workflow-execution` | 7 | high | substrate | Execute, test, publish workflows and agents |
@@ -319,20 +319,36 @@ outside this repository.
 ### Independent QA boundary
 
 `noesis-sentinel` (code reviewer) and `noesis-skeptic` (adversarial reviewer) are
-reviewer-only per `profiles/noesis-roster.yaml` and their own SOUL files. The
-validator enforces that **no group of `high` or `review-required` risk lists either
-of them as a consumer**. Both are limited to read-only groups:
+reviewer-only per `profiles/noesis-roster.yaml` and their own SOUL files.
 
-`sentinel`: `source-control-readonly`, `source-control-issues-readonly`, `coding`,
+The validator enforces the boundary at **member level**, not by group risk
+level: a group may not list either reviewer as a consumer if any member is
+classified as capable of acting — `mutating`, `unannotated-mutation`,
+`destructive`, `external-communication`, `persistent-or-autonomous`,
+`configuration-change`, `access-control-change`, `external-publication` or
+`broad-capability`. A group whose overall risk is `medium` can still contain a
+mutating member, so the group-level risk alone is not sufficient evidence.
+
+Both reviewers hold groups whose members only read:
+
+`sentinel`: `source-control-readonly`, `source-control-issues-readonly`,
 `library-docs`, `repository-docs`, `workflow-inspection`, `security-audit`
 
 `skeptic`: `source-control-readonly`, `source-control-issues-readonly`,
 `legal-research`, `legal-citation-analysis`, `legal-regulations-research`,
 `web-research`, `security-audit`, `memory-retrieval`
 
-Neither can write, publish, spend or delegate. Conversely, the implementation
-profiles (`noesis-forge`, `noesis-substrate`) hold write groups but are not listed
-as consumers of any reviewer-only group.
+Neither can write, delete, publish, spend or delegate. Reviewers do hold groups
+that read sensitive data (`security-audit`, `memory-retrieval`, `legal-research`),
+which a reviewer needs; reading sensitive data is not acting.
+
+Note that `coding` is **not** proposed for either reviewer. It contains
+`n8n__create_workflow_from_code`, which creates a workflow draft and is
+classified `mutating`. `noesis-forge` and `noesis-architect` hold it, and they
+are not reviewer-only.
+
+Conversely, the implementation profiles (`noesis-forge`, `noesis-substrate`)
+hold write groups but are not listed as consumers of any reviewer-only group.
 
 ---
 
@@ -605,11 +621,7 @@ others — and each carries a corrected category and rationale in the inventory.
 | `high` | Destructive, publishes externally, spends money, or grants persistent autonomy. |
 | `review-required` | Broad-capability or unusually ambiguous. Held out of ordinary groups pending an explicit operator decision. |
 
-Distribution across the 308 tools: 196 `low`, 41 `medium` (`mutating`), 11 `medium`
-(`sensitive-data`), 1 `medium` (`read-only-annotation-challenged`), 25 `high`
-(`persistent-or-autonomous`), 14 `high` (`external-communication`), 9 `high`
-(`destructive`), 5 `high` (`configuration-change`), 2 `high`
-(`access-control-change`), 4 `review-required` (`broad-capability`).
+Distribution across the 308 tools: 197 `low` (`read-only`), 40 `medium` (`mutating`), 11 `medium` (`sensitive-data`), 26 `high` (`persistent-or-autonomous`), 14 `high` (`external-communication`), 9 `high` (`destructive`), 5 `high` (`configuration-change`), 2 `high` (`access-control-change`), 4 `review-required` (`broad-capability`).
 
 ---
 

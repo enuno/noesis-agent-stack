@@ -299,15 +299,51 @@ def main() -> int:
         if "suggested_consumers" not in g:
             fail(f"{name}: catalog has no suggested_consumers key")
 
-    # reviewer-only profiles must not be offered any mutating group
+    # reviewer-only profiles must not be offered any group that can act
     REVIEWER_ONLY = {"noesis-sentinel", "noesis-skeptic"}
+    # Capability categories that mean the tool can write, delete, publish,
+    # spend or delegate. A reviewer-only profile must never hold a group
+    # containing one of these: reviewing requires reading, not acting.
+    ACTING_CATEGORIES = {
+        "mutating", "unannotated-mutation", "destructive", "external-communication",
+        "persistent-or-autonomous", "configuration-change", "access-control-change",
+        "external-publication", "broad-capability",
+    }
     for name, g in sorted(cat_by_name.items()):
         consumers = set(g.get("suggested_consumers") or [])
-        if consumers & REVIEWER_ONLY and g.get("risk_level") in ("high", "review-required"):
+        if not consumers & REVIEWER_ONLY:
+            continue
+        if g.get("risk_level") in ("high", "review-required"):
             fail(f"{name}: suggested for reviewer-only profile(s) "
                  f"{sorted(consumers & REVIEWER_ONLY)} but has risk_level "
                  f"{g.get('risk_level')!r}; reviewer-only profiles must receive read-only "
                  f"groups only")
+        # Risk level alone is too coarse: a group can be 'medium' overall and
+        # still contain a mutating member. Check the members themselves.
+        acting = [t for t in (g.get("tools") or [])
+                  if inv_by_name.get(t, {}).get("inferred_capability_category")
+                  in ACTING_CATEGORIES]
+        if acting:
+            fail(f"{name}: suggested for reviewer-only profile(s) "
+                 f"{sorted(consumers & REVIEWER_ONLY)} but contains tool(s) that can act: "
+                 f"{acting}. A reviewer-only profile must hold groups whose members only "
+                 f"read.")
+
+    # ── 5a. non_low_risk_members must list EVERY non-low member ──────────
+    # Naming only the high ones hides the medium members from a reviewer
+    # auditing which members of a group carry any elevated risk.
+    for name, g in sorted(cat_by_name.items()):
+        members = g.get("tools") or []
+        expected = [t for t in members
+                    if inv_by_name.get(t, {}).get("risk_classification") != "low"]
+        listed = []
+        for entry in (g.get("non_low_risk_members") or []):
+            listed.append(entry.split(":", 1)[0].strip())
+        if sorted(listed) != sorted(expected):
+            fail(f"{name}: non_low_risk_members does not match the members whose risk is "
+                 f"not low (expected {len(expected)}, listed {len(listed)})")
+        if g.get("non_low_risk_member_count") != len(expected):
+            fail(f"{name}: non_low_risk_member_count does not match the non-low member count")
 
     # ── 5b. suggested consumers must be real roster profiles ─────────────
     # The authoritative list is profiles/noesis-roster.yaml. A consumer name that

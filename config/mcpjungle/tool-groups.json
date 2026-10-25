@@ -55,7 +55,7 @@
         "noesis-ledger",
         "noesis-tracer"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 5,
       "tools": [
         "firecrawl-search__firecrawl_research_inspect_paper",
@@ -69,7 +69,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "agent-infrastructure",
@@ -85,7 +87,7 @@
         "noesis-architect",
         "noesis-substrate"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 10,
       "tools": [
         "n8n__create_agent",
@@ -104,11 +106,15 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "list_agent_versions appears in workflow-inspection because reading an agent version history is an inspection act.",
+      "non_low_risk_member_count": 5,
       "non_low_risk_members": [
+        "n8n__create_agent: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
         "n8n__delete_agent: Permanently deletes an n8n agent and its associated resources.",
         "n8n__mutate_agent: Applies a config, skill, task or custom-tool mutation to an n8n agent draft, rewriting part of its configuration and credential wiring. Upstream marks the operation destructive because it overwrites draft state that cannot be recovered once the agent is published.",
-        "n8n__revert_agent: Overwrites an agent draft with a published version, discarding its current config, skills, tasks and custom tools."
-      ]
+        "n8n__revert_agent: Overwrites an agent draft with a published version, discarding its current config, skills, tasks and custom tools.",
+        "n8n__unpublish_agent: Stops an agent's live tasks and integrations and marks it unpublished. Upstream marks the operation destructive; it removes a live capability rather than data, and it is reversible by publishing again."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "autonomous-coding",
@@ -123,7 +129,7 @@
       "suggested_consumers": [
         "noesis-forge"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 2,
       "tools": [
         "github__create_pull_request_with_copilot",
@@ -134,10 +140,12 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
+      "non_low_risk_member_count": 2,
       "non_low_risk_members": [
         "github__create_pull_request_with_copilot: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
         "github__request_copilot_review: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns."
-      ]
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "autonomous-research",
@@ -153,7 +161,7 @@
         "noesis-signal",
         "noesis-tracer"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 3,
       "tools": [
         "exa__agent_run",
@@ -165,9 +173,12 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "linear__quick_answer_agent and linear__search_agent stay in web-research because they return a bounded answer instead of driving an open-ended loop.",
+      "non_low_risk_member_count": 2,
       "non_low_risk_members": [
-        "exa__agent_run: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns."
-      ]
+        "exa__agent_run: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
+        "firecrawl-search__firecrawl_agent: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "browser-automation",
@@ -180,7 +191,7 @@
         "No profile is proposed for this group. Granting it requires an operator decision on which sites may be automated and under what approval path."
       ],
       "suggested_consumers": [],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 2,
       "tools": [
         "firecrawl-search__firecrawl_interact",
@@ -191,9 +202,12 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
+      "non_low_risk_member_count": 2,
       "non_low_risk_members": [
-        "firecrawl-search__firecrawl_interact: Opens or reuses a live browser session and can run browser code against authenticated third-party sites. The session survives between calls and the code it runs is caller-supplied, so the effect class is not bounded by the tool. Treated as broad capability rather than a page-reading helper."
-      ]
+        "firecrawl-search__firecrawl_interact: Opens or reuses a live browser session and can run browser code against authenticated third-party sites. The session survives between calls and the code it runs is caller-supplied, so the effect class is not bounded by the tool. Treated as broad capability rather than a page-reading helper.",
+        "firecrawl-search__firecrawl_interact_stop: Stops a live interact session and releases its resources. Upstream marks the operation destructive; it ends a session the caller started and does not remove any stored result."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "coding",
@@ -206,11 +220,10 @@
       ],
       "suggested_consumers": [
         "noesis-forge",
-        "noesis-sentinel",
         "noesis-architect",
         "noesis-quill"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 12,
       "tools": [
         "firecrawl-search__firecrawl_developer_search",
@@ -231,7 +244,11 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "Deliberately overlaps source-control-readonly on search_code and get_file_contents, and workflow-authoring on create_workflow_from_code. The same tool genuinely serves both an implementation workflow and an inspection or authoring workflow; the overlap is named rather than resolved by duplication avoidance.",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 1,
+      "non_low_risk_members": [
+        "n8n__create_workflow_from_code: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "communications-readonly",
@@ -245,7 +262,7 @@
         "noesis-scribe",
         "noesis-herald"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 1,
       "tools": [
         "mintlify__read_comments"
@@ -255,7 +272,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "This gateway registers no mail, chat or SMS server, so the docs-site comment thread is the entire available communications read surface. The Herald workflow therefore has no inbox to read from; see the coverage gaps.",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "communications-send",
@@ -271,7 +290,7 @@
       "suggested_consumers": [
         "noesis-herald"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 13,
       "tools": [
         "beacon-managed__beacon_share_session",
@@ -293,6 +312,7 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
+      "non_low_risk_member_count": 13,
       "non_low_risk_members": [
         "beacon-managed__beacon_share_session: Publishes a message, reaction or feedback ticket to an external service. The effect crosses the Noesis boundary and is visible to third parties, so it is classified above read-only regardless of the upstream annotation.",
         "firecrawl-search__firecrawl_feedback: Publishes a message, reaction or feedback ticket to an external service. The effect crosses the Noesis boundary and is visible to third parties, so it is classified above read-only regardless of the upstream annotation.",
@@ -307,7 +327,8 @@
         "mintlify__reply_to_comment: Publishes a message, reaction or feedback ticket to an external service. The effect crosses the Noesis boundary and is visible to third parties, so it is classified above read-only regardless of the upstream annotation.",
         "mintlify__resolve_comment: Publishes a message, reaction or feedback ticket to an external service. The effect crosses the Noesis boundary and is visible to third parties, so it is classified above read-only regardless of the upstream annotation.",
         "misjusticeallinace-ywcaofmissoula-pub__sendFeedback: Publishes a message, reaction or feedback ticket to an external service. The effect crosses the Noesis boundary and is visible to third parties, so it is classified above read-only regardless of the upstream annotation."
-      ]
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "credential-inventory",
@@ -320,7 +341,7 @@
         "Held as a standalone group so that only a profile with an explicit need for credential mapping can reach it. It is deliberately not merged into workflow-inspection."
       ],
       "suggested_consumers": [],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 1,
       "tools": [
         "n8n__list_credentials"
@@ -330,7 +351,11 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 1,
+      "non_low_risk_members": [
+        "n8n__list_credentials: Reads or writes private, credential-related or bulk-record data. Appropriate for the workflow, but it requires scoped credentials and redaction before the output leaves the host."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "data-analytics",
@@ -345,7 +370,7 @@
         "noesis-grid",
         "noesis-scribe"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 3,
       "tools": [
         "mintlify__get_analytics_report",
@@ -357,7 +382,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "database-readonly",
@@ -372,7 +399,7 @@
         "noesis-grid",
         "noesis-scribe"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 4,
       "tools": [
         "mintlify__list_databases",
@@ -385,7 +412,13 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 3,
+      "non_low_risk_members": [
+        "mintlify__read_database: Reads or writes private, credential-related or bulk-record data. Appropriate for the workflow, but it requires scoped credentials and redaction before the output leaves the host.",
+        "n8n__get_data_table_rows: Reads or writes private, credential-related or bulk-record data. Appropriate for the workflow, but it requires scoped credentials and redaction before the output leaves the host.",
+        "n8n__search_data_tables: Reads or writes private, credential-related or bulk-record data. Appropriate for the workflow, but it requires scoped credentials and redaction before the output leaves the host."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "database-write",
@@ -400,7 +433,7 @@
       "suggested_consumers": [
         "noesis-grid"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 8,
       "tools": [
         "mintlify__edit_database_columns",
@@ -417,9 +450,18 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
+      "non_low_risk_member_count": 8,
       "non_low_risk_members": [
-        "n8n__delete_data_table_column: Deletes a column from an n8n data table, permanently removing the column and all of its data. No undo exists."
-      ]
+        "mintlify__edit_database_columns: Reads or writes private, credential-related or bulk-record data. Appropriate for the workflow, but it requires scoped credentials and redaction before the output leaves the host.",
+        "mintlify__edit_database_rows: Adds, updates or deletes rows in a Mintlify database. Upstream marks the operation destructive, and a delete removes a row, but the scope is one named database table with no branching or publish step. Classified as a bounded data mutation with an explicit destructive sub-case.",
+        "n8n__add_data_table_column: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "n8n__add_data_table_rows: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "n8n__create_data_table: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "n8n__delete_data_table_column: Deletes a column from an n8n data table, permanently removing the column and all of its data. No undo exists.",
+        "n8n__rename_data_table: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "n8n__rename_data_table_column: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "docs-site-authoring",
@@ -435,7 +477,7 @@
         "noesis-scribe",
         "noesis-quill"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 12,
       "tools": [
         "mintlify__create_branch",
@@ -456,10 +498,22 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "Comment and reply tools on the same site are in communications-send because their risk is outward-facing messages rather than content edits.",
+      "non_low_risk_member_count": 12,
       "non_low_risk_members": [
+        "mintlify__create_branch: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "mintlify__create_node: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
         "mintlify__delete_node: Deletes a page or navigation entry and everything under it, including old links.",
-        "mintlify__discard: Throws away unpublished edits, and on the deploy branch reverts the operator's own changes or deletes the branch. The work being discarded is unrecoverable."
-      ]
+        "mintlify__discard: Throws away unpublished edits, and on the deploy branch reverts the operator's own changes or deletes the branch. The work being discarded is unrecoverable.",
+        "mintlify__edit_page: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "mintlify__finalize_image_upload: Completes a two-step image upload by attaching the uploaded asset to a page path. Upstream marks the operation destructive, but it finalises an upload the caller already initiated; it removes nothing. Classified as a local, reversible mutation.",
+        "mintlify__move_node: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "mintlify__suggest_edit: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "mintlify__update_config: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "mintlify__update_node: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "mintlify__upload_image: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "mintlify__write_page: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "docs-site-publish",
@@ -475,7 +529,7 @@
         "noesis-scribe",
         "noesis-quill"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 3,
       "tools": [
         "mintlify__manage_workflow",
@@ -487,11 +541,13 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
+      "non_low_risk_member_count": 3,
       "non_low_risk_members": [
         "mintlify__manage_workflow: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
         "mintlify__manage_workflow_prs: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
         "mintlify__publish: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns."
-      ]
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "docs-site-read",
@@ -507,7 +563,7 @@
         "noesis-quill",
         "noesis-architect"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 7,
       "tools": [
         "mintlify__diff",
@@ -523,7 +579,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "external-publication",
@@ -539,7 +597,7 @@
         "noesis-architect",
         "noesis-scribe"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 6,
       "tools": [
         "beacon-managed__beacon_lenses_complete_upload",
@@ -554,13 +612,15 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
+      "non_low_risk_member_count": 5,
       "non_low_risk_members": [
         "beacon-managed__beacon_lenses_complete_upload: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
         "beacon-managed__beacon_lenses_create: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
         "beacon-managed__beacon_lenses_prepare_upload: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
         "beacon-managed__beacon_lenses_release_version: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
         "beacon-managed__beacon_lenses_update: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns."
-      ]
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "legal-alerts",
@@ -575,7 +635,7 @@
       "suggested_consumers": [
         "noesis-advocate"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 6,
       "tools": [
         "court-listener__create_search_alert",
@@ -590,12 +650,16 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
+      "non_low_risk_member_count": 6,
       "non_low_risk_members": [
         "court-listener__create_search_alert: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
         "court-listener__delete_search_alert: Upstream advertises destructiveHint=true: the operation removes or overwrites durable state, and the upstream description confirms a delete, discard, overwrite or activation.",
         "court-listener__pray_for_document: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
-        "court-listener__subscribe_to_docket_alert: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns."
-      ]
+        "court-listener__subscribe_to_docket_alert: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
+        "court-listener__unsubscribe_from_docket_alert: Removes a docket alert subscription the caller previously created. Upstream marks the operation destructive; the effect is the loss of a notification the operator explicitly asked for, and it can be re-created.",
+        "court-listener__withdraw_prayer: Withdraws a pending Pray and Pay request for a RECAP document. Upstream marks the operation destructive; it cancels an outstanding request rather than deleting data."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "legal-citation-analysis",
@@ -611,7 +675,7 @@
         "noesis-tracer",
         "noesis-skeptic"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 9,
       "tools": [
         "CourtListener__citation_batch_lookup_citations",
@@ -629,7 +693,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "legal-regulations-research",
@@ -645,7 +711,7 @@
         "noesis-tracer",
         "noesis-skeptic"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 27,
       "tools": [
         "CourtListener__ecfr_get_ancestry",
@@ -681,7 +747,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "legal-research",
@@ -701,7 +769,7 @@
         "noesis-skeptic",
         "noesis-signal"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 24,
       "tools": [
         "CourtListener__get_audio",
@@ -734,7 +802,12 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "CourtListener and court-listener are two distinct upstream registrations of the same provider with different tool sets; both are read-only, so both contribute. Their canonical prefixes are case-sensitive and are not interchangeable. The MISJustice Alliance corpus server is a third, unrelated read-only source.",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 2,
+      "non_low_risk_members": [
+        "CourtListener__search_dockets: Reads or writes private, credential-related or bulk-record data. Appropriate for the workflow, but it requires scoped credentials and redaction before the output leaves the host.",
+        "CourtListener__search_recap_documents: Reads or writes private, credential-related or bulk-record data. Appropriate for the workflow, but it requires scoped credentials and redaction before the output leaves the host."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "legislative-research",
@@ -749,7 +822,7 @@
         "noesis-advocate",
         "noesis-tracer"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 10,
       "tools": [
         "OpenStates__openstates_get_bill",
@@ -768,7 +841,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "library-docs",
@@ -786,7 +861,7 @@
         "noesis-quill",
         "noesis-cartographer"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 2,
       "tools": [
         "context7__query-docs",
@@ -797,7 +872,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "market-research",
@@ -813,7 +890,7 @@
         "noesis-steward",
         "noesis-grid"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 4,
       "tools": [
         "firecrawl-search__firecrawl_find_tools",
@@ -826,7 +903,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "firecrawl-search__firecrawl_find_tools also lists public-records and people providers. It is included because it is the catalogue the market-research workflow uses to discover a suitable provider, not because it retrieves records itself.",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "memory-management",
@@ -841,7 +920,7 @@
         "noesis-scribe",
         "noesis-orchestrator"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 4,
       "tools": [
         "beacon-managed__beacon_finding_feedback",
@@ -854,10 +933,14 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
+      "non_low_risk_member_count": 4,
       "non_low_risk_members": [
+        "beacon-managed__beacon_finding_feedback: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "beacon-managed__beacon_memory_candidate_create: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
         "beacon-managed__beacon_memory_candidate_review: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
         "beacon-managed__beacon_shared_trace_update: Changes a shared trace's visibility, title or update behaviour, or unshares it. Unsharing deletes the published artifact and its public link, so the effect reaches beyond the Noesis boundary."
-      ]
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "memory-retrieval",
@@ -876,7 +959,7 @@
         "noesis-forge",
         "noesis-substrate"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 13,
       "tools": [
         "beacon-managed__beacon_findings_list",
@@ -898,7 +981,14 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "beacon_findings_list and beacon_get_finding are also in security-audit, where the same read is motivated by a security review rather than by memory recall.",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 4,
+      "non_low_risk_members": [
+        "beacon-managed__beacon_get_event: Reads or writes private, credential-related or bulk-record data. Appropriate for the workflow, but it requires scoped credentials and redaction before the output leaves the host.",
+        "beacon-managed__beacon_get_finding: Reads or writes private, credential-related or bulk-record data. Appropriate for the workflow, but it requires scoped credentials and redaction before the output leaves the host.",
+        "beacon-managed__beacon_grep: Reads or writes private, credential-related or bulk-record data. Appropriate for the workflow, but it requires scoped credentials and redaction before the output leaves the host.",
+        "beacon-managed__beacon_read_session: Reads or writes private, credential-related or bulk-record data. Appropriate for the workflow, but it requires scoped credentials and redaction before the output leaves the host."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "observability",
@@ -913,7 +1003,7 @@
         "noesis-substrate",
         "noesis-steward"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 7,
       "tools": [
         "beacon-managed__beacon_usage",
@@ -929,7 +1019,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "platform-administration",
@@ -942,7 +1034,7 @@
         "Every change here is a security-relevant configuration change: require operator approval and record the rollback before making it."
       ],
       "suggested_consumers": [],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 5,
       "tools": [
         "mintlify__manage_access_auth",
@@ -956,13 +1048,15 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
+      "non_low_risk_member_count": 5,
       "non_low_risk_members": [
         "mintlify__manage_access_auth: Changes the authentication and authorisation gate of a live documentation deployment: who can read the site and under what credential. Upstream marks the operation destructive because it overwrites the deployment's access configuration. A mistake exposes the site or locks it out; it is not a file deletion.",
         "mintlify__manage_custom_domain: Changes the custom domains and their hostname and SSL provisioning for a live deployment. Upstream marks the operation destructive because it overwrites routing and certificate configuration; a mistake can take a site offline or route it to the wrong host.",
         "mintlify__manage_git_source: Changes the git repositories a deployment builds from. Upstream marks the operation destructive because it replaces the source list, so the next build can pull different content than the reviewed one.",
         "mintlify__manage_members_sharing: Alters organisation membership, roles and private-page sharing. Upstream marks the operation destructive because it overwrites sharing state, and it can widen who can read unpublished content.",
         "mintlify__update_deployment_settings: Changes dashboard settings that govern indexing, base path, AI chat, search, editor publishing and privacy. Upstream marks the operation destructive because it overwrites live deployment settings."
-      ]
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "platform-docs",
@@ -978,7 +1072,7 @@
         "noesis-scribe",
         "noesis-substrate"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 4,
       "tools": [
         "mcpjungle-docs__query_docs_filesystem_mcpjungle",
@@ -991,7 +1085,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "repository-docs",
@@ -1007,7 +1103,7 @@
         "noesis-sentinel",
         "noesis-architect"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 3,
       "tools": [
         "deepwiki__ask_wiki_question",
@@ -1019,7 +1115,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "security-audit",
@@ -1036,7 +1134,7 @@
         "noesis-skeptic",
         "noesis-substrate"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 3,
       "tools": [
         "beacon-managed__beacon_findings_list",
@@ -1048,7 +1146,11 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "beacon_findings_list and beacon_get_finding are also in memory-retrieval. The overlap is deliberate: the same read serves both a security review and a memory recall, and the reader's purpose, not the tool, determines the handling.",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 1,
+      "non_low_risk_members": [
+        "beacon-managed__beacon_get_finding: Reads or writes private, credential-related or bulk-record data. Appropriate for the workflow, but it requires scoped credentials and redaction before the output leaves the host."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "source-control-issues-readonly",
@@ -1066,7 +1168,7 @@
         "noesis-cartographer",
         "noesis-substrate"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 10,
       "tools": [
         "github__get_copilot_job_status",
@@ -1085,7 +1187,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "get_copilot_job_status reads the state of a delegated coding-agent job. It is a status read, not the delegation itself, which is in autonomous-coding.",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "source-control-readonly",
@@ -1105,7 +1209,7 @@
         "noesis-substrate",
         "noesis-cartographer"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 18,
       "tools": [
         "github__get_commit",
@@ -1132,7 +1236,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "search_code and get_file_contents also appear in coding, where they are the primary means of locating an implementation site. The directory tools (get_me, get_teams, get_team_members, search_users) are here because identifying a reviewer or owner is part of reading source control.",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "source-control-write",
@@ -1148,7 +1254,7 @@
       "suggested_consumers": [
         "noesis-forge"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 14,
       "tools": [
         "github__assign_copilot_to_issue",
@@ -1171,9 +1277,24 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
+      "non_low_risk_member_count": 14,
       "non_low_risk_members": [
-        "github__delete_file: Deletes a file from a GitHub repository. Upstream marks the operation destructive; the commit history retains the content, but the file is gone from the default branch."
-      ]
+        "github__assign_copilot_to_issue: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "github__create_branch: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "github__create_or_update_file: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "github__create_pull_request: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "github__create_repository: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "github__delete_file: Deletes a file from a GitHub repository. Upstream marks the operation destructive; the commit history retains the content, but the file is gone from the default branch.",
+        "github__fork_repository: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "github__issue_write: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "github__merge_pull_request: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "github__pull_request_review_write: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "github__push_files: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "github__sub_issue_write: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "github__update_pull_request: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
+        "github__update_pull_request_branch: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "web-design",
@@ -1185,7 +1306,7 @@
         "No profile in profiles/noesis-roster.yaml consumes a design tool. This group exists to hold the read-only capability away from broad groups, not to grant it. The builder-ventures profile is a separate Hermes profile outside this repository's roster, so it is not listed as a consumer."
       ],
       "suggested_consumers": [],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 5,
       "tools": [
         "framer__list_projects",
@@ -1199,7 +1320,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "web-monitoring",
@@ -1214,7 +1337,7 @@
         "noesis-tracer",
         "noesis-substrate"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 4,
       "tools": [
         "firecrawl-search__firecrawl_monitor_check",
@@ -1227,7 +1350,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "The mutating half of the monitor surface is split into web-monitoring-config so that reading a monitor never implies the ability to change one.",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "web-monitoring-config",
@@ -1242,7 +1367,7 @@
       "suggested_consumers": [
         "noesis-signal"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 4,
       "tools": [
         "firecrawl-search__firecrawl_monitor_create",
@@ -1255,12 +1380,14 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
+      "non_low_risk_member_count": 4,
       "non_low_risk_members": [
         "firecrawl-search__firecrawl_monitor_create: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
         "firecrawl-search__firecrawl_monitor_delete: Permanently deletes a monitor and stops its future schedule. Upstream states the operation cannot be undone.",
         "firecrawl-search__firecrawl_monitor_run: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
         "firecrawl-search__firecrawl_monitor_update: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns."
-      ]
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "web-research",
@@ -1283,7 +1410,7 @@
         "noesis-substrate",
         "noesis-advocate"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 14,
       "tools": [
         "exa__web_fetch_exa",
@@ -1306,7 +1433,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "Deliberately contains the two general-purpose legal-sounding searches (linear__search_legal, firecrawl-search__firecrawl_gov_search). Excluding them here would push agents toward a weaker search path; excluding them from legal-research keeps the primary-source boundary honest.",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "web-retrieval",
@@ -1323,7 +1452,7 @@
         "noesis-quill",
         "noesis-scribe"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 5,
       "tools": [
         "firecrawl-search__firecrawl_agent_status",
@@ -1337,7 +1466,11 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 1,
+      "non_low_risk_members": [
+        "firecrawl-search__firecrawl_crawl: Starts a multi-page crawl at a remote site and polls it to a terminal state. The call blocks until the crawl finishes, so the agent does not act after it returns, which is why this is not classified as autonomous. It does leave a server-side crawl job and consumes metered provider credits, so it is a bounded, billable mutation rather than a read."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "workflow-authoring",
@@ -1352,7 +1485,7 @@
       "suggested_consumers": [
         "noesis-substrate"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 5,
       "tools": [
         "n8n__archive_workflow",
@@ -1366,10 +1499,15 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "create_workflow_from_code is also in coding, where it is the authoring input rather than a change to an existing workflow.",
+      "non_low_risk_member_count": 5,
       "non_low_risk_members": [
+        "n8n__archive_workflow: Archives a workflow by id. Upstream marks the operation destructive; it moves the workflow out of the active set and is reversible by un-archiving.",
+        "n8n__create_workflow_from_code: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
         "n8n__restore_workflow_version: Overwrites the current workflow draft with a previous version. The draft it replaces is discarded, so unreviewed changes made since are lost.",
+        "n8n__unpublish_workflow: Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible.",
         "n8n__update_workflow: Atomically overwrites an existing workflow's nodes, connections and workflow-level settings. Upstream marks the operation destructive because the previous definition is not retained, and a silent change can alter what an automated process does."
-      ]
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "workflow-execution",
@@ -1385,7 +1523,7 @@
       "suggested_consumers": [
         "noesis-substrate"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 7,
       "tools": [
         "n8n__call_agent",
@@ -1401,6 +1539,7 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
+      "non_low_risk_member_count": 7,
       "non_low_risk_members": [
         "n8n__call_agent: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
         "n8n__execute_workflow: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
@@ -1409,7 +1548,8 @@
         "n8n__test_workflow: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
         "n8n__update_agent_integration: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
         "n8n__verify_agent_mcp_server: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns."
-      ]
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
       "name": "workflow-inspection",
@@ -1425,7 +1565,7 @@
         "noesis-sentinel",
         "noesis-architect"
       ],
-      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive read-only groups only, and no group proposed for them can write, publish, spend or delegate.",
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
       "tool_count": 11,
       "tools": [
         "n8n__discover_agent_assets",
@@ -1445,7 +1585,9 @@
       "endpoint_status": "live",
       "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_members": []
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     }
   ],
   "review_required_summary": {

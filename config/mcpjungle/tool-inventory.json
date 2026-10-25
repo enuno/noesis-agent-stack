@@ -11,7 +11,7 @@
     "authorized_read_only_administration_apis_consulted": [
       "mcpjungle list servers --registry <url>",
       "mcpjungle list tools --registry <url>",
-      "mcpjungle list groups --registry <url> (returned zero groups)"
+      "mcpjungle list groups --registry <url> (returned zero groups at discovery time, before the 2026-10-25 deployment; the 41 groups in this catalog were created afterwards and are recorded in tool-groups.json deployment_status)"
     ],
     "server_wide_view_available": true,
     "server_wide_view_method": "mcpjungle list tools enumerates every tool registered in the gateway registry, independent of which client is connected. It was compared name by name against the tools/list response of this connection.",
@@ -94,7 +94,7 @@
   "unavailable_information": [
     "Output schemas are absent for 270 of 308 tools because the upstream servers do not publish them. No output schema was inferred.",
     "MCP annotations carry no values for 6 tools (CourtListener__status, GovInfo__describePackageOrGranule, GovInfo__searchGovInfo, deepwiki__ask_wiki_question, deepwiki__read_wiki_contents, deepwiki__read_wiki_structure): the server returned an empty annotations object for each. Those tools were classified from description and schema alone and are flagged as such in their risk_rationale.",
-    "Server-side per-client authorisation rules could not be inspected: 'mcpjungle list mcp-clients' is refused for a user token in enterprise mode. Only an admin token can create groups, so group creation is out of reach for this credential.",
+    "Server-side per-client authorisation rules could not be inspected: 'mcpjungle list mcp-clients' is refused for a user token in enterprise mode. NOTE: this gateway runs in SERVER_MODE=development, in which MCPJungle performs no authentication and no ACLs, so the per-client rules are not merely uninspectable but not enforced at all. Group creation succeeded without an admin token for the same reason. See the README section on server mode.",
     "Upstream credential scopes - which organisations, repositories, sites, cases or documents each configured upstream credential can reach - are not visible through this gateway and must be checked at the upstream provider."
   ],
   "tools": [
@@ -6752,9 +6752,9 @@
         "title": "Firecrawl agent"
       },
       "_meta": null,
-      "inferred_capability_category": "mutating",
-      "risk_classification": "medium",
-      "risk_rationale": "Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible."
+      "inferred_capability_category": "persistent-or-autonomous",
+      "risk_classification": "high",
+      "risk_rationale": "Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns."
     },
     {
       "name": "firecrawl-search__firecrawl_agent_status",
@@ -7083,7 +7083,7 @@
       "_meta": null,
       "inferred_capability_category": "mutating",
       "risk_classification": "medium",
-      "risk_rationale": "Upstream advertises readOnlyHint=false: the tool changes state, but the change is local or reversible rather than destructive, published or externally visible."
+      "risk_rationale": "Starts a multi-page crawl at a remote site and polls it to a terminal state. The call blocks until the crawl finishes, so the agent does not act after it returns, which is why this is not classified as autonomous. It does leave a server-side crawl job and consumes metered provider credits, so it is a bounded, billable mutation rather than a read."
     },
     {
       "name": "firecrawl-search__firecrawl_credit_usage",
@@ -24097,9 +24097,9 @@
         "title": "Prepare Workflow Pin Data"
       },
       "_meta": null,
-      "inferred_capability_category": "read-only-annotation-challenged",
-      "risk_classification": "medium",
-      "risk_rationale": "Upstream advertises readOnlyHint=true, but the tool name contains the mutation verb(s) prepare. The description and schema were reviewed and no mutation is present, so the tool is classified read-only; the name is recorded because the disagreement between annotation and naming is itself a signal for future review."
+      "inferred_capability_category": "read-only",
+      "risk_classification": "low",
+      "risk_rationale": "Upstream advertises readOnlyHint=true. The tool name contains the verb 'prepare', which is a false positive: the description and input schema show it only assembles test pin data for a workflow and returns it. It creates no workflow, mutates no node and performs no write of any kind. Classified read-only on the strength of the description and schema, which is the primary evidence."
     },
     {
       "name": "n8n__publish_agent",
