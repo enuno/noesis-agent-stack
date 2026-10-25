@@ -861,6 +861,36 @@ skills:
     deployed_path: null
 
   # ---------------------------------------------------------------------------
+  # Hermes plugin configuration — 2026-10-25
+  # ---------------------------------------------------------------------------
+  - requested_identifier: "noesis-authored: skills/praxis-hermes-plugin-config"
+    upstream_source: null
+    upstream_branch: null
+    upstream_commit: null
+    upstream_path: null
+    repository_directory: praxis-hermes-plugin-config
+    disposition: N
+    status: installed
+    license: "internal (Noesis Praxis operational skill)"
+    license_source: "SKILL.md frontmatter"
+    notes: >
+      Disposition N = Noesis-authored (not a review of upstream content).
+      Covers the host-side mechanics of applying and verifying a Hermes plugin
+      settings block: resolving the target profile, checking whether the
+      config file is Ansible/repo-managed before writing, validating the
+      requested keys against the plugin's own config_schema, applying one key
+      per `hermes config set` call, and proving the result by parsing
+      config.yaml and diffing it against the requested block rather than
+      trusting `hermes config get` output. Its pitfalls were reproduced
+      directly while applying the hermes-switchyard settings block: the
+      empty-string argument trap (shell-quoting `''` stores the two-character
+      string, not an empty value), and the need to confirm that a
+      load-time-read setting is actually live in a fresh process. It changes
+      configuration only, never plugin code, and never restarts a running
+      gateway without explicit approval.
+    deployed_path: noesis-praxis/praxis-hermes-plugin-config
+
+  # ---------------------------------------------------------------------------
   # Ansible capability set — 2026-10-22 integration
   # ---------------------------------------------------------------------------
   - requested_identifier: "noesis-authored: skills/ansible-repo-change"

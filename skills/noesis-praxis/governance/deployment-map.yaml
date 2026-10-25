@@ -290,6 +290,11 @@ mappings_batch2:
     runtime_path: noesis-praxis/praxis-observability-health
     discovery_status: discovered
 
+  - skill: praxis-hermes-plugin-config
+    repo_dir: skills/praxis-hermes-plugin-config
+    runtime_path: noesis-praxis/praxis-hermes-plugin-config
+    discovery_status: discovered
+
 summary_batch2:
   installed_total: 21
   blocked_total: 11
