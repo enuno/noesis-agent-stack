@@ -231,5 +231,6 @@ backups/
 
 # Agent development/run state (logs, locks, handoffs, snapshots)
 .claude/
+.goose/
 .no-amnesia/
 .DS_Store
