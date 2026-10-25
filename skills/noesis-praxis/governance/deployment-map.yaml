@@ -294,16 +294,24 @@ mappings_batch2:
     repo_dir: skills/praxis-hermes-plugin-config
     runtime_path: noesis-praxis/praxis-hermes-plugin-config
     discovery_status: discovered
-    deployed_commit: e79aeee7810c593e1870253c7e134acce0d42cd2
-    deployment_verified: > 
+    deployed_commit: a04095b
+    deployment_verified: >
       rsync -a --delete to ~/.hermes/skills/noesis-praxis/praxis-hermes-plugin-config/;
-      repo and runtime SKILL.md sha256 both c1b32d7a95b0dde45c9423f3647ed9a6dd91c1e6a635b75d18bc54b34b571df2;
+      repo and runtime SKILL.md sha256 both 194b648703b89abbfb0bc03355a10f1c561ae935f855adea32726f2bd425201e,
+      and scripts/apply_settings_block.py both d7654dadb0bd2b7ba5669791fb5f736a03e6afae2855d5bf13ba31c906158124;
       discovery confirmed via `hermes skills list` (praxis-hermes-plugin-config,
       category noesis-praxis, enabled) and via skill_view by exact name;
       validate_skill_tree.py --runtime-root ~/.hermes/skills reports no drift
       for this skill (the 6 errors it reports are pre-existing drift in
       ansible-repo-change, helm-validator, k3s and tailscale, verified
-      identical at the parent commit e79aeee^ and unrelated to this skill).
+      identical at the parent commit e79aeee^ and unrelated to this skill);
+      behaviour fixtures 18/18 pass.
+      Updated at a04095b, which reconciled a runtime-first edit made by a
+      concurrent process (Goose tooling) into the canonical tree: it corrected
+      two factual errors in the original text, both re-verified independently
+      before adoption, and added scripts/apply_settings_block.py, reviewed for
+      safety and adopted. The pre-adoption runtime copy is preserved at
+      provenance/patches/praxis-hermes-plugin-config-runtime-2026-10-25/.
 
 summary_batch2:
   installed_total: 22
