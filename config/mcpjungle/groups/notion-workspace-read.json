@@ -1,0 +1,25 @@
+{
+  "name": "notion-workspace-read",
+  "description": "Read the operator's own Notion workspace: pages, databases, comments, members, skills and file references.",
+  "included_tools": [
+    "notion__notion-check-mcp-next-steps",
+    "notion__notion-download-attachment",
+    "notion__notion-download-skill",
+    "notion__notion-fetch",
+    "notion__notion-get-comments",
+    "notion__notion-get-enabled-skills",
+    "notion__notion-get-file-download-urls",
+    "notion__notion-get-groups",
+    "notion__notion-get-self",
+    "notion__notion-get-teams",
+    "notion__notion-get-tool-access",
+    "notion__notion-get-users",
+    "notion__notion-list-favorite-pages",
+    "notion__notion-list-page-backlinks",
+    "notion__notion-list-private-pages",
+    "notion__notion-list-recent-pages",
+    "notion__notion-list-shared-pages",
+    "notion__notion-search",
+    "notion__notion-show-advanced-analysis-next-steps"
+  ]
+}

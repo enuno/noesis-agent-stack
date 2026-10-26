@@ -1,0 +1,11 @@
+{
+  "name": "notion-workspace-destructive",
+  "description": "Remove content from the operator's Notion workspace and rewrite data-source schemas.",
+  "included_tools": [
+    "notion__notion-delete-comment",
+    "notion__notion-delete-databases",
+    "notion__notion-delete-pages",
+    "notion__notion-update-data-source",
+    "notion__notion-upload-skill"
+  ]
+}

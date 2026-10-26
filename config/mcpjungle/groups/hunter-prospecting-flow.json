@@ -1,0 +1,7 @@
+{
+  "name": "hunter-prospecting-flow",
+  "description": "Plan and begin an end-to-end prospecting run across Hunter: turn a natural-language brief into a step plan and execute its first action.",
+  "included_tools": [
+    "hunter__Plan-Prospecting-Flow"
+  ]
+}

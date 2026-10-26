@@ -1,0 +1,21 @@
+{
+  "name": "hunter-record-destructive",
+  "description": "Delete the operator's Hunter records: leads, lists, tags, templates, searches, sequence steps and API keys.",
+  "included_tools": [
+    "hunter__Bulk-Delete-Companies",
+    "hunter__Bulk-Delete-Leads",
+    "hunter__Delete-API-Key",
+    "hunter__Delete-Company-List",
+    "hunter__Delete-Company-List-Folder",
+    "hunter__Delete-Custom-Attribute",
+    "hunter__Delete-Lead",
+    "hunter__Delete-Lead-Tag",
+    "hunter__Delete-Leads-List",
+    "hunter__Delete-Leads-List-Folder",
+    "hunter__Delete-Message-Template",
+    "hunter__Delete-Saved-Search",
+    "hunter__Delete-Sequence",
+    "hunter__Delete-Sequence-Follow-Up",
+    "hunter__Merge-Leads-Lists"
+  ]
+}

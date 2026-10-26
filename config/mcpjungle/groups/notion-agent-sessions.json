@@ -1,0 +1,11 @@
+{
+  "name": "notion-agent-sessions",
+  "description": "Start, feed and stop Notion Custom Agents, and change which skills they may load.",
+  "included_tools": [
+    "notion__notion-convert-page-to-skill",
+    "notion__notion-send-message-to-session",
+    "notion__notion-spawn-session",
+    "notion__notion-stop-session",
+    "notion__notion-update-enabled-skills"
+  ]
+}

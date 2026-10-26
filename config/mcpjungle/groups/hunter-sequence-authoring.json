@@ -1,0 +1,15 @@
+{
+  "name": "hunter-sequence-authoring",
+  "description": "Author the operator's outbound sequences and message templates: the steps, the subject, the body, the schedule and the sending account.",
+  "included_tools": [
+    "hunter__Archive-Sequence",
+    "hunter__Create-Message-Template",
+    "hunter__Create-Sequence",
+    "hunter__Create-Sequence-Follow-Up",
+    "hunter__Pause-Sequence",
+    "hunter__Remove-Sequence-Recipients",
+    "hunter__Update-Message-Template",
+    "hunter__Update-Sequence",
+    "hunter__Update-Sequence-Follow-Up"
+  ]
+}

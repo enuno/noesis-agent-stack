@@ -1,0 +1,15 @@
+{
+  "name": "notion-agent-session-read",
+  "description": "Read the agent sessions, session events and saved memories of the operator's Notion workspace.",
+  "included_tools": [
+    "notion__notion-get-async-task",
+    "notion__notion-get-session-status",
+    "notion__notion-list-session-events",
+    "notion__notion-memory-search",
+    "notion__notion-query-sessions",
+    "notion__notion-read-session-event",
+    "notion__notion-search-agents",
+    "notion__notion-search-sessions",
+    "notion__notion-wait-session"
+  ]
+}

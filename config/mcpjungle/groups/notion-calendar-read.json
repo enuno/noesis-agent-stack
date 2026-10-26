@@ -1,0 +1,11 @@
+{
+  "name": "notion-calendar-read",
+  "description": "Read the operator's calendars, events, contacts and room resources.",
+  "included_tools": [
+    "notion__notion-calendar-list-calendar-resources",
+    "notion__notion-calendar-list-calendars",
+    "notion__notion-calendar-list-contacts",
+    "notion__notion-calendar-list-coworkers-events",
+    "notion__notion-calendar-list-events"
+  ]
+}

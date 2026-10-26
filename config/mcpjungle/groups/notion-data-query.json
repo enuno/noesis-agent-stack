@@ -1,0 +1,9 @@
+{
+  "name": "notion-data-query",
+  "description": "Query the operator's Notion data sources, meeting notes and multi-source records with read-only SQL.",
+  "included_tools": [
+    "notion__notion-query-data-sources",
+    "notion__notion-query-meeting-notes",
+    "notion__notion-query-multiple-data-sources"
+  ]
+}

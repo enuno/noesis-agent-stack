@@ -1,0 +1,7 @@
+{
+  "name": "gitbook-change-request",
+  "description": "Open a change request on a GitBook space without publishing anything.",
+  "included_tools": [
+    "gitbook-management__create_change_request"
+  ]
+}

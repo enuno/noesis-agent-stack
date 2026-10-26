@@ -1,0 +1,15 @@
+{
+  "name": "network-switching",
+  "description": "Read the operator's own layer-2 switching configuration: switch stacks, link aggregation groups, MLAG domains, port profiles and device tags.",
+  "included_tools": [
+    "unifi__get_lag_details",
+    "unifi__get_mclag_domain",
+    "unifi__get_port_profile",
+    "unifi__get_switch_stack",
+    "unifi__list_device_tags",
+    "unifi__list_lags",
+    "unifi__list_mclag_domains",
+    "unifi__list_port_profiles",
+    "unifi__list_switch_stacks"
+  ]
+}

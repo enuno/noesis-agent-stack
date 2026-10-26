@@ -1,0 +1,31 @@
+{
+  "name": "hunter-account-read",
+  "description": "Read the operator's Hunter account: lists, folders, tags, templates, saved searches, sequences, connected apps, webhooks and company search results.",
+  "included_tools": [
+    "hunter__Get-Account-Details",
+    "hunter__Get-Company-List",
+    "hunter__Get-Connected-App",
+    "hunter__Get-Custom-Attribute",
+    "hunter__Get-Leads-List",
+    "hunter__Get-Message-Template",
+    "hunter__Get-Saved-Search",
+    "hunter__Get-Sequence",
+    "hunter__Get-Sequence-Follow-Up",
+    "hunter__Get-Usage",
+    "hunter__Lead-Exists",
+    "hunter__List-Company-List-Folders",
+    "hunter__List-Company-Lists",
+    "hunter__List-Connected-Apps",
+    "hunter__List-Custom-Attributes",
+    "hunter__List-Email-Account-Sequences",
+    "hunter__List-Email-Accounts",
+    "hunter__List-Lead-Tags",
+    "hunter__List-Leads-List-Folders",
+    "hunter__List-Leads-Lists",
+    "hunter__List-Message-Templates",
+    "hunter__List-Saved-Searches",
+    "hunter__List-Sequence-Follow-Ups",
+    "hunter__List-Sequences",
+    "hunter__List-Webhooks"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "network-integration",
+  "description": "Read the operator's own estate through the UniFi Site Manager and integration API: sites, hosts, clients, devices, DNS and WiFi broadcast policies, VPN servers, WANs and version control.",
+  "included_tools": [
+    "unifi__compare_site_performance",
+    "unifi__get_cross_site_statistics",
+    "unifi__get_host",
+    "unifi__get_integration_client",
+    "unifi__get_integration_device",
+    "unifi__get_integration_dns_policy",
+    "unifi__get_integration_wifi_broadcast",
+    "unifi__get_internet_health",
+    "unifi__get_isp_metrics",
+    "unifi__get_site_details",
+    "unifi__get_site_health_summary",
+    "unifi__get_site_inventory",
+    "unifi__get_site_statistics",
+    "unifi__get_version_control",
+    "unifi__health_check",
+    "unifi__list_all_sites_aggregated",
+    "unifi__list_countries",
+    "unifi__list_hosts",
+    "unifi__list_sites",
+    "unifi__list_vantage_points",
+    "unifi__query_isp_metrics",
+    "unifi__search_across_sites"
+  ]
+}

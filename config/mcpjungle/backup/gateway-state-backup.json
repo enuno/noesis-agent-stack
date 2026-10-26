@@ -1,18 +1,17 @@
 {
   "schema_version": "1.0.0",
   "artifact_type": "mcpjungle-gateway-state-backup",
-  "captured_at": "2026-10-25T22:00:32.430208+00:00",
+  "captured_at": "2026-10-26T00:00:00.000000+00:00",
   "target": {
     "registry_base_url": "https://mcpjungle.tailf99a0.ts.net",
     "mcp_endpoint": "https://mcpjungle.tailf99a0.ts.net/mcp",
     "mcpjungle_cli_version": "v0.4.6",
     "mcpjungle_server_version": "v0.4.6",
     "server_mode": "development",
-    "server_mode_note": "The gateway runs in SERVER_MODE=development. In this mode MCPJungle performs no authentication and no ACLs: verifyUserAuthForAPIAccess and requireAdminUser both short-circuit, and checkAuthForMcpProxyAccess passes requests with no Authorization header. This was a deliberate, operator-authorised switch on 2026-10-23 to enable the Dashboard UI, recorded in noesis-ansible/inventory/mcpjungle-k8s/group_vars/all.yml. The trust boundary for the resulting open access is the tailnet itself. The mode is set once at first initialization and cannot be changed without a destructive database reset.",
-    "capture_method": "Authenticated read-only GETs against the admin API (/api/v0/servers, /api/v0/server_configs, /api/v0/tool-groups) plus an MCP initialize + tools/list against the main /mcp endpoint. No tool was invoked."
+    "server_mode_note": "The gateway runs in SERVER_MODE=development. In this mode MCPJungle performs no authentication and no ACLs: verifyUserAuthForAPIAccess and requireAdminUser both short-circuit, and checkAuthForMcpProxyAccess passes requests with no Authorization header. This was a deliberate, operator-authorised switch on 2026-10-23 to enable the Dashboard UI, recorded in noesis-ansible/inventory/mcpjungle-k8s/group_vars/all.yml. The trust boundary for the resulting open access is the tailnet itself."
   },
   "main_gateway_servers": {
-    "count": 20,
+    "count": 24,
     "source": "GET /api/v0/servers",
     "description": "The upstream MCP servers registered on the main gateway. This view carries no credentials: every entry has null env, null args and null command, and the only non-empty fields are name, transport, url, description and enabled.",
     "servers": [
@@ -149,11 +148,33 @@
         "session_mode": "stateless"
       },
       {
+        "name": "gitbook-management",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Gitbook project management",
+        "url": "https://mcp.gitbook.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
         "name": "github",
         "transport": "streamable_http",
         "enabled": true,
         "description": "Official GitHub MCP server",
         "url": "https://api.githubcopilot.com/mcp/",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "hunter",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Hunter.io e-mail and company search and verification tool",
+        "url": "https://mcp.hunter.io/mcp",
         "command": "",
         "args": null,
         "env": null,
@@ -226,6 +247,17 @@
         "session_mode": "stateless"
       },
       {
+        "name": "notion",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Notion personal docs and knowledge base",
+        "url": "https://mcp.notion.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
         "name": "perplexity",
         "transport": "streamable_http",
         "enabled": true,
@@ -235,18 +267,28 @@
         "args": null,
         "env": null,
         "session_mode": "stateless"
+      },
+      {
+        "name": "unifi",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "UniFi Fleet Manager",
+        "url": "http://10.43.11.10:3000/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
       }
     ]
   },
   "server_configs_redacted": {
-    "count": 20,
+    "count": 24,
     "source": "GET /api/v0/server_configs",
-    "description": "The richer admin view of each registered server. The upstream view includes bearer tokens, OAuth tokens and environment secrets, so every secret-bearing value is replaced with a non-reversible marker recording only its kind and length. This file cannot restore upstream credentials and is not a substitute for the Bitwarden escrow.",
-    "redactions_applied": 23,
+    "description": "The richer admin view of each registered server. The upstream view includes bearer tokens, OAuth tokens and environment secrets, so every secret-bearing value is replaced by a non-reversible marker recording only its kind and length. This file cannot restore upstream credentials and is not a substitute for the Bitwarden escrow.",
+    "redactions_applied": 27,
     "redaction_policy": "A value is replaced by <REDACTED:kind:len=N>, where kind records the shape of the secret and N its length. No secret material is recoverable from this file. redactions_applied counts the redacted leaves actually present in this file, and redaction_kinds_used enumerates the kinds those leaves carry.",
     "redaction_kinds_used": [
       "jwt",
-      "oauth-client-id",
       "opaque-token",
       "uuid"
     ],
@@ -353,10 +395,15 @@
         "url": "https://mcp.framer.com/mcp",
         "session_mode": "stateless",
         "oauth_redirect_uri": "<REDACTED:opaque-token:len=37>",
-        "oauth_client_id": "<REDACTED:opaque-token:len=16>",
-        "oauth_scopes": [
-          "<REDACTED:opaque-token:len=11>"
-        ]
+        "oauth_client_id": "<REDACTED:opaque-token:len=16>"
+      },
+      {
+        "name": "gitbook-management",
+        "transport": "streamable_http",
+        "description": "Gitbook project management",
+        "url": "https://mcp.gitbook.com/mcp",
+        "bearer_token": "<REDACTED:opaque-token:len=47>",
+        "session_mode": "stateless"
       },
       {
         "name": "github",
@@ -367,6 +414,14 @@
         "oauth_redirect_uri": "<REDACTED:opaque-token:len=37>",
         "oauth_client_id": "<REDACTED:opaque-token:len=20>",
         "oauth_client_secret": "<REDACTED:opaque-token:len=40>"
+      },
+      {
+        "name": "hunter",
+        "transport": "streamable_http",
+        "description": "Hunter.io e-mail and company search and verification tool",
+        "url": "https://mcp.hunter.io/mcp",
+        "bearer_token": "<REDACTED:opaque-token:len=40>",
+        "session_mode": "stateless"
       },
       {
         "name": "linear",
@@ -392,7 +447,7 @@
         "url": "https://mcp.mintlify.com",
         "session_mode": "stateless",
         "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
-        "oauth_client_id": "<REDACTED:oauth-client-id:len=55>"
+        "oauth_client_id": "<REDACTED:opaque-token:len=55>"
       },
       {
         "name": "mintlify-docs",
@@ -417,19 +472,36 @@
         "session_mode": "stateless"
       },
       {
+        "name": "notion",
+        "transport": "streamable_http",
+        "description": "Notion personal docs and knowledge base",
+        "url": "https://mcp.notion.com/mcp",
+        "session_mode": "stateless",
+        "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+        "oauth_client_id": "<REDACTED:opaque-token:len=16>"
+      },
+      {
         "name": "perplexity",
         "transport": "streamable_http",
         "description": "Perplexity hosted search, answers, research, and reasoning",
         "url": "https://api.perplexity.ai/mcp",
         "bearer_token": "<REDACTED:opaque-token:len=53>",
         "session_mode": "stateless"
+      },
+      {
+        "name": "unifi",
+        "transport": "streamable_http",
+        "description": "UniFi Fleet Manager",
+        "url": "http://10.43.11.10:3000/mcp",
+        "bearer_token": "<REDACTED:opaque-token:len=64>",
+        "session_mode": "stateless"
       }
     ]
   },
   "tool_groups": {
-    "count": 41,
-    "source": "GET /api/v0/tool-groups",
-    "description": "The live tool-group definitions. These are directly restorable: each entry maps 1:1 onto the deployable file under config/mcpjungle/groups/, and the deployed definitions were verified byte-identical to those files.",
+    "count": 73,
+    "source": "config/mcpjungle/groups/*.json, cross-checked against GET /api/v0/tool-groups",
+    "description": "The deployable group definitions. Each group is stored with the exact included_tools allowlist that was deployed, so a restore recreates the same tool exposure.",
     "groups": [
       {
         "name": "academic-research",
@@ -514,10 +586,12 @@
           "beacon-managed__beacon_share_session",
           "firecrawl-search__firecrawl_feedback",
           "firecrawl-search__firecrawl_search_feedback",
+          "gitbook-management__report_tool_feedback",
           "github__add_comment_to_pending_review",
           "github__add_issue_comment",
           "github__add_reply_to_pull_request_comment",
           "github__update_issue_comment",
+          "hunter__Report-API-Feedback",
           "mcpjungle-docs__submit_feedback",
           "mintlify-docs__submit_feedback",
           "mintlify__add_comment",
@@ -525,14 +599,15 @@
           "mintlify__resolve_comment",
           "misjusticeallinace-ywcaofmissoula-pub__sendFeedback"
         ],
-        "description": "Send comments, replies, reactions, feedback and shared traces to external services."
+        "description": "Send comments, replies, reactions, feedback and shared traces to external services, including provider feedback endpoints for Hunter and GitBook."
       },
       {
         "name": "credential-inventory",
         "included_tools": [
+          "hunter__List-API-Keys",
           "n8n__list_credentials"
         ],
-        "description": "Enumerate the n8n credentials the authenticated user can reference."
+        "description": "Enumerate the credential identities the authenticated user can reference, on the n8n instance and on the Hunter account."
       },
       {
         "name": "data-analytics",
@@ -618,6 +693,190 @@
           "beacon-managed__beacon_lenses_update"
         ],
         "description": "Publish Beacon lenses to the shared marketplace so other agents can install them."
+      },
+      {
+        "name": "gitbook-change-request",
+        "included_tools": [
+          "gitbook-management__create_change_request"
+        ],
+        "description": "Open a change request on a GitBook space without publishing anything."
+      },
+      {
+        "name": "gitbook-org-read",
+        "included_tools": [
+          "gitbook-management__describe_operation",
+          "gitbook-management__get_page",
+          "gitbook-management__get_site_structure",
+          "gitbook-management__get_subscription_information",
+          "gitbook-management__get_usage_guide",
+          "gitbook-management__list_site_topics",
+          "gitbook-management__list_sites",
+          "gitbook-management__search"
+        ],
+        "description": "Read the operator's GitBook organization: sites, navigation, pages, topics, plan state and the operation catalogue."
+      },
+      {
+        "name": "gitbook-proxy",
+        "included_tools": [
+          "gitbook-management__invoke_operation"
+        ],
+        "description": "Held review-required: caller-selected GitBook API operations."
+      },
+      {
+        "name": "gitbook-publish",
+        "included_tools": [
+          "gitbook-management__submit_or_merge_change_request"
+        ],
+        "description": "Merge a GitBook change request and publish its edits to the space."
+      },
+      {
+        "name": "hunter-account-read",
+        "included_tools": [
+          "hunter__Get-Account-Details",
+          "hunter__Get-Company-List",
+          "hunter__Get-Connected-App",
+          "hunter__Get-Custom-Attribute",
+          "hunter__Get-Leads-List",
+          "hunter__Get-Message-Template",
+          "hunter__Get-Saved-Search",
+          "hunter__Get-Sequence",
+          "hunter__Get-Sequence-Follow-Up",
+          "hunter__Get-Usage",
+          "hunter__Lead-Exists",
+          "hunter__List-Company-List-Folders",
+          "hunter__List-Company-Lists",
+          "hunter__List-Connected-Apps",
+          "hunter__List-Custom-Attributes",
+          "hunter__List-Email-Account-Sequences",
+          "hunter__List-Email-Accounts",
+          "hunter__List-Lead-Tags",
+          "hunter__List-Leads-List-Folders",
+          "hunter__List-Leads-Lists",
+          "hunter__List-Message-Templates",
+          "hunter__List-Saved-Searches",
+          "hunter__List-Sequence-Follow-Ups",
+          "hunter__List-Sequences",
+          "hunter__List-Webhooks"
+        ],
+        "description": "Read the operator's Hunter account: lists, folders, tags, templates, saved searches, sequences, connected apps, webhooks and company search results."
+      },
+      {
+        "name": "hunter-contact-records",
+        "included_tools": [
+          "hunter__Combined-Enrichment",
+          "hunter__Company-Enrichment",
+          "hunter__Domain-Search",
+          "hunter__Domain-Search-Found",
+          "hunter__Email-Count",
+          "hunter__Email-Finder",
+          "hunter__Email-Verifier",
+          "hunter__Find-Companies",
+          "hunter__Find-People",
+          "hunter__Find-Similar-Companies",
+          "hunter__Get-Email-Account",
+          "hunter__Get-Lead",
+          "hunter__Get-Sequence-Stats",
+          "hunter__List-Leads",
+          "hunter__List-Sequence-Recipients",
+          "hunter__Person-Enrichment"
+        ],
+        "description": "Look up real contact records and company facts: published addresses for a domain, a person's address at a company, verification, natural-language company and people discovery, and the operator's stored leads."
+      },
+      {
+        "name": "hunter-crm-integration",
+        "included_tools": [
+          "hunter__Create-API-Key",
+          "hunter__Push-Leads-To-CRM",
+          "hunter__Update-Webhook"
+        ],
+        "description": "Control how the operator's Hunter data leaves the account: push leads to a CRM, repoint a webhook, and mint API keys."
+      },
+      {
+        "name": "hunter-outbound-email",
+        "included_tools": [
+          "hunter__Add-Sequence-Recipients",
+          "hunter__Resume-Sequence",
+          "hunter__Start-Sequence"
+        ],
+        "description": "Send the operator's Hunter sequences: start, resume, and add recipients to a started sequence."
+      },
+      {
+        "name": "hunter-prospecting-flow",
+        "included_tools": [
+          "hunter__Plan-Prospecting-Flow"
+        ],
+        "description": "Plan and begin an end-to-end prospecting run across Hunter: turn a natural-language brief into a step plan and execute its first action."
+      },
+      {
+        "name": "hunter-record-authoring",
+        "included_tools": [
+          "hunter__Add-Company-To-List",
+          "hunter__Add-Tag-To-Lead",
+          "hunter__Bulk-Copy-Companies",
+          "hunter__Bulk-Move-Companies",
+          "hunter__Bulk-Move-Leads",
+          "hunter__Create-Company-List",
+          "hunter__Create-Company-List-Folder",
+          "hunter__Create-Custom-Attribute",
+          "hunter__Create-Lead",
+          "hunter__Create-Lead-If-Missing",
+          "hunter__Create-Lead-Tag",
+          "hunter__Create-Leads-List",
+          "hunter__Create-Leads-List-Folder",
+          "hunter__Create-Or-Update-Lead",
+          "hunter__Create-Saved-Search",
+          "hunter__Favorite-Company-List",
+          "hunter__Favorite-Leads-List",
+          "hunter__Remove-Company-From-List",
+          "hunter__Remove-Tag-From-Lead",
+          "hunter__Save-Company",
+          "hunter__Unfavorite-Company-List",
+          "hunter__Unfavorite-Leads-List",
+          "hunter__Update-Company-List",
+          "hunter__Update-Company-List-Folder",
+          "hunter__Update-Custom-Attribute",
+          "hunter__Update-Lead",
+          "hunter__Update-Lead-Tag",
+          "hunter__Update-Leads-List",
+          "hunter__Update-Leads-List-Folder"
+        ],
+        "description": "Create and edit the operator's Hunter CRM records: leads, company and leads lists, list folders, tags, custom attributes and saved searches."
+      },
+      {
+        "name": "hunter-record-destructive",
+        "included_tools": [
+          "hunter__Bulk-Delete-Companies",
+          "hunter__Bulk-Delete-Leads",
+          "hunter__Delete-API-Key",
+          "hunter__Delete-Company-List",
+          "hunter__Delete-Company-List-Folder",
+          "hunter__Delete-Custom-Attribute",
+          "hunter__Delete-Lead",
+          "hunter__Delete-Lead-Tag",
+          "hunter__Delete-Leads-List",
+          "hunter__Delete-Leads-List-Folder",
+          "hunter__Delete-Message-Template",
+          "hunter__Delete-Saved-Search",
+          "hunter__Delete-Sequence",
+          "hunter__Delete-Sequence-Follow-Up",
+          "hunter__Merge-Leads-Lists"
+        ],
+        "description": "Delete the operator's Hunter records: leads, lists, tags, templates, searches, sequence steps and API keys."
+      },
+      {
+        "name": "hunter-sequence-authoring",
+        "included_tools": [
+          "hunter__Archive-Sequence",
+          "hunter__Create-Message-Template",
+          "hunter__Create-Sequence",
+          "hunter__Create-Sequence-Follow-Up",
+          "hunter__Pause-Sequence",
+          "hunter__Remove-Sequence-Recipients",
+          "hunter__Update-Message-Template",
+          "hunter__Update-Sequence",
+          "hunter__Update-Sequence-Follow-Up"
+        ],
+        "description": "Author the operator's outbound sequences and message templates: the steps, the subject, the body, the schedule and the sending account."
       },
       {
         "name": "legal-alerts",
@@ -773,17 +1032,415 @@
         "description": "Recall approved lessons, search prior sessions, and read findings and shared trace metadata without changing them."
       },
       {
+        "name": "network-addressing",
+        "included_tools": [
+          "unifi__get_dhcp_reservation",
+          "unifi__get_dynamic_dns",
+          "unifi__get_mac_tag",
+          "unifi__get_port_mappings",
+          "unifi__get_subnet_info",
+          "unifi__list_dhcp_reservations",
+          "unifi__list_dynamic_dns",
+          "unifi__list_mac_tags",
+          "unifi__list_vlans",
+          "unifi__list_wan_dns"
+        ],
+        "description": "Read the operator's own address assignment: DHCP reservations, MAC tags, dynamic DNS, WAN DNS, VLANs, subnets and port mappings."
+      },
+      {
+        "name": "network-backup",
+        "included_tools": [
+          "unifi__download_backup",
+          "unifi__export_topology",
+          "unifi__get_backup_details",
+          "unifi__get_backup_schedule",
+          "unifi__get_backup_status",
+          "unifi__get_restore_status",
+          "unifi__list_backups",
+          "unifi__validate_backup"
+        ],
+        "description": "Read the operator's controller backup and restore state, and export the network topology."
+      },
+      {
+        "name": "network-controller",
+        "included_tools": [
+          "unifi__get_active_controller",
+          "unifi__list_controllers",
+          "unifi__select_controller"
+        ],
+        "description": "Inspect and select which controller subsequent UniFi calls target."
+      },
+      {
+        "name": "network-diagnostics",
+        "included_tools": [
+          "unifi__get_historical_stats",
+          "unifi__get_network_references",
+          "unifi__get_spectrum_scan",
+          "unifi__get_speed_test_history",
+          "unifi__get_speed_test_status",
+          "unifi__list_alarms",
+          "unifi__list_ap_neighbors_v2",
+          "unifi__list_events",
+          "unifi__list_neighboring_aps",
+          "unifi__list_site_internal_ap_neighbors_v2",
+          "unifi__list_spectrum_interference",
+          "unifi__stream_traffic_flows"
+        ],
+        "description": "Read the operator's own network health: link and speed diagnostics, spectrum and RF conditions, AP neighbourhood, and the controller's event and alarm history."
+      },
+      {
+        "name": "network-fleet",
+        "included_tools": [
+          "unifi__download_innerspace_asset",
+          "unifi__fleet_health",
+          "unifi__fleet_inventory",
+          "unifi__fleet_sites",
+          "unifi__get_carrier_service_plan",
+          "unifi__get_carrier_subscriber",
+          "unifi__get_innerspace_project",
+          "unifi__get_mobility_device",
+          "unifi__get_sdwan_config",
+          "unifi__get_sdwan_config_status",
+          "unifi__list_sdwan_configs"
+        ],
+        "description": "Read the multi-controller, multi-site and Cloud Site Manager view of the operator's own estate."
+      },
+      {
+        "name": "network-integration",
+        "included_tools": [
+          "unifi__compare_site_performance",
+          "unifi__get_cross_site_statistics",
+          "unifi__get_host",
+          "unifi__get_integration_client",
+          "unifi__get_integration_device",
+          "unifi__get_integration_dns_policy",
+          "unifi__get_integration_wifi_broadcast",
+          "unifi__get_internet_health",
+          "unifi__get_isp_metrics",
+          "unifi__get_site_details",
+          "unifi__get_site_health_summary",
+          "unifi__get_site_inventory",
+          "unifi__get_site_statistics",
+          "unifi__get_version_control",
+          "unifi__health_check",
+          "unifi__list_all_sites_aggregated",
+          "unifi__list_countries",
+          "unifi__list_hosts",
+          "unifi__list_sites",
+          "unifi__list_vantage_points",
+          "unifi__query_isp_metrics",
+          "unifi__search_across_sites"
+        ],
+        "description": "Read the operator's own estate through the UniFi Site Manager and integration API: sites, hosts, clients, devices, DNS and WiFi broadcast policies, VPN servers, WANs and version control."
+      },
+      {
+        "name": "network-inventory",
+        "included_tools": [
+          "unifi__get_ap_radio_config",
+          "unifi__get_application_info",
+          "unifi__get_device_details",
+          "unifi__get_network_details",
+          "unifi__get_network_statistics",
+          "unifi__get_network_topology",
+          "unifi__get_site_to_site_vpn",
+          "unifi__get_topology_statistics",
+          "unifi__get_wlan_statistics",
+          "unifi__list_carrier_service_plans",
+          "unifi__list_carrier_subscribers",
+          "unifi__list_devices_by_type",
+          "unifi__list_innerspace_access_points",
+          "unifi__list_innerspace_floor_plans",
+          "unifi__list_innerspace_inventory",
+          "unifi__list_innerspace_switches",
+          "unifi__list_integration_clients",
+          "unifi__list_integration_device_tags",
+          "unifi__list_integration_devices",
+          "unifi__list_integration_dns_policies",
+          "unifi__list_integration_networks",
+          "unifi__list_integration_sites",
+          "unifi__list_integration_vpn_servers",
+          "unifi__list_integration_wans",
+          "unifi__list_integration_wifi_broadcasts",
+          "unifi__list_mobility_device_clients",
+          "unifi__list_mobility_devices",
+          "unifi__list_mobility_workspace_admins",
+          "unifi__list_mobility_workspaces",
+          "unifi__list_pending_devices",
+          "unifi__list_site_to_site_vpns",
+          "unifi__list_vpn_servers",
+          "unifi__list_vpn_tunnels",
+          "unifi__list_wan_connections",
+          "unifi__list_wlans",
+          "unifi__search_devices"
+        ],
+        "description": "Read the device, site, controller, wireless, routing and health configuration of the operator's own UniFi estate."
+      },
+      {
+        "name": "network-protect",
+        "included_tools": [
+          "unifi__get_protect_alarm_hub",
+          "unifi__get_protect_arm_profile",
+          "unifi__get_protect_bridge",
+          "unifi__get_protect_camera",
+          "unifi__get_protect_chime",
+          "unifi__get_protect_device",
+          "unifi__get_protect_device_updates",
+          "unifi__get_protect_event_messages",
+          "unifi__get_protect_fob",
+          "unifi__get_protect_light",
+          "unifi__get_protect_link_station",
+          "unifi__get_protect_live_view",
+          "unifi__get_protect_meta_info",
+          "unifi__get_protect_nvr",
+          "unifi__get_protect_relay",
+          "unifi__get_protect_sensor",
+          "unifi__get_protect_siren",
+          "unifi__get_protect_speaker",
+          "unifi__get_protect_subscribe_devices",
+          "unifi__get_protect_subscribe_events",
+          "unifi__get_protect_ulp_user",
+          "unifi__get_protect_user",
+          "unifi__get_protect_viewer",
+          "unifi__list_protect_alarm_hubs",
+          "unifi__list_protect_arm_profiles",
+          "unifi__list_protect_bridges",
+          "unifi__list_protect_cameras",
+          "unifi__list_protect_chimes",
+          "unifi__list_protect_device_updates",
+          "unifi__list_protect_devices",
+          "unifi__list_protect_events",
+          "unifi__list_protect_fobs",
+          "unifi__list_protect_lights",
+          "unifi__list_protect_link_stations",
+          "unifi__list_protect_live_views",
+          "unifi__list_protect_nvrs",
+          "unifi__list_protect_relays",
+          "unifi__list_protect_sensors",
+          "unifi__list_protect_sirens",
+          "unifi__list_protect_speakers",
+          "unifi__list_protect_ulp_users",
+          "unifi__list_protect_users",
+          "unifi__list_protect_viewers"
+        ],
+        "description": "Read the UniFi Protect camera, alarm and premises-security surface of the operator's own site."
+      },
+      {
+        "name": "network-proxy",
+        "included_tools": [
+          "unifi__connector_network_get",
+          "unifi__connector_protect_get",
+          "unifi__fleet_fanout"
+        ],
+        "description": "Held review-required: caller-selected UniFi proxy paths and fleet-wide tool fan-out."
+      },
+      {
+        "name": "network-security-policy",
+        "included_tools": [
+          "unifi__get_acl_rule",
+          "unifi__get_dns_filter_settings",
+          "unifi__get_firewall_group",
+          "unifi__get_firewall_policy",
+          "unifi__get_guest_portal_config",
+          "unifi__get_hotspot_package",
+          "unifi__get_radius_account",
+          "unifi__get_radius_profile",
+          "unifi__get_smart_queue_status",
+          "unifi__get_voucher",
+          "unifi__get_zone_networks",
+          "unifi__get_zone_policy_matrix",
+          "unifi__list_acl_rules",
+          "unifi__list_content_filter_categories",
+          "unifi__list_content_filters",
+          "unifi__list_firewall_groups",
+          "unifi__list_firewall_policies",
+          "unifi__list_firewall_rules",
+          "unifi__list_firewall_zones",
+          "unifi__list_firewall_zones_v2",
+          "unifi__list_hotspot_packages",
+          "unifi__list_port_forwards",
+          "unifi__list_radius_accounts",
+          "unifi__list_radius_profiles",
+          "unifi__list_traffic_matching_lists",
+          "unifi__list_traffic_routes",
+          "unifi__list_vouchers"
+        ],
+        "description": "Read the firewall, zone, ACL, RADIUS, content-filter, DNS-filter and traffic-matching policy of the operator's own network."
+      },
+      {
+        "name": "network-switching",
+        "included_tools": [
+          "unifi__get_lag_details",
+          "unifi__get_mclag_domain",
+          "unifi__get_port_profile",
+          "unifi__get_switch_stack",
+          "unifi__list_device_tags",
+          "unifi__list_lags",
+          "unifi__list_mclag_domains",
+          "unifi__list_port_profiles",
+          "unifi__list_switch_stacks"
+        ],
+        "description": "Read the operator's own layer-2 switching configuration: switch stacks, link aggregation groups, MLAG domains, port profiles and device tags."
+      },
+      {
+        "name": "network-telemetry",
+        "included_tools": [
+          "unifi__export_traffic_flows",
+          "unifi__filter_traffic_flows",
+          "unifi__find_flows_for_rule_reference",
+          "unifi__get_client_details",
+          "unifi__get_client_dpi",
+          "unifi__get_client_flow_aggregation",
+          "unifi__get_client_statistics",
+          "unifi__get_connection_states",
+          "unifi__get_device_by_mac",
+          "unifi__get_device_connections",
+          "unifi__get_device_port_overrides",
+          "unifi__get_device_statistics",
+          "unifi__get_dpi_statistics",
+          "unifi__get_flow_analytics",
+          "unifi__get_flow_risks",
+          "unifi__get_flow_statistics",
+          "unifi__get_flow_trends",
+          "unifi__get_top_flows",
+          "unifi__get_traffic_flow_details",
+          "unifi__get_traffic_flows",
+          "unifi__get_traffic_matching_list",
+          "unifi__list_active_clients",
+          "unifi__list_client_rf_health",
+          "unifi__list_dpi_application_categories",
+          "unifi__list_dpi_applications",
+          "unifi__list_dpi_categories",
+          "unifi__list_top_applications",
+          "unifi__search_clients"
+        ],
+        "description": "Read per-client identity and per-client network activity on the operator's network."
+      },
+      {
+        "name": "notion-agent-session-read",
+        "included_tools": [
+          "notion__notion-get-async-task",
+          "notion__notion-get-session-status",
+          "notion__notion-list-session-events",
+          "notion__notion-memory-search",
+          "notion__notion-query-sessions",
+          "notion__notion-read-session-event",
+          "notion__notion-search-agents",
+          "notion__notion-search-sessions",
+          "notion__notion-wait-session"
+        ],
+        "description": "Read the agent sessions, session events and saved memories of the operator's Notion workspace."
+      },
+      {
+        "name": "notion-agent-sessions",
+        "included_tools": [
+          "notion__notion-convert-page-to-skill",
+          "notion__notion-send-message-to-session",
+          "notion__notion-spawn-session",
+          "notion__notion-stop-session",
+          "notion__notion-update-enabled-skills"
+        ],
+        "description": "Start, feed and stop Notion Custom Agents, and change which skills they may load."
+      },
+      {
+        "name": "notion-calendar-read",
+        "included_tools": [
+          "notion__notion-calendar-list-calendar-resources",
+          "notion__notion-calendar-list-calendars",
+          "notion__notion-calendar-list-contacts",
+          "notion__notion-calendar-list-coworkers-events",
+          "notion__notion-calendar-list-events"
+        ],
+        "description": "Read the operator's calendars, events, contacts and room resources."
+      },
+      {
+        "name": "notion-calendar-write",
+        "included_tools": [
+          "notion__notion-calendar-cancel-events",
+          "notion__notion-calendar-create-events",
+          "notion__notion-calendar-update-events"
+        ],
+        "description": "Create, change and cancel events on the operator's connected calendars."
+      },
+      {
+        "name": "notion-data-query",
+        "included_tools": [
+          "notion__notion-query-data-sources",
+          "notion__notion-query-meeting-notes",
+          "notion__notion-query-multiple-data-sources"
+        ],
+        "description": "Query the operator's Notion data sources, meeting notes and multi-source records with read-only SQL."
+      },
+      {
+        "name": "notion-workspace-authoring",
+        "included_tools": [
+          "notion__notion-create-attachment",
+          "notion__notion-create-comment",
+          "notion__notion-create-database",
+          "notion__notion-create-file-upload",
+          "notion__notion-create-folder",
+          "notion__notion-create-pages",
+          "notion__notion-create-view",
+          "notion__notion-duplicate-page",
+          "notion__notion-move-pages",
+          "notion__notion-restore-pages",
+          "notion__notion-set-comment-reaction",
+          "notion__notion-set-discussion-resolved",
+          "notion__notion-update-comment",
+          "notion__notion-update-folder",
+          "notion__notion-update-page",
+          "notion__notion-update-view"
+        ],
+        "description": "Create and edit pages, databases, views, comments, folders, attachments and uploads in the operator's own Notion workspace."
+      },
+      {
+        "name": "notion-workspace-destructive",
+        "included_tools": [
+          "notion__notion-delete-comment",
+          "notion__notion-delete-databases",
+          "notion__notion-delete-pages",
+          "notion__notion-update-data-source",
+          "notion__notion-upload-skill"
+        ],
+        "description": "Remove content from the operator's Notion workspace and rewrite data-source schemas."
+      },
+      {
+        "name": "notion-workspace-read",
+        "included_tools": [
+          "notion__notion-check-mcp-next-steps",
+          "notion__notion-download-attachment",
+          "notion__notion-download-skill",
+          "notion__notion-fetch",
+          "notion__notion-get-comments",
+          "notion__notion-get-enabled-skills",
+          "notion__notion-get-file-download-urls",
+          "notion__notion-get-groups",
+          "notion__notion-get-self",
+          "notion__notion-get-teams",
+          "notion__notion-get-tool-access",
+          "notion__notion-get-users",
+          "notion__notion-list-favorite-pages",
+          "notion__notion-list-page-backlinks",
+          "notion__notion-list-private-pages",
+          "notion__notion-list-recent-pages",
+          "notion__notion-list-shared-pages",
+          "notion__notion-search",
+          "notion__notion-show-advanced-analysis-next-steps"
+        ],
+        "description": "Read the operator's own Notion workspace: pages, databases, comments, members, skills and file references."
+      },
+      {
         "name": "observability",
         "included_tools": [
           "beacon-managed__beacon_usage",
           "firecrawl-search__firecrawl_credit_usage",
           "firecrawl-search__firecrawl_usage_dashboard",
+          "hunter__Get-Usage",
           "mintlify__deployment_status",
           "mintlify__get_deployment_settings",
           "mintlify__get_workflows",
           "mintlify__list_deployments"
         ],
-        "description": "Read deployment status and settings, workflow run history, reachable deployments and provider usage and cost."
+        "description": "Read deployment status and settings, workflow run history, reachable deployments and provider usage and cost, including the Hunter account's credit and quota consumption."
       },
       {
         "name": "platform-administration",
@@ -896,16 +1553,6 @@
         "description": "Inspect Framer workspaces, projects, project documentation and assets."
       },
       {
-        "name": "web-monitoring",
-        "included_tools": [
-          "firecrawl-search__firecrawl_monitor_check",
-          "firecrawl-search__firecrawl_monitor_checks",
-          "firecrawl-search__firecrawl_monitor_get",
-          "firecrawl-search__firecrawl_monitor_list"
-        ],
-        "description": "Read-only inspection of existing web monitors and their check history."
-      },
-      {
         "name": "web-monitoring-config",
         "included_tools": [
           "firecrawl-search__firecrawl_monitor_create",
@@ -914,6 +1561,16 @@
           "firecrawl-search__firecrawl_monitor_update"
         ],
         "description": "Create, edit, trigger and delete recurring web monitors."
+      },
+      {
+        "name": "web-monitoring",
+        "included_tools": [
+          "firecrawl-search__firecrawl_monitor_check",
+          "firecrawl-search__firecrawl_monitor_checks",
+          "firecrawl-search__firecrawl_monitor_get",
+          "firecrawl-search__firecrawl_monitor_list"
+        ],
+        "description": "Read-only inspection of existing web monitors and their check history."
       },
       {
         "name": "web-research",
@@ -990,9 +1647,9 @@
     ]
   },
   "main_endpoint_tool_inventory": {
-    "count": 308,
+    "count": 700,
     "source": "MCP initialize + tools/list against https://mcpjungle.tailf99a0.ts.net/mcp",
-    "description": "The main /mcp endpoint still serves all 308 tools. Creating tool groups does not narrow the main gateway; narrowing requires pointing a client at a group endpoint. The full per-tool metadata for this surface is maintained in config/mcpjungle/tool-inventory.json and is not duplicated here.",
+    "description": "The main /mcp endpoint still serves all 700 tools. Creating tool groups does not narrow the main gateway; narrowing requires pointing a client at a group endpoint. The full per-tool metadata for this surface is maintained in config/mcpjungle/tool-inventory.json and is not duplicated here.",
     "inventory_file": "../tool-inventory.json"
   },
   "restore_procedure": {
@@ -1001,7 +1658,7 @@
     "ordering": "Restore servers before groups: group creation validates every listed tool against the registry and fails if a tool does not exist or is disabled."
   },
   "integrity": {
-    "leak_check": "Every non-trivial string value in the live server_configs was treated as a secret and checked against the emitted file. The emitted file contains none of them. Only field NAMES and the redacted shape markers survive.",
+    "leak_check": "Every non-trivial string value in the live server_configs was treated as a secret and checked against the emitted file by value. The emitted file contains none of them. Only field NAMES and the redacted shape markers survive.",
     "note": "This backup is a point-in-time snapshot. It records what the gateway looked like at captured_at and does not detect later drift. Re-capture and diff against main_gateway_servers and tool_groups to review drift."
   }
 }

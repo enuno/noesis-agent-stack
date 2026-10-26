@@ -1,0 +1,9 @@
+{
+  "name": "hunter-crm-integration",
+  "description": "Control how the operator's Hunter data leaves the account: push leads to a CRM, repoint a webhook, and mint API keys.",
+  "included_tools": [
+    "hunter__Create-API-Key",
+    "hunter__Push-Leads-To-CRM",
+    "hunter__Update-Webhook"
+  ]
+}

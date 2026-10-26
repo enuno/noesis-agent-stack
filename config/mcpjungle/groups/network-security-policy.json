@@ -1,0 +1,33 @@
+{
+  "name": "network-security-policy",
+  "description": "Read the firewall, zone, ACL, RADIUS, content-filter, DNS-filter and traffic-matching policy of the operator's own network.",
+  "included_tools": [
+    "unifi__get_acl_rule",
+    "unifi__get_dns_filter_settings",
+    "unifi__get_firewall_group",
+    "unifi__get_firewall_policy",
+    "unifi__get_guest_portal_config",
+    "unifi__get_hotspot_package",
+    "unifi__get_radius_account",
+    "unifi__get_radius_profile",
+    "unifi__get_smart_queue_status",
+    "unifi__get_voucher",
+    "unifi__get_zone_networks",
+    "unifi__get_zone_policy_matrix",
+    "unifi__list_acl_rules",
+    "unifi__list_content_filter_categories",
+    "unifi__list_content_filters",
+    "unifi__list_firewall_groups",
+    "unifi__list_firewall_policies",
+    "unifi__list_firewall_rules",
+    "unifi__list_firewall_zones",
+    "unifi__list_firewall_zones_v2",
+    "unifi__list_hotspot_packages",
+    "unifi__list_port_forwards",
+    "unifi__list_radius_accounts",
+    "unifi__list_radius_profiles",
+    "unifi__list_traffic_matching_lists",
+    "unifi__list_traffic_routes",
+    "unifi__list_vouchers"
+  ]
+}

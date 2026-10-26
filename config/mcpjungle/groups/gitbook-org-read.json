@@ -1,0 +1,14 @@
+{
+  "name": "gitbook-org-read",
+  "description": "Read the operator's GitBook organization: sites, navigation, pages, topics, plan state and the operation catalogue.",
+  "included_tools": [
+    "gitbook-management__describe_operation",
+    "gitbook-management__get_page",
+    "gitbook-management__get_site_structure",
+    "gitbook-management__get_subscription_information",
+    "gitbook-management__get_usage_guide",
+    "gitbook-management__list_site_topics",
+    "gitbook-management__list_sites",
+    "gitbook-management__search"
+  ]
+}

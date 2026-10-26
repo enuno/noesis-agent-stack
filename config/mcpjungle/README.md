@@ -3,7 +3,7 @@
 Catalog of the tools exposed by the Noesis MCPJungle gateway and the tool groups
 that narrow that surface for individual Noesis profiles.
 
-**Status: all 41 groups are deployed and verified live** (2026-10-25).
+**Status: all 73 groups are deployed and verified live** (2026-10-26).
 
 ```
 config/mcpjungle/
@@ -29,9 +29,9 @@ Validation: `python3 scripts/validate_mcpjungle_groups.py -v` (offline, read-onl
 | Discovery method | MCP JSON-RPC over streamable HTTP — `initialize`, `notifications/initialized`, then `tools/list` with cursor pagination |
 | Protocol version | 2025-06-18 |
 | Pages fetched | 1 (`nextCursor` absent, so enumeration terminated on the protocol's own completion condition) |
-| **Unique tools** | **308** |
-| **Source servers** | **20** |
-| Discovery timestamp | 2026-10-25T21:26:38.385639+00:00 |
+| **Unique tools** | **700** |
+| **Source servers** | **24** |
+| Discovery timestamp | `2026-10-26T00:00:00.000000+00:00` |
 
 ### What "complete" means
 
@@ -39,22 +39,38 @@ This is a **complete server-wide inventory**, not merely the view one connection
 happens to expose. Two independent enumerations were performed and reconciled
 name-by-name:
 
-1. `tools/list` on the authenticated connection — 308 canonical names.
+1. `tools/list` on the authenticated connection — 700 canonical names.
 2. `mcpjungle list tools --registry https://mcpjungle.tailf99a0.ts.net` — the
    gateway's own registry-wide listing, which is independent of any client's
-   permissions — 308 canonical names.
+   permissions — 700 canonical names.
 
 The set difference is **empty in both directions**, and **zero** tools are
-disabled registry-wide. Every one of the 20 registered server names is an exact
+disabled registry-wide. Every one of the 24 registered server names is an exact
 canonical prefix of at least one discovered tool, so no server was missed.
+
+### What changed on 2026-10-26
+
+Four upstream servers were registered on this gateway, adding **392 tools**:
+
+| Server | Tools | Surface |
+|---|---|---|
+| `unifi` | 212 | The operator's own UniFi controller estate, via the k3s deployment |
+| `hunter` | 103 | The operator's own Hunter.io account |
+| `notion` | 65 | The operator's own Notion workspace |
+| `gitbook-management` | 12 | The operator's own GitBook organization |
+
+All 392 new tools are **additive**: the previous 308 are still present, and
+no canonical name was reused or removed.
 
 ### Hermes reports 312 — why the numbers differ
 
-`hermes mcp list` shows **312** tools for this server. The difference is
-accounted for exactly: 308 upstream tools plus **4 Hermes-synthesised per-server
-utilities** (`list_resources`, `read_resource`, `list_prompts`, `get_prompt`).
-Those four are Hermes constructs, not MCPJungle canonical tools, so they are
-excluded from the inventory and from every group.
+`hermes mcp list` shows **312** tools for this server. That figure was captured
+when the Hermes connection last enumerated the registry, before the four servers
+above were registered. The gateway itself now serves **700**. On the next
+reconnection Hermes will report **704**: 700 upstream tools plus **4
+Hermes-synthesised per-server utilities** (`list_resources`, `read_resource`,
+`list_prompts`, `get_prompt`). Those four are Hermes constructs, not MCPJungle
+canonical tools, so they are excluded from the inventory and from every group.
 
 ### Scope limits
 
@@ -62,21 +78,37 @@ This catalog covers **only what the MCPJungle gateway exposes**. Other MCP
 servers are connected to Hermes directly and do not traverse MCPJungle, so a group
 here does not constrain them:
 
-- **UniFi** — connected directly as `unifi-local` (stdio, via Docker). No UniFi
-  server is registered in MCPJungle, so no network-operations group exists here.
+- **UniFi** — the gateway now registers a `unifi` server pointing at the
+  operator's own k3s UniFi deployment. It is a **separate surface** from the
+  directly-configured `unifi-local` Hermes connection, and the two are not
+  equivalent:
+
+  | | `unifi` (in this gateway) | `unifi-local` (direct Hermes connection) |
+  |---|---|---|
+  | Registered where | MCPJungle, `http://10.43.11.10:3000/mcp` | Hermes, stdio over Docker |
+  | Tools | 212 | 347 |
+  | Mutating tools | **none** — the deployment sets `UNIFI_READ_ONLY=true`, so no mutating UniFi tool is registered at all | present |
+  | Constrained by this catalog | **yes**, by the `network-*` groups | **no** |
+
+  The gateway's `unifi` server is therefore strictly narrower than the direct
+  connection. A group here constrains the gateway surface only.
 - **Beacon, local endpoint** — connected directly as `beacon` (stdio,
   `/home/elvis/.local/bin/beacon`), exposing 7 tools
   (`search_memory`, `get_memory`, `get_memory_context`, `search_activity`,
   `summarize_activity`, `get_activity_event`, `list_activity_filters`) against the
   host's own per-profile runtime log. This is a **different surface** from the
   `beacon-managed` server registered in MCPJungle, which is the hosted
-  `https://mcp.beacon.sh` endpoint exposing 25 tools. Both are Beacon, but they
-  are separate connections with separate tool sets: the groups in this catalog
-  constrain the hosted one and have no effect on the local one.
+  `https://mcp.beacon.sh` endpoint exposing 25 tools. Both are
+  Beacon, but they are separate connections with separate tool sets: the groups in
+  this catalog constrain the hosted one and have no effect on the local one.
 
 A group therefore controls only the tools reachable through *its own* group
 endpoint. It does not constrain `/mcp` on the main gateway, and it does not
 constrain any directly-configured MCP server.
+
+### Registered servers
+
+['| Server | Tools |', '|---|---|', '| `CourtListener` | 34 |', '| `GovInfo` | 2 |', '| `OpenStates` | 10 |', '| `beacon-managed` | 25 |', '| `context7` | 2 |', '| `court-listener` | 19 |', '| `deepwiki` | 3 |', '| `eCFR` | 3 |', '| `exa` | 3 |', '| `federal-regulations` | 7 |', '| `firecrawl-search` | 30 |', '| `framer` | 7 |', '| `gitbook-management` | 12 |', '| `github` | 49 |', '| `hunter` | 103 |', '| `linear` | 9 |', '| `mcpjungle-docs` | 3 |', '| `mintlify` | 42 |', '| `mintlify-docs` | 3 |', '| `misjusticeallinace-ywcaofmissoula-pub` | 3 |', '| `n8n` | 50 |', '| `notion` | 65 |', '| `perplexity` | 4 |', '| `unifi` | 212 |']
 
 ---
 
@@ -89,7 +121,7 @@ All claims below are verified against **MCPJungle 0.4.6**, whose release tag is
 |---|---|---|
 | Supported group JSON schema | `name`, `description`, `included_tools`, `included_servers`, `excluded_tools` — and nothing else | `pkg/types/tool_group.go` |
 | Canonical tool-name format | `<server-name>__<tool-name>`, split on the **first** `__` | `internal/service/mcp/util.go` (`serverToolNameSep`, `mergeServerToolNames`) |
-| How exposed names map to group names | Identically — the names `tools/list` returns *are* the names `included_tools` accepts. No rewriting, splitting or renaming is performed. | Verified against `tools/list` and `mcpjungle list tools`, both returning the same 308 canonical names |
+| How exposed names map to group names | Identically — the names `tools/list` returns *are* the names `included_tools` accepts. No rewriting, splitting or renaming is performed. | Verified against `tools/list` and `mcpjungle list tools`, both returning the same 700 canonical names |
 | Group naming constraints | `^[a-zA-Z0-9][a-zA-Z0-9_-]*$` — must start alphanumeric; then alphanumerics, underscores, hyphens only | `internal/service/toolgroup/toolgroup.go` (`ValidGroupName`) |
 | Creation syntax | `mcpjungle create group --conf <file>` | `mcpjungle create group --help` |
 | Update syntax | `mcpjungle update group --conf <file>` — replaces the definition outright; removed tools stop being reachable immediately | `mcpjungle update group --help` |
@@ -108,9 +140,9 @@ whenever an upstream server adds a tool; an explicit allowlist cannot.
 
 ## 3. The groups
 
-41 groups, 305 tools assigned, 3 held out. Risk is the highest level among the
-member tools, raised to the group's declared floor where the declaration is the
-stricter judgement.
+73 groups, 697 tools assigned, 3 held out. Risk is
+the highest level among the member tools, raised to the group's declared floor
+where the declaration is the stricter judgement.
 
 ### Research and discovery
 
@@ -129,18 +161,18 @@ stricter judgement.
 
 | Group | Tools | Risk | Intended consumers | Purpose |
 |---|---|---|---|---|
-| `legal-research` | 24 | medium | advocate, tracer, skeptic, signal | Case law, opinions, dockets, courts, judges, oral argument, filed documents, and the MISJustice/YWCA corpus |
+| `legal-research` | 24 | medium | advocate, tracer, skeptic, signal | Case law, opinions, dockets, courts, judges, filed documents, and the MISJustice/YWCA corpus |
 | `legal-citation-analysis` | 9 | low | advocate, tracer, skeptic | Extract, parse, verify, batch-resolve citations |
 | `legal-regulations-research` | 27 | medium | advocate, tracer, skeptic | Codified CFR, Federal Register, rulemaking dockets and comments |
 | `legislative-research` | 10 | low | advocate, tracer | State bills, committees, legislators, events |
 | `legal-alerts` | 6 | high | advocate | Create/cancel alert subscriptions; request documents |
 
-**Legal research is deliberately split from general web search.** `legal-research`
-contains only authoritative legal retrieval. The two general-purpose searches whose
-*names* sound legal — `linear__search_legal` and `firecrawl-search__firecrawl_gov_search`
-— return web-index results, not primary sources, and are held in `web-research`
-instead. Labelling them legal would be exactly the error the boundary exists to
-prevent.
+**Legal research is deliberately split from general web search.**
+`legal-research` contains only authoritative legal retrieval. The two
+general-purpose searches whose *names* sound legal — `linear__search_legal` and
+`firecrawl-search__firecrawl_gov_search` — return web-index results, not primary
+sources, and are held in `web-research` instead. Labelling them legal would be
+exactly the error the boundary exists to prevent.
 
 **The YWCA Missoula GitBook MCP is included in `legal-research`.** The server
 `misjusticeallinace-ywcaofmissoula-pub` is registered at exactly
@@ -151,9 +183,15 @@ tools are in `legal-research`:
 - `misjusticeallinace-ywcaofmissoula-pub__getPage`
 - `misjusticeallinace-ywcaofmissoula-pub__searchDocumentation`
 
-Its third tool, `misjusticeallinace-ywcaofmissoula-pub__sendFeedback`, submits a
-message to the documentation site. That is an outbound external communication, so
-it is held in `communications-send` rather than in the read-only legal group.
+Its third tool, `misjusticeallinace-ywcaofmissoula-pub__sendFeedback`, submits a message to the documentation
+site. That is an outbound external communication, so it is held in
+`communications-send` rather than in the read-only legal group.
+
+Note that this public documentation server is a **different surface** from the
+`gitbook-management` server registered on 2026-10-26, which reaches the
+operator's own GitBook organization and is grouped separately. The two must not
+be confused: one is a published third-party corpus, the other is private
+first-party content.
 
 ### Source control, coding and automation
 
@@ -168,7 +206,7 @@ it is held in `communications-send` rather than in the read-only legal group.
 | `workflow-authoring` | 5 | high | substrate | Create, update, archive, restore, unpublish workflows |
 | `workflow-execution` | 7 | high | substrate | Execute, test, publish workflows and agents |
 | `agent-infrastructure` | 10 | high | architect, substrate | Create, mutate, validate, version, retire agent drafts |
-| `credential-inventory` | 1 | review-required | *(none proposed)* | Enumerate n8n credential identities |
+| `credential-inventory` | 2 | review-required | *(none proposed)* | Enumerate n8n and Hunter credential identities |
 
 ### Documentation, memory, data and observability
 
@@ -183,10 +221,10 @@ it is held in `communications-send` rather than in the read-only legal group.
 | `platform-administration` | 5 | high | *(none proposed)* | Access control, domains, git sources, members, settings |
 | `memory-retrieval` | 13 | medium | orchestrator, scribe, skeptic, forge, substrate | Recall lessons; search sessions; read findings and trace metadata |
 | `memory-management` | 4 | high | scribe, orchestrator | File candidates; record review decisions; adjust trace visibility |
-| `database-readonly` | 4 | medium | grid, scribe | n8n data tables; Mintlify deployment databases |
+| `database-readonly` | 4 | medium | grid, scribe | n8n data tables; Mintlify databases; Notion data sources |
 | `database-write` | 8 | high | grid | Create/extend/rename/delete tables and columns; edit database rows |
 | `data-analytics` | 3 | low | grid, scribe | Docs-site analytics queries and reports |
-| `observability` | 7 | medium | substrate, steward | Deployment status, run history, provider usage and cost |
+| `observability` | 8 | medium | substrate, steward | Deployment status, run history, provider usage and cost, Hunter quota |
 | `security-audit` | 3 | medium | sentinel, skeptic, substrate | Secret scanning; Beacon security findings |
 
 ### Communications and external effects
@@ -194,8 +232,60 @@ it is held in `communications-send` rather than in the read-only legal group.
 | Group | Tools | Risk | Intended consumers | Purpose |
 |---|---|---|---|---|
 | `communications-readonly` | 1 | low | scribe, herald | Read docs-site comment threads |
-| `communications-send` | 13 | high | herald | Comments, replies, feedback, shared traces |
+| `communications-send` | 15 | high | herald | Comments, replies, feedback, shared traces, provider feedback |
 | `external-publication` | 6 | high | architect, scribe | Publish Beacon lenses to the marketplace |
+
+### Network operations — the operator's own UniFi estate
+
+| Group | Tools | Risk | Intended consumers | Purpose |
+|---|---|---|---|---|
+| `network-inventory` | 36 | low | substrate | Devices, WLANs, networks, WANs, topology |
+| `network-diagnostics` | 12 | low | substrate | Health, speed, spectrum, RF, AP neighbourhood, events |
+| `network-switching` | 9 | low | substrate | Switch stacks, LAG, MLAG, port profiles, device tags |
+| `network-addressing` | 10 | low | substrate | DHCP reservations, MAC tags, DNS, VLANs, port mappings |
+| `network-security-policy` | 27 | medium | substrate | Firewall, zones, ACLs, RADIUS, filters, traffic matching |
+| `network-telemetry` | 28 | medium | substrate | Client identity and per-client network activity |
+| `network-protect` | 43 | medium | substrate | Cameras, alarms and premises security |
+| `network-fleet` | 11 | low | substrate | Multi-controller, multi-site and Site Manager view |
+| `network-backup` | 8 | medium | substrate | Backup and restore state; topology export |
+| `network-controller` | 3 | medium | substrate | Inspect and select the controller calls target |
+| `network-integration` | 22 | low | substrate | Site Manager and integration API views of the estate |
+| `network-proxy` | 3 | review-required | *(none proposed)* | Held review-required: caller-selected proxy paths and fleet fan-out |
+
+### Workspace and agent sessions — the operator's own Notion workspace
+
+| Group | Tools | Risk | Intended consumers | Purpose |
+|---|---|---|---|---|
+| `notion-workspace-read` | 19 | medium | scribe, quill, architect | Pages, databases, comments, members, skills, file references |
+| `notion-data-query` | 3 | medium | grid, scribe | Read-only SQL over Notion data sources and meeting notes |
+| `notion-workspace-authoring` | 16 | medium | scribe, quill | Create and edit pages, views, comments, folders, uploads |
+| `notion-workspace-destructive` | 5 | high | scribe | Remove pages, databases, comments; rewrite schemas |
+| `notion-agent-session-read` | 9 | medium | architect, scribe | Read agent sessions, session events and saved memories |
+| `notion-agent-sessions` | 5 | high | architect | Start, feed and stop Custom Agents; change enabled skills |
+| `notion-calendar-read` | 5 | medium | steward, herald | Calendars, events, contacts and room resources |
+| `notion-calendar-write` | 3 | high | steward, herald | Create, change and cancel events |
+
+### Documentation platform — the operator's own GitBook organization
+
+| Group | Tools | Risk | Intended consumers | Purpose |
+|---|---|---|---|---|
+| `gitbook-org-read` | 8 | low | scribe, quill | Sites, navigation, pages, topics, plan state, operation catalogue |
+| `gitbook-change-request` | 1 | medium | scribe, quill | Open a change request without publishing |
+| `gitbook-publish` | 1 | high | scribe, quill | Merge a change request and publish its edits |
+| `gitbook-proxy` | 1 | review-required | *(none proposed)* | Held review-required: caller-selected GitBook API operations |
+
+### Sales prospecting — the operator's own Hunter account
+
+| Group | Tools | Risk | Intended consumers | Purpose |
+|---|---|---|---|---|
+| `hunter-account-read` | 25 | low | *(none proposed)* | Account lists, tags, templates, sequences, apps, webhooks, search |
+| `hunter-contact-records` | 16 | medium | *(none proposed)* | Look up real contact records and company facts |
+| `hunter-record-authoring` | 29 | medium | *(none proposed)* | Create and edit leads, lists, tags, attributes, searches |
+| `hunter-sequence-authoring` | 9 | medium | *(none proposed)* | Author sequences, steps, message bodies and schedules |
+| `hunter-record-destructive` | 15 | high | *(none proposed)* | Delete leads, lists, tags, templates, searches, API keys |
+| `hunter-outbound-email` | 3 | high | *(none proposed)* | Start, resume and add recipients to sending sequences |
+| `hunter-prospecting-flow` | 1 | medium | *(none proposed)* | Plan and begin an end-to-end prospecting run |
+| `hunter-crm-integration` | 3 | high | *(none proposed)* | Push leads to a CRM; repoint a webhook; mint API keys |
 
 ### Design
 
@@ -205,16 +295,17 @@ it is held in `communications-send` rather than in the read-only legal group.
 
 ### Deliberate overlaps
 
-Five tools appear in more than one group. Each is a genuine multi-workflow tool,
-and the overlap is named rather than removed:
+6 tools appear in more than one group. Each is a genuine
+multi-workflow tool, and the overlap is named rather than removed:
 
 | Tool | Groups | Why |
 |---|---|---|
-| `github__search_code` | source-control-readonly, coding | Locating an implementation site vs. reading source control |
-| `github__get_file_contents` | source-control-readonly, coding | Same |
-| `n8n__create_workflow_from_code` | coding, workflow-authoring | The authoring *input* vs. a change to an existing workflow |
 | `beacon-managed__beacon_findings_list` | memory-retrieval, security-audit | One read serving both a memory recall and a security review |
 | `beacon-managed__beacon_get_finding` | memory-retrieval, security-audit | Same |
+| `github__get_file_contents` | coding, source-control-readonly | Same |
+| `github__search_code` | coding, source-control-readonly | Locating an implementation site vs. reading source control |
+| `hunter__Get-Usage` | hunter-account-read, observability | The Hunter quota read is provider usage for the observability workflow, and account state for the Hunter workflow |
+| `n8n__create_workflow_from_code` | coding, workflow-authoring | The authoring *input* vs. a change to an existing workflow |
 
 No generic tool is copied into every group.
 
@@ -222,16 +313,21 @@ No generic tool is copied into every group.
 
 ## 4. Held out of all groups — review required
 
-Three tools are classified `review-required` and are **not** in any deployable
-group. A fourth (`firecrawl-search__firecrawl_interact`) is held inside the
-`browser-automation` group, which is itself flagged review-required and has no
-proposed consumer.
+8 tools are classified `review-required`. 3 are held
+out of **every** group; the remaining 5 sit inside a
+group that is itself flagged review-required and has no proposed consumer, which is
+how `browser-automation` holds `firecrawl-search__firecrawl_interact`.
 
 | Tool | Reason |
 |---|---|
-| `court-listener__call_endpoint` | Generic REST client for arbitrary CourtListener endpoints. Path and method are caller-supplied, so it can reach write paths the curated legal allowlist excludes. Upstream marks it `readOnlyHint=true`, which its own purpose contradicts. Group membership cannot constrain a caller-chosen endpoint. |
-| `framer__exec` | Executes a caller-supplied JavaScript program against a third-party SaaS project. Arbitrary code execution; the arguments bound the effect, not the class of effect. |
-| `framer__create_project` | Persistent third-party state creation with no verified Noesis consumer. |
+| `court-listener__call_endpoint` | Generic REST client for arbitrary CourtListener API endpoints. The endpoint path and HTTP method are caller-supplied, so it can reach write paths (alert creation, document requests) that the curated legal-research allowlist deliberately excludes. The upstream readOnlyHint=true annotation is contradicted by the tool's own purpose: group membership cannot constrain a caller-chosen endpoint and method. |
+| `firecrawl-search__firecrawl_interact` | Opens or reuses a live browser session and can run browser code against authenticated third-party sites. The session survives between calls and the code it runs is caller-supplied, so the effect class is not bounded by the tool. Treated as broad capability rather than a page-reading helper. |
+| `framer__create_project` | Creates a new project inside the operator's external Framer SaaS account. It is persistent third-party state creation with no verified Noesis consumer, so granting it would add an unreviewed external surface for no workflow benefit. |
+| `framer__exec` | Executes a caller-supplied JavaScript program that mutates a Framer project. This is arbitrary code execution against a third-party SaaS project; the arguments bound the effect, not the class of effect. |
+| `gitbook-management__invoke_operation` | Runs one caller-selected GitBook API operation discovered through search, with caller-supplied path, query and body parameters. The upstream states that the operation surface includes actions that are visible to the public or cannot be undone, such as publishing a site or merging a change request, so the caller chooses the target and therefore the effect class. This is the same shape as court-listener__call_endpoint, and the curated GitBook tools are not a constraint on what it can reach. |
+| `unifi__connector_network_get` | Generic GET proxy for the UniFi Network application: the caller supplies the console id and the sub-path under the Cloud Connector proxy prefix, and the raw upstream response is returned. The upstream restricts the request to GET and validates every path segment against traversal, but the endpoint itself is caller-selected, so group membership cannot constrain which UniFi endpoint is read. It is narrower than court-listener__call_endpoint, which also exposes the HTTP method, but it is the same shape: a caller-chosen target. In this deployment the tool is additionally inert, because UNIFI_SITE_MANAGER_ENABLED is unset and the call raises 'Site Manager API is not enabled'. |
+| `unifi__connector_protect_get` | Generic GET proxy for the UniFi Protect application: the caller supplies the console id and the sub-path under the Cloud Connector proxy prefix, and the raw upstream response is returned. The upstream restricts the request to GET and validates every path segment against traversal, but the endpoint itself is caller-selected, so group membership cannot constrain which Protect endpoint is read, including the camera and event endpoints. In this deployment the tool is additionally inert, because UNIFI_SITE_MANAGER_ENABLED is unset and the call raises 'Site Manager API is not enabled'. |
+| `unifi__fleet_fanout` | Runs one caller-named read tool across every controller in scope at once. The upstream enforces that only read-tier controller tools can be fanned out and rejects fleet-prefixed and unknown tool names, so the effect class is bounded to reads, but the caller still chooses which tool runs: a holder of this tool reaches every read-tier controller tool whether or not that tool is in the group it was granted. Group membership therefore cannot constrain the target, which is the property that makes a tool broad-capability rather than an ordinary read. |
 
 **Operator decision required** for each: is the capability needed at all, and if so
 which profile may hold it under what approval path?
@@ -242,18 +338,20 @@ which profile may hold it under what approval path?
 
 | Requested category | Status | Reason |
 |---|---|---|
-| `devops-readonly` | **gap** | No DevOps or infrastructure server is registered. No Docker, Kubernetes, Terraform, Ansible or CI tool exists among the 308. The nearest surfaces are `workflow-inspection` and `observability`; naming either "devops-readonly" would misrepresent it. Infrastructure execution lives in `noesis-ansible` and the Hermes terminal toolset, not MCPJungle. |
-| `network-operations-readonly` | **gap** | No network-device or network-automation server is registered. UniFi is a separate, directly configured Hermes connection (`unifi-local`) that does not traverse MCPJungle, so it cannot be an MCPJungle group. |
-| `cloud-infrastructure-readonly` | **gap** | No cloud-provider server (AWS, GCP, Azure, Cloudflare) is registered. |
-| `cloud-infrastructure-write` | **gap** | Same. The closest mutation surface is `platform-administration`, which manages one documentation site. |
-| `blockchain-research` | **gap** | No blockchain, wallet, miner or DePIN data server is registered. The `noesis-ledger` domain can only be served by `web-research`, `academic-research` and `market-research`. |
-| `financial-actions` | **gap** | No spending, transfer, trading, payment or wallet tool exists anywhere in the inventory. Every financial capability present is read-only research under `market-research`. The one payment-adjacent tool, `court-listener__pray_for_document`, sits in `legal-alerts` under a spending control. |
-| `communications-readonly` (broad inbox) | **partial** | No mail, chat or SMS server is registered. The only communications read surface is the Mintlify comment thread. The Herald workflow has no inbox to read from. |
-| `database-readonly` / `database-write` | supported | n8n data tables and Mintlify deployment databases. No generic SQL server exists; the one SQL surface (`mintlify__query_analytics`) is confined to the docs deployment's own analytics tables and is held in `data-analytics`. |
-| `observability` | supported | Deployment status, workflow run history, execution records, provider credit/usage. No metrics, log-aggregation or tracing server (Prometheus, Grafana, Loki) is registered, so infrastructure telemetry is not reachable through MCPJungle at all. |
-| `agent-infrastructure` | supported | n8n agent authoring, versioning, validation, retirement; Beacon as the memory and trace substrate. |
-| `security-audit` | supported, narrow | Only GitHub secret scanning and Beacon's security findings. No SAST, DAST, dependency-audit or container-scanning server. |
-| `source-control-readonly` / `source-control-write` | supported | The GitHub server, split across three groups. It is the only source-control server registered. |
+| `devops-readonly` | coverage gap | No DevOps or CI server is registered in this gateway. There is no Docker, Kubernetes, Terraform, Ansible, cloud-provider or CI tool among the 700 discovered tools. The nearest surfaces are workflow-inspection, observability and the network-* groups, and naming any of them 'devops-readonly' would misrepresent it: they report state, they do not change infrastructure. Infrastructure execution lives in the noesis-ansible repository and in the Hermes terminal toolset, not in MCPJungle. |
+| `network-operations-readonly` | supported | The UniFi MCP server is registered in this gateway and contributes 212 read tools, split across seven groups by capability: network-inventory, network-security-policy, network-telemetry, network-protect, network-fleet, network-backup and network-controller, plus network-proxy which is held review-required. The deployment sets UNIFI_READ_ONLY=true, so the registered surface contains no mutating UniFi tool at all: these groups are a read-only view by construction, not by policy. Note that the separately-configured Hermes connection 'unifi-local' exposes 347 tools including mutating ones and is NOT constrained by any group here. |
+| `cloud-infrastructure-readonly` | coverage gap | No cloud-provider server (AWS, GCP, Azure, Cloudflare) is registered in this gateway. The UniFi groups cover on-premises network hardware, which is a different estate. |
+| `cloud-infrastructure-write` | coverage gap | Same as cloud-infrastructure-readonly: no cloud-provider server is registered. The closest mutation surface is platform-administration, which manages one documentation site, and the UniFi deployment is read-only. |
+| `blockchain-research` | coverage gap | No blockchain, wallet, miner or DePIN data server is registered. The noesis-ledger domain can only be served by the generic web-research, academic-research and market-research groups. |
+| `financial-actions` | coverage gap | No spending, transfer, trading, payment or wallet tool exists anywhere in the 700-tool inventory. Hunter's credit-consuming lookups draw on a metered search and credit quota rather than money, and the connected account is on the free tier; on a paid plan the same calls would become billable, which is why the spending constraint is recorded on hunter-contact-records rather than treated as absent. The one payment-adjacent tool is court-listener__pray_for_document, which sits in legal-alerts under a spending control. |
+| `communications-readonly (broad inbox)` | **partial** | No mail, chat or SMS server is registered in this gateway. The communications read surfaces are the Mintlify comment thread and the Notion calendar, which together are not an inbox: the Herald workflow still cannot read prior outbound correspondence, and no tool here can confirm what was already sent to anyone. |
+| `database-readonly / database-write` | supported | n8n data tables, the Mintlify deployment databases and the Notion data sources provide readable and writable tabular surfaces, and the groups exist. There is still no generic SQL database server (no PostgreSQL, MySQL or SQLite tool). The two SQL surfaces present are each confined to its own store: mintlify__query_analytics is held in data-analytics, and the Notion queries in notion-data-query are read-only by construction. |
+| `observability` | supported | Deployment status, workflow run history, execution records, provider credit and usage reporting, and the Hunter quota report cover the read-only observability surface. There is still no metrics, log-aggregation or tracing server (no Prometheus, Grafana or Loki) registered, and no infrastructure telemetry of any kind: the UniFi groups report controller state as read by the controller, not as collected telemetry. |
+| `agent-infrastructure` | supported | n8n provides agent draft authoring, versioning, validation and retirement; the Beacon-managed server provides the memory and trace substrate agents read from; and Notion provides Custom Agent sessions plus the skill enablement that decides what those agents may load. All three surfaces exist, and the groups exist. |
+| `security-audit` | supported but narrow | Only two genuine security surfaces exist: GitHub secret scanning and Beacon's security findings. There is no SAST, DAST, dependency-audit or container-scanning server registered, so the group cannot cover a full security review. The UniFi groups read the operator's own security posture but are not a scanning surface. |
+| `source-control-readonly / source-control-write` | supported | The GitHub MCP server exposes both surfaces, split across source-control-readonly, source-control-issues-readonly and source-control-write. It is the only source-control server registered. |
+| `outbound-messaging / sales-prospecting` | supported | Hunter registers 103 tools covering contact discovery, enrichment, CRM record management and outbound email sending, split across six groups. The sending surface is isolated in hunter-outbound-email, and the destructive record surface in hunter-record-destructive. This is the only registered capability that sends email to people who did not ask to be contacted, so it carries the strictest approval control in the catalog. |
+| `workspace-document-management` | supported | Notion contributes 65 tools covering the operator's own workspace (pages, databases, comments, calendars and agent sessions) and GitBook contributes 12 covering the operator's own GitBook organization (sites, navigation, change requests and publication). The two are split by capability and by risk, and neither can be confused with the MISJustice/YWCA GitBook corpus, which stays in legal-research. |
 
 ---
 
@@ -291,10 +389,11 @@ authorise anything.** A group does not:
 
 - prove the agent is permitted to perform the action;
 - enforce an approval gate — nothing in the file format expresses one;
-- constrain tool arguments — `mintlify__query_analytics` accepts a SELECT, and
+- constrain tool arguments — `mintlify__query_analytics` accepts a SELECT,
+  `notion__notion-query-data-sources` accepts a query, and
   `n8n__execute_workflow` accepts arbitrary input;
 - prevent bypass through another endpoint — the main `/mcp` endpoint still
-  exposes all 308 tools to any credential that can reach it, and the UniFi and
+  exposes all 700 tools to any credential that can reach it, and the UniFi and
   Beacon connections are separate paths entirely.
 
 A README that says "approval required" is documentation, not a control. For each
@@ -303,13 +402,13 @@ higher-risk group, the following must be enforced **outside** MCPJungle:
 | Control | Applies to |
 |---|---|
 | **Per-client MCP identity** — a dedicated client token per consuming profile, with an explicit allow-list, never a shared token | every group |
-| **Credential scoping at the upstream provider** — a GitHub token limited to in-scope repositories; a Mintlify token scoped to one deployment; an n8n token scoped to one instance; a CourtListener token limited to read access | every group touching a credentialed upstream |
+| **Credential scoping at the upstream provider** — a GitHub token limited to in-scope repositories; a Mintlify token scoped to one deployment; an n8n token limited to one instance; a CourtListener token limited to read access; a Hunter token limited to one account; a GitBook token scoped to one organization | every group touching a credentialed upstream |
 | **Approval gate in the runtime** — a human approval step in the agent runtime or broker *before* the tool call, enforced by the toolset the profile holds, not by prose | all `high` and `review-required` groups |
-| **Argument constraints** — where a tool accepts a path, endpoint, SQL statement or credential id, constrain it in the runtime's policy layer | `data-analytics`, `legal-research`, `credential-inventory`, `web-retrieval` |
+| **Argument constraints** — where a tool accepts a path, endpoint, SQL statement or credential id, constrain it in the runtime's policy layer | `data-analytics`, `legal-research`, `credential-inventory`, `web-retrieval`, `notion-data-query`, `hunter-outbound-email`, `network-proxy`, `gitbook-proxy` |
 | **Profile isolation** — one MCP connection per profile, pointed at that profile's group endpoint, so a mis-scoped call cannot reach a broader surface | every group |
 | **Audit** — tool calls through a group endpoint logged with the client identity, so an action can be attributed | all `high` groups |
 | **Kill switch** — a per-group revoke path; `mcpjungle delete group <name>` removes the endpoint immediately | all `high` groups |
-| **Separate change authority from review authority** — the profile that executes holds no reviewer group, and the reviewer profile holds no write group | `source-control-write`, `autonomous-coding`, `workflow-execution`, `docs-site-publish` |
+| **Separate change authority from review authority** — the profile that executes holds no reviewer group, and the reviewer profile holds no write group | `source-control-write`, `autonomous-coding`, `workflow-execution`, `docs-site-publish`, `gitbook-publish`, `hunter-outbound-email`, `notion-workspace-destructive` |
 
 The `suggested_consumers` field in `tool-groups.json` is a **recommendation**, not
 an enforcement. It records which profile the group was designed for. Whether a
@@ -331,12 +430,9 @@ mutating member, so the group-level risk alone is not sufficient evidence.
 
 Both reviewers hold groups whose members only read:
 
-`sentinel`: `source-control-readonly`, `source-control-issues-readonly`,
-`library-docs`, `repository-docs`, `workflow-inspection`, `security-audit`
+`sentinel`: `library-docs`, `repository-docs`, `security-audit`, `source-control-issues-readonly`, `source-control-readonly`, `workflow-inspection`
 
-`skeptic`: `source-control-readonly`, `source-control-issues-readonly`,
-`legal-research`, `legal-citation-analysis`, `legal-regulations-research`,
-`web-research`, `security-audit`, `memory-retrieval`
+`skeptic`: `legal-citation-analysis`, `legal-regulations-research`, `legal-research`, `memory-retrieval`, `security-audit`, `source-control-issues-readonly`, `source-control-readonly`, `web-research`
 
 Neither can write, delete, publish, spend or delegate. Reviewers do hold groups
 that read sensitive data (`security-audit`, `memory-retrieval`, `legal-research`),
@@ -349,6 +445,10 @@ are not reviewer-only.
 
 Conversely, the implementation profiles (`noesis-forge`, `noesis-substrate`)
 hold write groups but are not listed as consumers of any reviewer-only group.
+
+The `network-*` groups are likewise not offered to either reviewer, although
+their members only read: they are the operator's own live network estate, and
+the profile that operates it (`noesis-substrate`) is the one that needs them.
 
 ---
 
@@ -373,24 +473,25 @@ Note `mcpjungle list tools --group` shows only tools that **currently exist and 
 enabled**. To see a group's full stored definition, including tools that have since
 been disabled or deleted, use `mcpjungle get group`.
 
-### Deployment — completed 2026-10-25
+### Deployment — completed 2026-10-26
 
-All 41 groups were created on the live gateway and verified:
+All 73 groups were created on the live gateway and verified:
 
 ```bash
 mcpjungle create group --conf config/mcpjungle/groups/<group-name>.json \
   --registry https://mcpjungle.tailf99a0.ts.net
 ```
 
-**Result: 41 created, 0 failed.** Verification was two-layer:
+**Result: 73 created, 0 failed.** Verification was two-layer:
 
 1. Every group's live definition was compared name-by-name against its source
-   file — `name`, `description` and `included_tools` are identical for all 41.
+   file — `name`, `description` and `included_tools` are identical for all
+   73.
 2. Every group's MCP endpoint was probed with `initialize` + `tools/list`
    (discovery only — no tool was invoked). Each endpoint serves **exactly** its
-   declared `included_tools`: 41/41 matched, 0 mismatches.
+   declared `included_tools`: 73/73 matched, 0 mismatches.
 
-The main `/mcp` endpoint still serves all 308 tools. **Creating tool groups does
+The main `/mcp` endpoint still serves all 700 tools. **Creating tool groups does
 not narrow the main gateway** — narrowing a client requires pointing it at a
 group endpoint. No Hermes client connection was repointed.
 
@@ -449,12 +550,12 @@ Each group file and catalog entry is marked `"endpoint_status": "live"`.
 ### Backup
 
 `config/mcpjungle/backup/gateway-state-backup.json` captures the live gateway
-state: the 20 registered upstream servers, the 41 group definitions, and a
-pointer to the 308-tool main-endpoint inventory. Upstream credentials are
+state: the 24 registered upstream servers, the 73 group definitions, and a
+pointer to the 700-tool main-endpoint inventory. Upstream credentials are
 **not** recoverable from it — every secret-bearing value in the richer
 `/api/v0/server_configs` view is replaced by a non-reversible shape marker, and
-the file was verified to contain none of the live secret values. Re-apply
-credentials from the Bitwarden escrow if a restore is ever needed.
+the file was verified by **value** to contain none of the live secret values.
+Re-apply credentials from the Bitwarden escrow if a restore is ever needed.
 
 ---
 
@@ -488,6 +589,7 @@ python3 scripts/validate_mcpjungle_groups.py -v
 | Server added upstream | New server name | Same: no automatic inclusion. Re-run the taxonomy. |
 | Tool reclassified | `risk_classification` in the inventory no longer matches the current description or annotations | Re-review the affected groups; a group declared `low` that gains a mutating member is a validator failure. |
 | Upstream schema change | `input_schema` or `output_schema` differs | The group membership may still resolve, but the tool's real capability has changed. Re-read the description before trusting the risk classification. |
+| Deployment flag changed | `UNIFI_READ_ONLY` or `UNIFI_SITE_MANAGER_ENABLED` on the UniFi deployment | The registered tool set changes with the flag. Re-discover and re-review the `network-*` groups. |
 
 ### New tools are never automatically included
 
@@ -507,8 +609,8 @@ replaced wholesale by `update group`, and removed by `delete group`.
 ### The current baseline is already backed up
 
 `config/mcpjungle/backup/gateway-state-backup.json` holds the live state as of
-2026-10-25: all 41 group definitions, the 20 registered upstream servers, and a
-pointer to the 308-tool inventory. **Upstream credentials are not in it** — they
+2026-10-26: all 73 group definitions, the 24 registered upstream servers, and a
+pointer to the 700-tool inventory. **Upstream credentials are not in it** — they
 must come from the Bitwarden escrow if a restore is ever needed. Restore servers
 before groups: group creation validates every listed tool and fails if a tool
 does not exist.
@@ -574,7 +676,7 @@ the others — update that one group from its snapshot and leave the rest in pla
 secret or credential value appears in any artifact. The MCPJungle user token was
 read from the local CLI credential store only to authenticate discovery.
 
-A pattern scan across all 308 tools — bearer tokens, JWTs, provider API keys, cloud
+A pattern scan across all 700 tools — bearer tokens, JWTs, provider API keys, cloud
 access keys, 32-character hex secrets, credential assignments, credential-bearing
 URLs and e-mail addresses — returned **zero hits**. Descriptions, schemas and
 `_meta` are reproduced as returned; they contain tool contracts only, because no
@@ -582,19 +684,27 @@ live record data was retrieved during discovery.
 
 **Not available:**
 
-- Output schemas are absent for **270 of 308** tools because the upstream servers
+- Output schemas are absent for **345 of 700** tools because the upstream servers
   do not publish them. No output schema was inferred.
-- MCP annotations carry no values for **6** tools (`CourtListener__status`,
-  `GovInfo__describePackageOrGranule`, `GovInfo__searchGovInfo`,
-  `deepwiki__ask_wiki_question`, `deepwiki__read_wiki_contents`,
-  `deepwiki__read_wiki_structure`): the server returned an empty annotations object
-  for each. The observed value is preserved verbatim. Each was classified from its
-  description and schema alone, and each says so in its `risk_rationale`.
+- MCP annotations carry no values for **218** tools: the server returned an empty
+  annotations object for each — `CourtListener__status`, `GovInfo__describePackageOrGranule`, `GovInfo__searchGovInfo`, `deepwiki__ask_wiki_question`, `deepwiki__read_wiki_contents`, `deepwiki__read_wiki_structure`, and the 212 UniFi tools. The observed value is preserved
+  verbatim. Each was classified from its description, schema and, for the UniFi
+  tools, the upstream source at `/home/elvis/projects/unifi-mcp-server`.
 - Server-side per-client authorisation rules could not be inspected:
   `mcpjungle list mcp-clients` is refused for a user token in enterprise mode.
-- Upstream credential scopes — which organisations, repositories, sites, cases or
-  documents each configured upstream credential can reach — are not visible through
-  this gateway and must be checked at the upstream provider.
+- Upstream credential scopes — which organisations, repositories, sites, cases,
+  workspaces or documents each configured upstream credential can reach — are not
+  visible through this gateway and must be checked at the upstream provider.
+- The UniFi deployment registers `UNIFI_READ_ONLY=true`, so **no mutating UniFi
+  tool is registered at all**; and it leaves `UNIFI_SITE_MANAGER_ENABLED` unset, so
+  the Site Manager, Carrier, Mobility, InnerSpace, ISP and integration tools raise
+  *"Site Manager API is not enabled"* when called. Both are deployment facts, not
+  properties of the tools, and are recorded so a later change to the flags
+  triggers a re-review.
+- The Hunter account's plan and quota were read from the live account (free tier,
+  50 searches, 50 credits and 100 verifications per month). Moving the account to
+  a paid plan changes the cost of the credit-consuming lookups and must trigger a
+  re-review.
 
 ---
 
@@ -609,11 +719,18 @@ the two are never conflated.
 Annotations are **advisory only**. `readOnlyHint` and `destructiveHint` were
 cross-checked against every description and input schema; where they disagreed,
 the description and schema won. A tool whose name suggests a mutation was not
-accepted as read-only on the strength of `readOnlyHint` alone. Twenty-two tools
-carrying `destructiveHint=true` describe a configuration change rather than a
-literal deletion — `manage_access_auth`, `update_workflow`, `mutate_agent` and
-others — and each carries a corrected category and rationale in the inventory.
+accepted as read-only on the strength of `readOnlyHint` alone. Tools carrying
+`destructiveHint=true` that describe a configuration change rather than a literal
+deletion — `manage_access_auth`, `update_workflow`, `mutate_agent` and others —
+carry a corrected category and rationale in the inventory.
 
+The 212 UniFi tools publish **no** MCP annotations at all: the upstream
+returns an empty annotations object for every one of them. Their classification
+was taken from the description, the input schema and the upstream source, and each
+rationale says so.
+
+| Risk level | Meaning |
+|---|---|
 | Risk level | Meaning |
 |---|---|
 | `low` | Reads state and changes nothing. |
@@ -621,7 +738,21 @@ others — and each carries a corrected category and rationale in the inventory.
 | `high` | Destructive, publishes externally, spends money, or grants persistent autonomy. |
 | `review-required` | Broad-capability or unusually ambiguous. Held out of ordinary groups pending an explicit operator decision. |
 
-Distribution across the 308 tools: 197 `low` (`read-only`), 40 `medium` (`mutating`), 11 `medium` (`sensitive-data`), 26 `high` (`persistent-or-autonomous`), 14 `high` (`external-communication`), 9 `high` (`destructive`), 5 `high` (`configuration-change`), 2 `high` (`access-control-change`), 4 `review-required` (`broad-capability`).
+Distribution across the 700 tools:
+
+| Capability category | Risk | Tools |
+|---|---|---|
+| `read-only` | low | 409 |
+| `sensitive-data` | medium | 92 |
+| `mutating` | medium | 99 |
+| `persistent-or-autonomous` | high | 29 |
+| `external-communication` | high | 23 |
+| `destructive` | high | 29 |
+| `configuration-change` | high | 8 |
+| `access-control-change` | high | 3 |
+| `broad-capability` | review-required | 8 |
+
+Totals: 409 `low`, 191 `medium`, 92 `high`, 8 `review-required`.
 
 ---
 
@@ -645,4 +776,4 @@ non-low member; that no group uses `included_servers`; that no reviewer-only
 profile is offered a high-risk group; that no secret-shaped value is committed;
 and that file and member ordering is deterministic.
 
-Current result: **PASS**, 41 groups, 308 tools, 305 assigned, 3 held out.
+Current result: **PASS**, 73 groups, 700 tools, 697 assigned, 3 held out.

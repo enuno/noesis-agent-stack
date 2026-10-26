@@ -1,0 +1,9 @@
+{
+  "name": "network-controller",
+  "description": "Inspect and select which controller subsequent UniFi calls target.",
+  "included_tools": [
+    "unifi__get_active_controller",
+    "unifi__list_controllers",
+    "unifi__select_controller"
+  ]
+}

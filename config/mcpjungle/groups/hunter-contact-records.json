@@ -1,0 +1,22 @@
+{
+  "name": "hunter-contact-records",
+  "description": "Look up real contact records and company facts: published addresses for a domain, a person's address at a company, verification, natural-language company and people discovery, and the operator's stored leads.",
+  "included_tools": [
+    "hunter__Combined-Enrichment",
+    "hunter__Company-Enrichment",
+    "hunter__Domain-Search",
+    "hunter__Domain-Search-Found",
+    "hunter__Email-Count",
+    "hunter__Email-Finder",
+    "hunter__Email-Verifier",
+    "hunter__Find-Companies",
+    "hunter__Find-People",
+    "hunter__Find-Similar-Companies",
+    "hunter__Get-Email-Account",
+    "hunter__Get-Lead",
+    "hunter__Get-Sequence-Stats",
+    "hunter__List-Leads",
+    "hunter__List-Sequence-Recipients",
+    "hunter__Person-Enrichment"
+  ]
+}

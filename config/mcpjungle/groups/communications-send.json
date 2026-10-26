@@ -1,14 +1,16 @@
 {
   "name": "communications-send",
-  "description": "Send comments, replies, reactions, feedback and shared traces to external services.",
+  "description": "Send comments, replies, reactions, feedback and shared traces to external services, including provider feedback endpoints for Hunter and GitBook.",
   "included_tools": [
     "beacon-managed__beacon_share_session",
     "firecrawl-search__firecrawl_feedback",
     "firecrawl-search__firecrawl_search_feedback",
+    "gitbook-management__report_tool_feedback",
     "github__add_comment_to_pending_review",
     "github__add_issue_comment",
     "github__add_reply_to_pull_request_comment",
     "github__update_issue_comment",
+    "hunter__Report-API-Feedback",
     "mcpjungle-docs__submit_feedback",
     "mintlify-docs__submit_feedback",
     "mintlify__add_comment",

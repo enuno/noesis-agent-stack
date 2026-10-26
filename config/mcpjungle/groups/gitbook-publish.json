@@ -1,0 +1,7 @@
+{
+  "name": "gitbook-publish",
+  "description": "Merge a GitBook change request and publish its edits to the space.",
+  "included_tools": [
+    "gitbook-management__submit_or_merge_change_request"
+  ]
+}

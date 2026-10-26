@@ -5,12 +5,12 @@
   "not_directly_deployable_note": "This file is Noesis governance metadata, not an MCPJungle configuration. MCPJungle's create and update group commands accept only name, description, included_tools, included_servers and excluded_tools. The risk levels, controls, consumers, overlaps and coverage gaps recorded here have no MCPJungle equivalent, so they live in this file and in README.md rather than being invented as configuration keys. Deploy the per-group files under groups/.",
   "inventory_provenance": {
     "inventory_file": "tool-inventory.json",
-    "discovery_timestamp": "2026-10-25T21:26:38.385639+00:00",
+    "discovery_timestamp": "2026-10-26T00:00:00.000000+00:00",
     "endpoint": "https://mcpjungle.tailf99a0.ts.net/mcp",
     "mcpjungle_version": "0.4.6",
     "completeness": "complete",
-    "tools_in_inventory": 308,
-    "source_servers": 20
+    "tools_in_inventory": 700,
+    "source_servers": 24
   },
   "mcpjungle_constraints": {
     "group_name_pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]*$",
@@ -30,7 +30,7 @@
     "unknown_tool_behaviour": "MCPJungle rejects creation when a listed tool does not exist or is disabled.",
     "disabled_tool_behaviour": "A tool disabled globally is removed from every group endpoint. A group that lists it still shows it in its stored definition, but it is no longer callable."
   },
-  "group_count": 41,
+  "group_count": 73,
   "deployment_status": {
     "deployed_at": "2026-10-25",
     "target": "https://mcpjungle.tailf99a0.ts.net (MCPJungle v0.4.6, SERVER_MODE=development)",
@@ -278,28 +278,31 @@
     },
     {
       "name": "communications-send",
-      "purpose": "Send comments, replies, reactions, feedback and shared traces to external services.",
+      "purpose": "Send comments, replies, reactions, feedback and shared traces to external services, including provider feedback endpoints for Hunter and GitBook.",
       "risk_level": "high",
       "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
       "required_controls": [
         "Every tool here produces a message a third party can read. Nothing in this group may be invoked on the agent's own initiative.",
         "Require explicit operator approval of the exact message body before sending.",
         "Scope the credential so the agent cannot post as an operator identity unless that identity is the intended sender.",
-        "Documented feedback endpoints are external submissions, not a private note to the operator."
+        "Documented feedback endpoints are external submissions, not a private note to the operator.",
+        "The Hunter and GitBook feedback tools report on the agent's own use of those servers and are read by the vendors' staff. The upstream tells the agent to report proactively and without asking; that does not override the approval requirement above."
       ],
       "suggested_consumers": [
         "noesis-herald"
       ],
       "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
-      "tool_count": 13,
+      "tool_count": 15,
       "tools": [
         "beacon-managed__beacon_share_session",
         "firecrawl-search__firecrawl_feedback",
         "firecrawl-search__firecrawl_search_feedback",
+        "gitbook-management__report_tool_feedback",
         "github__add_comment_to_pending_review",
         "github__add_issue_comment",
         "github__add_reply_to_pull_request_comment",
         "github__update_issue_comment",
+        "hunter__Report-API-Feedback",
         "mcpjungle-docs__submit_feedback",
         "mintlify-docs__submit_feedback",
         "mintlify__add_comment",
@@ -310,17 +313,19 @@
       "deployable_file": "groups/communications-send.json",
       "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/communications-send/mcp",
       "endpoint_status": "live",
-      "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "endpoint_note": "Redeployed to the gateway on 2026-10-26 with the new members added, and re-verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_member_count": 13,
+      "non_low_risk_member_count": 15,
       "non_low_risk_members": [
         "beacon-managed__beacon_share_session: Publishes a message, reaction or feedback ticket to an external service. The effect crosses the Noesis boundary and is visible to third parties, so it is classified above read-only regardless of the upstream annotation.",
         "firecrawl-search__firecrawl_feedback: Publishes a message, reaction or feedback ticket to an external service. The effect crosses the Noesis boundary and is visible to third parties, so it is classified above read-only regardless of the upstream annotation.",
         "firecrawl-search__firecrawl_search_feedback: Publishes a message, reaction or feedback ticket to an external service. The effect crosses the Noesis boundary and is visible to third parties, so it is classified above read-only regardless of the upstream annotation.",
+        "gitbook-management__report_tool_feedback: Upstream marks the operation as affecting the open world: Reports a problem you hit while using this server's tools or operations, or an improvement worth making, so they can be fixed. It submits a report about the tool to GitBook, which the vendor's staff can read, so the effect crosses the Noesis boundary and is visible to third parties.",
         "github__add_comment_to_pending_review: Publishes a message, reaction or feedback ticket to an external service. The effect crosses the Noesis boundary and is visible to third parties, so it is classified above read-only regardless of the upstream annotation.",
         "github__add_issue_comment: Publishes a message, reaction or feedback ticket to an external service. The effect crosses the Noesis boundary and is visible to third parties, so it is classified above read-only regardless of the upstream annotation.",
         "github__add_reply_to_pull_request_comment: Publishes a message, reaction or feedback ticket to an external service. The effect crosses the Noesis boundary and is visible to third parties, so it is classified above read-only regardless of the upstream annotation.",
         "github__update_issue_comment: Publishes a message, reaction or feedback ticket to an external service. The effect crosses the Noesis boundary and is visible to third parties, so it is classified above read-only regardless of the upstream annotation.",
+        "hunter__Report-API-Feedback: Upstream marks the operation as affecting the open world: Report any problem you hit while using Hunter's API or tools — use this PROACTIVELY and liberally. It submits a report about the tool to Hunter, which Hunter's staff can read, so the effect crosses the Noesis boundary and is visible to third parties.",
         "mcpjungle-docs__submit_feedback: Publishes a message, reaction or feedback ticket to an external service. The effect crosses the Noesis boundary and is visible to third parties, so it is classified above read-only regardless of the upstream annotation.",
         "mintlify-docs__submit_feedback: Publishes a message, reaction or feedback ticket to an external service. The effect crosses the Noesis boundary and is visible to third parties, so it is classified above read-only regardless of the upstream annotation.",
         "mintlify__add_comment: Publishes a message, reaction or feedback ticket to an external service. The effect crosses the Noesis boundary and is visible to third parties, so it is classified above read-only regardless of the upstream annotation.",
@@ -332,27 +337,30 @@
     },
     {
       "name": "credential-inventory",
-      "purpose": "Enumerate the n8n credentials the authenticated user can reference.",
+      "purpose": "Enumerate the credential identities the authenticated user can reference, on the n8n instance and on the Hunter account.",
       "risk_level": "review-required",
       "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
       "required_controls": [
         "The output enumerates credential identities on a live instance. It does not return secret material, but it is a map of what the agent can act as.",
         "Treat the output as sensitive: never write it into a shared transcript, a ticket or a repository.",
-        "Held as a standalone group so that only a profile with an explicit need for credential mapping can reach it. It is deliberately not merged into workflow-inspection."
+        "Held as a standalone group so that only a profile with an explicit need for credential mapping can reach it. It is deliberately not merged into workflow-inspection.",
+        "hunter__List-API-Keys returns masked values (last four characters only) and is scoped to the connecting user, but it is still a map of what the agent can act as."
       ],
       "suggested_consumers": [],
       "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
-      "tool_count": 1,
+      "tool_count": 2,
       "tools": [
+        "hunter__List-API-Keys",
         "n8n__list_credentials"
       ],
       "deployable_file": "groups/credential-inventory.json",
       "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/credential-inventory/mcp",
       "endpoint_status": "live",
-      "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "endpoint_note": "Redeployed to the gateway on 2026-10-26 with the new members added, and re-verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
-      "non_low_risk_member_count": 1,
+      "non_low_risk_member_count": 2,
       "non_low_risk_members": [
+        "hunter__List-API-Keys: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: List the Hunter API keys of the connected user. The output is the identities of the Hunter API keys the connected user can act with. The values are masked to the last four characters, but the listing is still a map of what the agent can act as, so it needs scoped credentials and redaction before it leaves the host.",
         "n8n__list_credentials: Reads or writes private, credential-related or bulk-record data. Appropriate for the workflow, but it requires scoped credentials and redaction before the output leaves the host."
       ],
       "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
@@ -619,6 +627,502 @@
         "beacon-managed__beacon_lenses_prepare_upload: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
         "beacon-managed__beacon_lenses_release_version: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns.",
         "beacon-managed__beacon_lenses_update: Creates durable state, publishes an artifact, subscribes to an ongoing feed, or hands work to an autonomous agent that keeps acting after the call returns."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "gitbook-change-request",
+      "purpose": "Open a change request on a GitBook space without publishing anything.",
+      "risk_level": "medium",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Staged editing only. The edits reach readers when the change request is submitted and merged, which lives in gitbook-publish.",
+        "The change request is created inside the operator's GitBook organization. Confirm which organization and space is targeted before creating one."
+      ],
+      "suggested_consumers": [
+        "noesis-scribe",
+        "noesis-quill"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 1,
+      "tools": [
+        "gitbook-management__create_change_request"
+      ],
+      "deployable_file": "groups/gitbook-change-request.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/gitbook-change-request/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 1,
+      "non_low_risk_members": [
+        "gitbook-management__create_change_request: Upstream advertises readOnlyHint=false: Opens a change request on a space. The change is confined to a staged change request on the operator's GitBook space; the edits are not published until the change request is submitted and merged and is reversible; it removes nothing, publishes nothing externally and spends nothing."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "gitbook-org-read",
+      "purpose": "Read the operator's GitBook organization: sites, navigation, pages, topics, plan state and the operation catalogue.",
+      "risk_level": "low",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Read-only. No member changes a space, a page or a plan.",
+        "describe_operation and search expose the shape of the GitBook API including destructive operations; they are a catalogue, not a licence to call them.",
+        "get_subscription_information reports plan and trial state. Confirm which GitBook organization the credential reaches before treating site content as the operator's own."
+      ],
+      "suggested_consumers": [
+        "noesis-scribe",
+        "noesis-quill"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 8,
+      "tools": [
+        "gitbook-management__describe_operation",
+        "gitbook-management__get_page",
+        "gitbook-management__get_site_structure",
+        "gitbook-management__get_subscription_information",
+        "gitbook-management__get_usage_guide",
+        "gitbook-management__list_site_topics",
+        "gitbook-management__list_sites",
+        "gitbook-management__search"
+      ],
+      "deployable_file": "groups/gitbook-org-read.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/gitbook-org-read/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "gitbook-proxy",
+      "purpose": "Held review-required: caller-selected GitBook API operations.",
+      "risk_level": "review-required",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "The caller chooses the operation, and the upstream states that the surface includes publishing a site and merging a change request. Group membership cannot constrain what it reaches.",
+        "The group exists to hold the capability apart from the curated GitBook tools, and it has no proposed consumer."
+      ],
+      "suggested_consumers": [],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 1,
+      "tools": [
+        "gitbook-management__invoke_operation"
+      ],
+      "deployable_file": "groups/gitbook-proxy.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/gitbook-proxy/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 1,
+      "non_low_risk_members": [
+        "gitbook-management__invoke_operation: Runs one caller-selected GitBook API operation discovered through search, with caller-supplied path, query and body parameters. The upstream states that the operation surface includes actions that are visible to the public or cannot be undone, such as publishing a site or merging a change request, so the caller chooses the target and therefore the effect class. This is the same shape as court-listener__call_endpoint, and the curated GitBook tools are not a constraint on what it can reach."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "gitbook-publish",
+      "purpose": "Merge a GitBook change request and publish its edits to the space.",
+      "risk_level": "high",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Publishing makes content visible to the space's readers and cannot be undone from the agent's point of view. Require explicit operator approval every time.",
+        "Review the staged diff, not the tool call. The merge is the irreversible step."
+      ],
+      "suggested_consumers": [
+        "noesis-scribe",
+        "noesis-quill"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 1,
+      "tools": [
+        "gitbook-management__submit_or_merge_change_request"
+      ],
+      "deployable_file": "groups/gitbook-publish.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/gitbook-publish/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 1,
+      "non_low_risk_members": [
+        "gitbook-management__submit_or_merge_change_request: Upstream marks the operation destructive: Merges a change request, publishing its edits to the space. It merges the change request and publishes its edits to the space, where readers see them and the merge cannot be undone, and the work continues after the call returns."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "hunter-account-read",
+      "purpose": "Read the operator's Hunter account: lists, folders, tags, templates, saved searches, sequences, connected apps, webhooks and company search results.",
+      "risk_level": "low",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Read-only. No member creates, changes or deletes anything in the Hunter account.",
+        "Find-Companies and Find-Similar-Companies query Hunter's own index rather than the open web. The results are a database, not a search-engine snippet, so a figure from one is still worth checking against the company's own filings.",
+        "Plan-Prospecting-Flow plans a workflow rather than performing it, but it prescribes the shape of an outbound campaign. Read it before any prospecting work is run."
+      ],
+      "suggested_consumers": [],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 25,
+      "tools": [
+        "hunter__Get-Account-Details",
+        "hunter__Get-Company-List",
+        "hunter__Get-Connected-App",
+        "hunter__Get-Custom-Attribute",
+        "hunter__Get-Leads-List",
+        "hunter__Get-Message-Template",
+        "hunter__Get-Saved-Search",
+        "hunter__Get-Sequence",
+        "hunter__Get-Sequence-Follow-Up",
+        "hunter__Get-Usage",
+        "hunter__Lead-Exists",
+        "hunter__List-Company-List-Folders",
+        "hunter__List-Company-Lists",
+        "hunter__List-Connected-Apps",
+        "hunter__List-Custom-Attributes",
+        "hunter__List-Email-Account-Sequences",
+        "hunter__List-Email-Accounts",
+        "hunter__List-Lead-Tags",
+        "hunter__List-Leads-List-Folders",
+        "hunter__List-Leads-Lists",
+        "hunter__List-Message-Templates",
+        "hunter__List-Saved-Searches",
+        "hunter__List-Sequence-Follow-Ups",
+        "hunter__List-Sequences",
+        "hunter__List-Webhooks"
+      ],
+      "deployable_file": "groups/hunter-account-read.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/hunter-account-read/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "hunter-contact-records",
+      "purpose": "Look up real contact records and company facts: published addresses for a domain, a person's address at a company, verification, natural-language company and people discovery, and the operator's stored leads.",
+      "risk_level": "medium",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "The output is personal data about third parties: names, positions and direct email addresses of real people, many of whom never asked to be listed. Redact before it enters a shared transcript.",
+        "These are the credit-consuming calls. The connected account is on Hunter's free tier with 50 searches, 50 credits and 100 verifications per month, so the blast radius today is quota exhaustion; on a paid plan the same calls are billable, and the plan must be checked before a bulk run.",
+        "Keep the upstream's own contact rules in view: a published address is not consent to be contacted."
+      ],
+      "suggested_consumers": [],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 16,
+      "tools": [
+        "hunter__Combined-Enrichment",
+        "hunter__Company-Enrichment",
+        "hunter__Domain-Search",
+        "hunter__Domain-Search-Found",
+        "hunter__Email-Count",
+        "hunter__Email-Finder",
+        "hunter__Email-Verifier",
+        "hunter__Find-Companies",
+        "hunter__Find-People",
+        "hunter__Find-Similar-Companies",
+        "hunter__Get-Email-Account",
+        "hunter__Get-Lead",
+        "hunter__Get-Sequence-Stats",
+        "hunter__List-Leads",
+        "hunter__List-Sequence-Recipients",
+        "hunter__Person-Enrichment"
+      ],
+      "deployable_file": "groups/hunter-contact-records.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/hunter-contact-records/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 16,
+      "non_low_risk_members": [
+        "hunter__Combined-Enrichment: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Use this when the user provides an email address or LinkedIn handle and wants both the person's profile and their company's profile in a single response. The output is a real person's contact and company records, and it draws enrichment credits, so it needs scoped credentials and redaction before it leaves the host.",
+        "hunter__Company-Enrichment: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Use this when the user wants to look up a company by domain and see its industry, size, location, technologies, funding rounds, and social profiles. The output is enriched company records that include contact email addresses, and it draws enrichment credits, so it needs scoped credentials and redaction before it leaves the host.",
+        "hunter__Domain-Search-Found: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Use this when the user wants the contacts published for a domain but guaranteed non-inferred — this returns ONLY found (published) email addresses Hunter has seen on the public web, never pattern-generated or inferred ones. The output is guaranteed non-inferred contact records for a domain, naming people and their positions, and it draws search credits on the same terms as Domain-Search, so it needs scoped credentials and redaction before it leaves the host.",
+        "hunter__Domain-Search: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Use this when the user wants the contacts published for a domain — emails with names, positions, and confidence scores. The output is published contact records for a domain, naming people and their positions. It also draws one search credit per ten addresses returned; the connected account is on Hunter's free tier with 50 searches and 50 credits per month, so the blast radius is quota exhaustion rather than spend, but on a paid plan the same call is billable, so it needs scoped credentials and redaction before it leaves the host.",
+        "hunter__Email-Count: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Use this when the user wants the count of email addresses Hunter has indexed for a domain, optionally split by personal vs generic. The output is the number of email addresses Hunter has indexed for a named domain, split by personal and generic. It is free to call and writes nothing, but it reports how much personal information Hunter holds about a domain's staff, so it needs scoped credentials and redaction before it leaves the host.",
+        "hunter__Email-Finder: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Use this when the user wants a specific person's email address at a company. The output is a specific person's email address at a company, and it draws one search credit when an address is found, so it needs scoped credentials and redaction before it leaves the host.",
+        "hunter__Email-Verifier: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Use this when the user wants to check whether an email address is deliverable. The output is the deliverability verdict for a real person's email address, and it draws verification credits, so it needs scoped credentials and redaction before it leaves the host.",
+        "hunter__Find-Companies: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Use this when the user wants to search for companies that match natural-language criteria such as location, industry, size, type, or technologies. The output is company records drawn from Hunter's index, naming real businesses by location, industry and size. It is free to call and writes nothing, but the output is third-party company data rather than the operator's own account configuration, so it needs scoped credentials and redaction before it leaves the host.",
+        "hunter__Find-People: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Count the people that can be extracted from companies — the bridge from Find-Companies to actual contacts; call it right after a Find-Companies result when the user says 'now get me the people at these companies'. The output is counts of the people and published email addresses Hunter holds for each named company. The tool returns counts only, not the addresses, and is free to call, but it reports what personal information exists about identified individuals at those companies, so it needs scoped credentials and redaction before it leaves the host.",
+        "hunter__Find-Similar-Companies: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Find companies similar to a seed, ranked by 'similarity_score' (0-100, higher is closer). The output is company records for businesses similar to a seed company. The upstream records that this feature is not available on free plans, so on the connected free-tier account it will fail, but it writes nothing and the output is third-party company data, so it needs scoped credentials and redaction before it leaves the host.",
+        "hunter__Get-Email-Account: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Get the full configuration of one sending email account — the pre-check to run before suggesting changes to an account's settings. The output is the full sending configuration of the operator's email account, including its signature and tracking domain, so it needs scoped credentials and redaction before it leaves the host.",
+        "hunter__Get-Lead: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Get a single lead by ID. The output is a stored lead record holding a real contact's name and email address, so it needs scoped credentials and redaction before it leaves the host.",
+        "hunter__Get-Sequence-Stats: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Use this when the user wants to see how a sequence is performing. The output is per-recipient statistics for a sending sequence, so it needs scoped credentials and redaction before it leaves the host.",
+        "hunter__List-Leads: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: List leads in your Hunter account with optional filters. The output is stored lead records holding real contacts' names and email addresses, so it needs scoped credentials and redaction before it leaves the host.",
+        "hunter__List-Sequence-Recipients: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: List recipients in a sequence. The output is the email addresses of the recipients in a sending sequence, so it needs scoped credentials and redaction before it leaves the host.",
+        "hunter__Person-Enrichment: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Use this when the user wants to look up a person by email address and see their name, job title, employer, location, phone number, and social profiles. The output is a real person's name, position and email address, and it draws enrichment credits, so it needs scoped credentials and redaction before it leaves the host."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "hunter-crm-integration",
+      "purpose": "Control how the operator's Hunter data leaves the account: push leads to a CRM, repoint a webhook, and mint API keys.",
+      "risk_level": "high",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Push-Leads-To-CRM sends lead records, with contact details, to a third-party CRM account the operator connected. Confirm which CRM and which leads before the call.",
+        "Update-Webhook overwrites the delivery target of a webhook another system may rely on, so deliveries move to a new endpoint immediately. List the webhooks first.",
+        "Create-API-Key mints a credential that can act on the account, and the full key value is shown exactly once. Surface it to the operator once and never repeat it into a conversation, a lead or a note."
+      ],
+      "suggested_consumers": [],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 3,
+      "tools": [
+        "hunter__Create-API-Key",
+        "hunter__Push-Leads-To-CRM",
+        "hunter__Update-Webhook"
+      ],
+      "deployable_file": "groups/hunter-crm-integration.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/hunter-crm-integration/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 3,
+      "non_low_risk_members": [
+        "hunter__Create-API-Key: Upstream marks the operation destructive: Create a new Hunter API key for the connected user, optionally with a name (names must be unique among the user's keys; a user can have at most 100 keys). It mints a new credential that can act on the Hunter account, and the response is the only time the full key value is ever visible, and the new authority outlives the call.",
+        "hunter__Push-Leads-To-CRM: Upstream marks the operation as affecting the open world: Push Hunter leads into the CRM behind a connected app (lead-syncing providers: HubSpot, Pipedrive, Salesforce, Zapier, and Zoho). It sends lead records, with their contact details, to a third-party CRM account, so the effect crosses the Noesis boundary and is visible to third parties.",
+        "hunter__Update-Webhook: Upstream marks the operation destructive because it overwrites configuration: Update an existing webhook, re-pointing it to a different 'target_url' (the endpoint Hunter POSTs to) and/or subscribing it to a different 'event' (one of lead.created, message.sent, message.read, message.clicked, message.replied, export.co. It overwrites the delivery target and event subscription of a webhook another system may already rely on, so deliveries move to a new endpoint immediately, and the rewritten configuration outlives the call."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "hunter-outbound-email",
+      "purpose": "Send the operator's Hunter sequences: start, resume, and add recipients to a started sequence.",
+      "risk_level": "high",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Every member sends real email to real people who did not ask to be contacted. Nothing here may be invoked on the agent's own initiative.",
+        "Require explicit operator approval of the recipient list, the message body, the sending account and the schedule before the call. The upstream enforces a confirmation prompt, and the approval must come from a person, not from the agent's own reasoning.",
+        "Add-Sequence-Recipients on an already-started sequence schedules a send immediately, so adding one recipient is equivalent to sending one email.",
+        "Check the sending account's status first: a warm-up account sends a reduced volume, and a disconnected account sends nothing at all."
+      ],
+      "suggested_consumers": [],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 3,
+      "tools": [
+        "hunter__Add-Sequence-Recipients",
+        "hunter__Resume-Sequence",
+        "hunter__Start-Sequence"
+      ],
+      "deployable_file": "groups/hunter-outbound-email.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/hunter-outbound-email/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 3,
+      "non_low_risk_members": [
+        "hunter__Add-Sequence-Recipients: Upstream marks the operation as affecting the open world: Add recipients to a sequence by email addresses or lead IDs. It on an already-started sequence, schedules a real outbound email to the added recipient, so the effect crosses the Noesis boundary and is visible to third parties.",
+        "hunter__Resume-Sequence: Upstream marks the operation as affecting the open world: Resume a paused sequence so it starts sending outbound emails again. It starts sending outbound email again to a paused sequence's recipients, so the effect crosses the Noesis boundary and is visible to third parties.",
+        "hunter__Start-Sequence: Upstream marks the operation as affecting the open world: Use this when the user wants to start an existing sequence, which begins sending real emails to its recipients. It starts sending real email to every recipient on the sequence, so the effect crosses the Noesis boundary and is visible to third parties."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "hunter-prospecting-flow",
+      "purpose": "Plan and begin an end-to-end prospecting run across Hunter: turn a natural-language brief into a step plan and execute its first action.",
+      "risk_level": "medium",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "The tool gathers contacts for review and returns them as a table. It only saves to the operator's Hunter leads when the user explicitly asks, so a call can write real records into the account. Treat every call as potentially writing.",
+        "The plan it returns is a chain of other Hunter tools, and those sub-tools charge their own credits. The tool itself is free; the chain it starts is not. Read the plan before executing it, and check the sequence of calls it implies against the credit budget.",
+        "A natural-language brief is the only input, so the scope of the run is decided by the brief itself. A brief that names many companies or many contacts multiplies the downstream cost."
+      ],
+      "suggested_consumers": [],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 1,
+      "tools": [
+        "hunter__Plan-Prospecting-Flow"
+      ],
+      "deployable_file": "groups/hunter-prospecting-flow.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/hunter-prospecting-flow/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 1,
+      "non_low_risk_members": [
+        "hunter__Plan-Prospecting-Flow: The upstream description states that it gathers contacts for review and returns them as a table, and only saves to the operator's Hunter leads when the user explicitly asks. A call can therefore write real records into the account, even though the upstream advertises readOnlyHint=true and the tool itself is free. It also returns a plan whose later steps are other Hunter tools that charge credits, so one call can commit the caller to a billable chain. The description, not the annotation, decides this classification."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "hunter-record-authoring",
+      "purpose": "Create and edit the operator's Hunter CRM records: leads, company and leads lists, list folders, tags, custom attributes and saved searches.",
+      "risk_level": "medium",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Every member writes to the operator's Hunter account and removes nothing.",
+        "Bulk-Copy-Companies and the bulk move tools act on many records at once and run asynchronously. Confirm the selection size before calling them.",
+        "Create-Or-Update-Lead overwrites the fields of an existing lead, so a call can silently replace data the operator recorded earlier."
+      ],
+      "suggested_consumers": [],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 29,
+      "tools": [
+        "hunter__Add-Company-To-List",
+        "hunter__Add-Tag-To-Lead",
+        "hunter__Bulk-Copy-Companies",
+        "hunter__Bulk-Move-Companies",
+        "hunter__Bulk-Move-Leads",
+        "hunter__Create-Company-List",
+        "hunter__Create-Company-List-Folder",
+        "hunter__Create-Custom-Attribute",
+        "hunter__Create-Lead",
+        "hunter__Create-Lead-If-Missing",
+        "hunter__Create-Lead-Tag",
+        "hunter__Create-Leads-List",
+        "hunter__Create-Leads-List-Folder",
+        "hunter__Create-Or-Update-Lead",
+        "hunter__Create-Saved-Search",
+        "hunter__Favorite-Company-List",
+        "hunter__Favorite-Leads-List",
+        "hunter__Remove-Company-From-List",
+        "hunter__Remove-Tag-From-Lead",
+        "hunter__Save-Company",
+        "hunter__Unfavorite-Company-List",
+        "hunter__Unfavorite-Leads-List",
+        "hunter__Update-Company-List",
+        "hunter__Update-Company-List-Folder",
+        "hunter__Update-Custom-Attribute",
+        "hunter__Update-Lead",
+        "hunter__Update-Lead-Tag",
+        "hunter__Update-Leads-List",
+        "hunter__Update-Leads-List-Folder"
+      ],
+      "deployable_file": "groups/hunter-record-authoring.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/hunter-record-authoring/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 29,
+      "non_low_risk_members": [
+        "hunter__Add-Company-To-List: Upstream advertises readOnlyHint=false: Add a company to a static company list (save the company to the list). The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Add-Tag-To-Lead: Upstream advertises readOnlyHint=false: Add a tag to a lead, identified by 'lead_id'. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Bulk-Copy-Companies: Upstream advertises readOnlyHint=false: Copy many companies at once into a static company list, leaving the source selection untouched. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Bulk-Move-Companies: Upstream advertises readOnlyHint=false: Move many companies at once from one static company list to another. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Bulk-Move-Leads: Upstream advertises readOnlyHint=false: Move many leads at once from one static leads list to another. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Create-Company-List-Folder: Upstream advertises readOnlyHint=false: Create a new company-list folder. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Create-Company-List: Upstream advertises readOnlyHint=false: Create a new company list. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Create-Custom-Attribute: Upstream advertises readOnlyHint=false: Create a new custom attribute for leads. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Create-Lead-If-Missing: Upstream advertises readOnlyHint=false: Use this when the user wants to save a verified contact as a new lead without modifying any existing lead. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Create-Lead-Tag: Upstream advertises readOnlyHint=false: Create a new lead tag. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Create-Lead: Upstream advertises readOnlyHint=false: Create a new lead in your Hunter account. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Create-Leads-List-Folder: Upstream advertises readOnlyHint=false: Create a new leads-list folder to group leads lists — worth suggesting once the account has many lists. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Create-Leads-List: Upstream advertises readOnlyHint=false: Create a new leads list. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Create-Or-Update-Lead: Upstream advertises readOnlyHint=false: Use this when the user explicitly wants to create a lead or overwrite an existing lead's fields by email. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Create-Saved-Search: Upstream advertises readOnlyHint=false: Create a saved Discover search: store the current filter set under a name so the search can be rerun later. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Favorite-Company-List: Upstream advertises readOnlyHint=false: Mark a company list as a favorite, identified by ID. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Favorite-Leads-List: Upstream advertises readOnlyHint=false: Mark a leads list as a favorite, identified by ID. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Remove-Company-From-List: Upstream advertises readOnlyHint=false: Remove a company from a static company list. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Remove-Tag-From-Lead: Upstream advertises readOnlyHint=false: Remove a tag from a single lead, identified by 'lead_id' and 'tag_id'. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Save-Company: Upstream advertises readOnlyHint=false: Save a company as a lead in your Hunter account. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Unfavorite-Company-List: Upstream advertises readOnlyHint=false: Remove the favorite flag from a company list, identified by ID. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Unfavorite-Leads-List: Upstream advertises readOnlyHint=false: Remove the favorite flag from a leads list, identified by ID. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Update-Company-List-Folder: Upstream advertises readOnlyHint=false: Update a company-list folder, identified by ID. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Update-Company-List: Upstream advertises readOnlyHint=false: Update a company list, identified by ID. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Update-Custom-Attribute: Upstream advertises readOnlyHint=false: Rename an existing custom attribute. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Update-Lead-Tag: Upstream advertises readOnlyHint=false: Update a lead tag, identified by ID: rename it ('name') or change its 'color'. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Update-Lead: Upstream advertises readOnlyHint=false: Update an existing lead by ID. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Update-Leads-List-Folder: Upstream advertises readOnlyHint=false: Update a leads-list folder, identified by ID. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Update-Leads-List: Upstream advertises readOnlyHint=false: Rename an existing leads list. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "hunter-record-destructive",
+      "purpose": "Delete the operator's Hunter records: leads, lists, tags, templates, searches, sequence steps and API keys.",
+      "risk_level": "high",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Every member removes records permanently, and the upstream states that no undo exists for most of them. Require explicit operator approval naming the records affected.",
+        "Merge-Leads-Lists deletes the source list after moving its leads, so both the source name and its contents change in one call.",
+        "Delete-API-Key revokes a credential that may be in use by an integration elsewhere. Check what depends on the key before removing it."
+      ],
+      "suggested_consumers": [],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 15,
+      "tools": [
+        "hunter__Bulk-Delete-Companies",
+        "hunter__Bulk-Delete-Leads",
+        "hunter__Delete-API-Key",
+        "hunter__Delete-Company-List",
+        "hunter__Delete-Company-List-Folder",
+        "hunter__Delete-Custom-Attribute",
+        "hunter__Delete-Lead",
+        "hunter__Delete-Lead-Tag",
+        "hunter__Delete-Leads-List",
+        "hunter__Delete-Leads-List-Folder",
+        "hunter__Delete-Message-Template",
+        "hunter__Delete-Saved-Search",
+        "hunter__Delete-Sequence",
+        "hunter__Delete-Sequence-Follow-Up",
+        "hunter__Merge-Leads-Lists"
+      ],
+      "deployable_file": "groups/hunter-record-destructive.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/hunter-record-destructive/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 15,
+      "non_low_risk_members": [
+        "hunter__Bulk-Delete-Companies: Upstream marks the operation destructive: Delete many companies at once, selected by explicit 'company_ids' and/or by a whole 'company_list_id'. It deletes companies permanently, with no undo, and no undo exists from the API.",
+        "hunter__Bulk-Delete-Leads: Upstream marks the operation destructive: Delete many leads at once, selected by explicit 'lead_ids' and/or by a whole 'leads_list_id'. It deletes leads permanently, with no undo, and no undo exists from the API.",
+        "hunter__Delete-API-Key: Upstream marks the operation destructive: Delete one of the connected user's Hunter API keys by ID, permanently. It permanently removes a credential that can act on the account, and no undo exists from the API.",
+        "hunter__Delete-Company-List-Folder: Upstream marks the operation destructive: Delete a company-list folder by ID. It deletes a company-list folder; the lists filed in it are deleted with it rather than moved, and no undo exists from the API.",
+        "hunter__Delete-Company-List: Upstream marks the operation destructive: Delete a company list by ID. It deletes a company list, and the entries it holds are gone with it, and no undo exists from the API.",
+        "hunter__Delete-Custom-Attribute: Upstream marks the operation destructive: Delete a custom attribute by ID. It deletes a custom attribute from every lead it was applied to, and no undo exists from the API.",
+        "hunter__Delete-Lead-Tag: Upstream marks the operation destructive: Delete a lead tag by ID. It removes the tag from every lead it was applied to, and no undo exists from the API.",
+        "hunter__Delete-Lead: Upstream marks the operation destructive: Delete a lead by ID. Free (no credits). It deletes a lead record permanently, and no undo exists from the API.",
+        "hunter__Delete-Leads-List-Folder: Upstream marks the operation destructive: Delete a leads-list folder by ID. It deletes a leads-list folder; the lists filed in it are deleted with it rather than moved, and no undo exists from the API.",
+        "hunter__Delete-Leads-List: Upstream marks the operation destructive: Delete a leads list by ID. It deletes a leads list and every lead in it, and no undo exists from the API.",
+        "hunter__Delete-Message-Template: Upstream marks the operation destructive: Delete a saved message template by ID. It deletes a saved message template permanently, and the API offers no undo, and no undo exists from the API.",
+        "hunter__Delete-Saved-Search: Upstream marks the operation destructive: Delete a saved Discover search by ID, permanently. It deletes a saved search permanently, and the API offers no undo, and no undo exists from the API.",
+        "hunter__Delete-Sequence-Follow-Up: Upstream marks the operation destructive: Delete a step from a sequence. It deletes a step of a sequence, and the authored message text goes with it, and no undo exists from the API.",
+        "hunter__Delete-Sequence: Upstream marks the operation destructive: Delete a DRAFT sequence permanently. It deletes a draft sequence permanently, and no undo exists from the API.",
+        "hunter__Merge-Leads-Lists: Upstream marks the operation destructive: Merge one leads list into another. It deletes the source list after moving its leads to the destination, and no undo exists from the API."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "hunter-sequence-authoring",
+      "purpose": "Author the operator's outbound sequences and message templates: the steps, the subject, the body, the schedule and the sending account.",
+      "risk_level": "medium",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Every member writes to the operator's Hunter account and removes nothing. The destructive sequence tools are in hunter-record-destructive, and the sending tools in hunter-outbound-email.",
+        "Update-Sequence-Follow-Up is the only tool that can author a sequence's introduction email, and Update-Message-Template rewrites a saved message body. Drafting is not sending, but the drafted body is addressed to real people: review it before it is staged.",
+        "A sequence's schedule, senders and sending account are set here, so this group decides who will be contacted and when. Treat a change here as a change to an outbound campaign."
+      ],
+      "suggested_consumers": [],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 9,
+      "tools": [
+        "hunter__Archive-Sequence",
+        "hunter__Create-Message-Template",
+        "hunter__Create-Sequence",
+        "hunter__Create-Sequence-Follow-Up",
+        "hunter__Pause-Sequence",
+        "hunter__Remove-Sequence-Recipients",
+        "hunter__Update-Message-Template",
+        "hunter__Update-Sequence",
+        "hunter__Update-Sequence-Follow-Up"
+      ],
+      "deployable_file": "groups/hunter-sequence-authoring.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/hunter-sequence-authoring/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 9,
+      "non_low_risk_members": [
+        "hunter__Archive-Sequence: Upstream advertises readOnlyHint=false: Archive a started sequence to file it once it is finished. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Create-Message-Template: Upstream advertises readOnlyHint=false: Create a reusable message template — including saving a message draft written in chat (e.g. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Create-Sequence-Follow-Up: Upstream advertises readOnlyHint=false: Create a new email step in a sequence, or add an A/B test Variant B to an existing step. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Create-Sequence: Upstream advertises readOnlyHint=false: Create a new outreach sequence. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Pause-Sequence: Upstream advertises readOnlyHint=false: Pause a started sequence so it stops sending outbound emails until it is resumed. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Remove-Sequence-Recipients: Upstream advertises readOnlyHint=false: Remove recipients from a sequence by email addresses. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Update-Message-Template: Upstream advertises readOnlyHint=false: Update a saved message template's name, subject, body, or message format. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Update-Sequence-Follow-Up: Upstream advertises readOnlyHint=false: Rewrite an existing step of a sequence — the only tool that can author the introduction email (step 0). The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "hunter__Update-Sequence: Upstream advertises readOnlyHint=false: Update an existing sequence's name, schedule, senders, or settings; omitted fields are left unchanged. The change is confined to the operator's own Hunter account and is reversible; it removes nothing, publishes nothing externally and spends nothing."
       ],
       "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
@@ -991,24 +1495,941 @@
       "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
     },
     {
+      "name": "network-addressing",
+      "purpose": "Read the operator's own address assignment: DHCP reservations, MAC tags, dynamic DNS, WAN DNS, VLANs, subnets and port mappings.",
+      "risk_level": "low",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Read-only, and the same read-only upstream guard applies as in network-inventory.",
+        "DHCP reservations and port mappings name specific devices and the internal addresses they are given. That is an internal inventory: keep the output inside the operator's own estate."
+      ],
+      "suggested_consumers": [
+        "noesis-substrate"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 10,
+      "tools": [
+        "unifi__get_dhcp_reservation",
+        "unifi__get_dynamic_dns",
+        "unifi__get_mac_tag",
+        "unifi__get_port_mappings",
+        "unifi__get_subnet_info",
+        "unifi__list_dhcp_reservations",
+        "unifi__list_dynamic_dns",
+        "unifi__list_mac_tags",
+        "unifi__list_vlans",
+        "unifi__list_wan_dns"
+      ],
+      "deployable_file": "groups/network-addressing.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/network-addressing/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "network-backup",
+      "purpose": "Read the operator's controller backup and restore state, and export the network topology.",
+      "risk_level": "medium",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Read-only against the controller, but download_backup writes a controller backup archive into the MCP server's own download directory. That is a local side effect and the controller is not modified.",
+        "A controller backup contains the operator's configuration and credential material. Treat the downloaded file as a secret: do not copy it into a transcript, a ticket or a repository, and delete it when the review is finished.",
+        "validate_backup and the restore-status tools are the checks that tell you whether a recovery point is usable; a backup job having run is not the same as a restorable backup."
+      ],
+      "suggested_consumers": [
+        "noesis-substrate"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 8,
+      "tools": [
+        "unifi__download_backup",
+        "unifi__export_topology",
+        "unifi__get_backup_details",
+        "unifi__get_backup_schedule",
+        "unifi__get_backup_status",
+        "unifi__get_restore_status",
+        "unifi__list_backups",
+        "unifi__validate_backup"
+      ],
+      "deployable_file": "groups/network-backup.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/network-backup/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 1,
+      "non_low_risk_members": [
+        "unifi__download_backup: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Download a backup file to local storage. It writes a controller backup archive to the MCP server's own download directory, so the change is local and reversible, but the artifact contains the operator's controller configuration and must be handled as sensitive. The controller itself is not modified."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "network-controller",
+      "purpose": "Inspect and select which controller subsequent UniFi calls target.",
+      "risk_level": "medium",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "select_controller changes session-scoped routing, so later calls act against a different device. The change is local and reversible, not destructive.",
+        "The server runs stateless HTTP, so select_controller is refused in the current deployment and the tool is inert. Pass controller=<name> explicitly instead.",
+        "list_controllers and get_active_controller are read-only and report which controller a call without an explicit controller argument would reach."
+      ],
+      "suggested_consumers": [
+        "noesis-substrate"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 3,
+      "tools": [
+        "unifi__get_active_controller",
+        "unifi__list_controllers",
+        "unifi__select_controller"
+      ],
+      "deployable_file": "groups/network-controller.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/network-controller/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 1,
+      "non_low_risk_members": [
+        "unifi__select_controller: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Choose the controller this session's later tool calls target. It changes session-scoped routing, so subsequent calls act against a different device; the change is local and reversible rather than destructive, published or externally visible. In this deployment the server runs stateless HTTP, so the upstream refuses the call and the tool is inert."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "network-diagnostics",
+      "purpose": "Read the operator's own network health: link and speed diagnostics, spectrum and RF conditions, AP neighbourhood, and the controller's event and alarm history.",
+      "risk_level": "low",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Read-only, and the same read-only upstream guard applies as in network-inventory.",
+        "These are the health and diagnostic reads a network operator reaches for first. They describe the operator's own estate and change nothing.",
+        "stream_traffic_flows is a read-only tool whose own upstream description records that streaming is not supported on the v2 endpoint, so it returns an error rather than a stream. Use get_traffic_flows on a poll schedule instead."
+      ],
+      "suggested_consumers": [
+        "noesis-substrate"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 12,
+      "tools": [
+        "unifi__get_historical_stats",
+        "unifi__get_network_references",
+        "unifi__get_spectrum_scan",
+        "unifi__get_speed_test_history",
+        "unifi__get_speed_test_status",
+        "unifi__list_alarms",
+        "unifi__list_ap_neighbors_v2",
+        "unifi__list_events",
+        "unifi__list_neighboring_aps",
+        "unifi__list_site_internal_ap_neighbors_v2",
+        "unifi__list_spectrum_interference",
+        "unifi__stream_traffic_flows"
+      ],
+      "deployable_file": "groups/network-diagnostics.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/network-diagnostics/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "network-fleet",
+      "purpose": "Read the multi-controller, multi-site and Cloud Site Manager view of the operator's own estate.",
+      "risk_level": "low",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Read-only, and the same read-only upstream guard applies as in network-inventory.",
+        "These tools span the whole estate rather than one site, so a read here is a read of every site the credential can reach. Scope the credential accordingly.",
+        "The Site Manager, Carrier, Mobility, InnerSpace, ISP and integration tools raise 'Site Manager API is not enabled' in the current deployment. They are listed because they are registered; re-review this group if that flag is ever set."
+      ],
+      "suggested_consumers": [
+        "noesis-substrate"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 11,
+      "tools": [
+        "unifi__download_innerspace_asset",
+        "unifi__fleet_health",
+        "unifi__fleet_inventory",
+        "unifi__fleet_sites",
+        "unifi__get_carrier_service_plan",
+        "unifi__get_carrier_subscriber",
+        "unifi__get_innerspace_project",
+        "unifi__get_mobility_device",
+        "unifi__get_sdwan_config",
+        "unifi__get_sdwan_config_status",
+        "unifi__list_sdwan_configs"
+      ],
+      "deployable_file": "groups/network-fleet.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/network-fleet/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "network-integration",
+      "purpose": "Read the operator's own estate through the UniFi Site Manager and integration API: sites, hosts, clients, devices, DNS and WiFi broadcast policies, VPN servers, WANs and version control.",
+      "risk_level": "low",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Read-only, and the same read-only upstream guard applies as in network-inventory.",
+        "These tools address the operator's own estate and describe it; they change nothing.",
+        "The deployment leaves UNIFI_SITE_MANAGER_ENABLED unset, so every one of these tools currently raises 'Site Manager API is not enabled' when called. They are kept in the catalog because they are genuinely registered: if the flag is ever enabled, this group becomes a live read surface and must be re-reviewed before use."
+      ],
+      "suggested_consumers": [
+        "noesis-substrate"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 22,
+      "tools": [
+        "unifi__compare_site_performance",
+        "unifi__get_cross_site_statistics",
+        "unifi__get_host",
+        "unifi__get_integration_client",
+        "unifi__get_integration_device",
+        "unifi__get_integration_dns_policy",
+        "unifi__get_integration_wifi_broadcast",
+        "unifi__get_internet_health",
+        "unifi__get_isp_metrics",
+        "unifi__get_site_details",
+        "unifi__get_site_health_summary",
+        "unifi__get_site_inventory",
+        "unifi__get_site_statistics",
+        "unifi__get_version_control",
+        "unifi__health_check",
+        "unifi__list_all_sites_aggregated",
+        "unifi__list_countries",
+        "unifi__list_hosts",
+        "unifi__list_sites",
+        "unifi__list_vantage_points",
+        "unifi__query_isp_metrics",
+        "unifi__search_across_sites"
+      ],
+      "deployable_file": "groups/network-integration.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/network-integration/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "network-inventory",
+      "purpose": "Read the device, site, controller, wireless, routing and health configuration of the operator's own UniFi estate.",
+      "risk_level": "low",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Read-only. The credential is an administrative credential on the operator's own controller; scoping it to a single site is the control that makes this group acceptable.",
+        "The deployment is read-only upstream (UNIFI_READ_ONLY=true), so no mutating UniFi tool is registered at all. This group therefore cannot mutate the controller even by accident.",
+        "Site Manager, Carrier, Mobility and InnerSpace tools in this group raise 'Site Manager API is not enabled' in the current deployment. They are listed because they are registered; re-review this group if UNIFI_SITE_MANAGER_ENABLED is ever set."
+      ],
+      "suggested_consumers": [
+        "noesis-substrate"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 36,
+      "tools": [
+        "unifi__get_ap_radio_config",
+        "unifi__get_application_info",
+        "unifi__get_device_details",
+        "unifi__get_network_details",
+        "unifi__get_network_statistics",
+        "unifi__get_network_topology",
+        "unifi__get_site_to_site_vpn",
+        "unifi__get_topology_statistics",
+        "unifi__get_wlan_statistics",
+        "unifi__list_carrier_service_plans",
+        "unifi__list_carrier_subscribers",
+        "unifi__list_devices_by_type",
+        "unifi__list_innerspace_access_points",
+        "unifi__list_innerspace_floor_plans",
+        "unifi__list_innerspace_inventory",
+        "unifi__list_innerspace_switches",
+        "unifi__list_integration_clients",
+        "unifi__list_integration_device_tags",
+        "unifi__list_integration_devices",
+        "unifi__list_integration_dns_policies",
+        "unifi__list_integration_networks",
+        "unifi__list_integration_sites",
+        "unifi__list_integration_vpn_servers",
+        "unifi__list_integration_wans",
+        "unifi__list_integration_wifi_broadcasts",
+        "unifi__list_mobility_device_clients",
+        "unifi__list_mobility_devices",
+        "unifi__list_mobility_workspace_admins",
+        "unifi__list_mobility_workspaces",
+        "unifi__list_pending_devices",
+        "unifi__list_site_to_site_vpns",
+        "unifi__list_vpn_servers",
+        "unifi__list_vpn_tunnels",
+        "unifi__list_wan_connections",
+        "unifi__list_wlans",
+        "unifi__search_devices"
+      ],
+      "deployable_file": "groups/network-inventory.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/network-inventory/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "network-protect",
+      "purpose": "Read the UniFi Protect camera, alarm and premises-security surface of the operator's own site.",
+      "risk_level": "medium",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Read-only, and the same read-only upstream guard applies as in network-inventory.",
+        "This group is physical-security data: camera identity, event history, live-view material, alarm-hub state and the identities of every Protect account. Treat the output as sensitive and keep it out of shared transcripts.",
+        "get_protect_live_view returns live camera material for the operator's premises. It must not be invoked on the agent's own initiative.",
+        "No member can trigger a siren, speaker or alarm: the upstream registers no mutating Protect tool in a read-only deployment."
+      ],
+      "suggested_consumers": [
+        "noesis-substrate"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 43,
+      "tools": [
+        "unifi__get_protect_alarm_hub",
+        "unifi__get_protect_arm_profile",
+        "unifi__get_protect_bridge",
+        "unifi__get_protect_camera",
+        "unifi__get_protect_chime",
+        "unifi__get_protect_device",
+        "unifi__get_protect_device_updates",
+        "unifi__get_protect_event_messages",
+        "unifi__get_protect_fob",
+        "unifi__get_protect_light",
+        "unifi__get_protect_link_station",
+        "unifi__get_protect_live_view",
+        "unifi__get_protect_meta_info",
+        "unifi__get_protect_nvr",
+        "unifi__get_protect_relay",
+        "unifi__get_protect_sensor",
+        "unifi__get_protect_siren",
+        "unifi__get_protect_speaker",
+        "unifi__get_protect_subscribe_devices",
+        "unifi__get_protect_subscribe_events",
+        "unifi__get_protect_ulp_user",
+        "unifi__get_protect_user",
+        "unifi__get_protect_viewer",
+        "unifi__list_protect_alarm_hubs",
+        "unifi__list_protect_arm_profiles",
+        "unifi__list_protect_bridges",
+        "unifi__list_protect_cameras",
+        "unifi__list_protect_chimes",
+        "unifi__list_protect_device_updates",
+        "unifi__list_protect_devices",
+        "unifi__list_protect_events",
+        "unifi__list_protect_fobs",
+        "unifi__list_protect_lights",
+        "unifi__list_protect_link_stations",
+        "unifi__list_protect_live_views",
+        "unifi__list_protect_nvrs",
+        "unifi__list_protect_relays",
+        "unifi__list_protect_sensors",
+        "unifi__list_protect_sirens",
+        "unifi__list_protect_speakers",
+        "unifi__list_protect_ulp_users",
+        "unifi__list_protect_users",
+        "unifi__list_protect_viewers"
+      ],
+      "deployable_file": "groups/network-protect.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/network-protect/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 39,
+      "non_low_risk_members": [
+        "unifi__get_protect_alarm_hub: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single UniFi Protect alarm hub. The output is the configuration and identity of the alarm hub, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_arm_profile: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single UniFi Protect arm profile. The output is the arm profile governing when the premises are protected, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_bridge: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single UniFi Protect bridge. The output is the configuration and identity of a Protect bridge, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_camera: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single UniFi Protect camera. The output is the configuration and identity of a camera at the operator's premises, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_chime: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single UniFi Protect chime. The output is the configuration and identity of a doorbell chime, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_event_messages: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Compatibility wrapper for Protect event messages. The output is Protect event messages describing activity at the operator's premises, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_fob: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single UniFi Protect key fob. The output is the identity and state of a Protect fob, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_light: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single UniFi Protect light. The output is the configuration and identity of a Protect light, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_link_station: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single UniFi Protect link station. The output is the configuration and identity of a link station, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_live_view: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single Protect live view. The output is live camera view material for the operator's premises, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_nvr: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single UniFi Protect NVR. The output is the configuration and identity of the operator's video recorder, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_relay: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single UniFi Protect relay. The output is the configuration and identity of a Protect relay, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_sensor: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single UniFi Protect sensor. The output is the configuration and identity of a sensor at the operator's premises, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_siren: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single UniFi Protect siren. The output is the configuration and identity of a siren at the operator's premises, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_speaker: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single UniFi Protect speaker. The output is the configuration and identity of a speaker at the operator's premises, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_subscribe_devices: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Compatibility wrapper for device subscription messages. The output is the Protect device feed for the operator's premises, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_subscribe_events: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Compatibility wrapper for Protect event messages. The output is the Protect event feed for the operator's premises, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_ulp_user: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single UniFi Identity (ULP) user. The output is the identity of a UniFi Identity account, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_user: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single UniFi Protect user. The output is the identity of a Protect account, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_protect_viewer: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get a single Protect viewer. The output is the identity of a Protect viewer, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_alarm_hubs: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List UniFi Protect alarm hubs. The output is the inventory of alarm hubs at the operator's premises, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_arm_profiles: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List UniFi Protect arm profiles. The output is the arm profiles governing when the premises are protected, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_bridges: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List UniFi Protect bridges. The output is the inventory of Protect bridges, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_cameras: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List UniFi Protect cameras. The output is the inventory of cameras at the operator's premises, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_chimes: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List UniFi Protect chimes. The output is the inventory of doorbell chimes, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_devices: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List UniFi Protect devices. The output is the inventory of devices attached to the operator's premises, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_events: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get Protect event messages. The output is the event history of the operator's camera system, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_fobs: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List UniFi Protect key fobs. The output is the identities of Protect fobs, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_lights: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List UniFi Protect lights. The output is the inventory of Protect lights at the operator's premises, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_link_stations: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List UniFi Protect link stations. The output is the inventory of link stations, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_live_views: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List Protect live views. The output is the inventory of live camera views, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_nvrs: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List UniFi Protect NVRs. The output is the inventory of video recorders at the operator's premises, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_relays: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List UniFi Protect relays. The output is the inventory of Protect relays, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_sensors: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List UniFi Protect sensors. The output is the inventory of sensors at the operator's premises, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_sirens: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List UniFi Protect sirens. The output is the inventory of Protect sirens at the operator's premises, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_speakers: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List UniFi Protect speakers. The output is the inventory of Protect speakers at the operator's premises, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_ulp_users: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List UniFi Identity (ULP) users. The output is the identities of every UniFi Identity account, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_users: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List UniFi Protect users. The output is the identities of every Protect account, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_protect_viewers: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List Protect viewers. The output is the identities of every Protect viewer, so it needs scoped credentials and redaction before it leaves the host."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "network-proxy",
+      "purpose": "Held review-required: caller-selected UniFi proxy paths and fleet-wide tool fan-out.",
+      "risk_level": "review-required",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Every member lets the caller choose the target, so group membership cannot constrain what is reached. The group is created to hold that capability apart from the ordinary read groups, and it has no proposed consumer.",
+        "connector_network_get and connector_protect_get are GET-only and their path segments are validated against traversal, so they cannot write. They can still read any endpoint of the Network or Protect application for a console, including the camera and event endpoints.",
+        "fleet_fanout is bounded to read-tier controller tools by the upstream, so it cannot mutate, but it lets a holder run any read-tier tool on any controller in scope.",
+        "In the current deployment the two connector proxies raise 'Site Manager API is not enabled', so they are inert. That is a deployment flag, not a property of the tool."
+      ],
+      "suggested_consumers": [],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 3,
+      "tools": [
+        "unifi__connector_network_get",
+        "unifi__connector_protect_get",
+        "unifi__fleet_fanout"
+      ],
+      "deployable_file": "groups/network-proxy.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/network-proxy/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 3,
+      "non_low_risk_members": [
+        "unifi__connector_network_get: Generic GET proxy for the UniFi Network application: the caller supplies the console id and the sub-path under the Cloud Connector proxy prefix, and the raw upstream response is returned. The upstream restricts the request to GET and validates every path segment against traversal, but the endpoint itself is caller-selected, so group membership cannot constrain which UniFi endpoint is read. It is narrower than court-listener__call_endpoint, which also exposes the HTTP method, but it is the same shape: a caller-chosen target. In this deployment the tool is additionally inert, because UNIFI_SITE_MANAGER_ENABLED is unset and the call raises 'Site Manager API is not enabled'.",
+        "unifi__connector_protect_get: Generic GET proxy for the UniFi Protect application: the caller supplies the console id and the sub-path under the Cloud Connector proxy prefix, and the raw upstream response is returned. The upstream restricts the request to GET and validates every path segment against traversal, but the endpoint itself is caller-selected, so group membership cannot constrain which Protect endpoint is read, including the camera and event endpoints. In this deployment the tool is additionally inert, because UNIFI_SITE_MANAGER_ENABLED is unset and the call raises 'Site Manager API is not enabled'.",
+        "unifi__fleet_fanout: Runs one caller-named read tool across every controller in scope at once. The upstream enforces that only read-tier controller tools can be fanned out and rejects fleet-prefixed and unknown tool names, so the effect class is bounded to reads, but the caller still chooses which tool runs: a holder of this tool reaches every read-tier controller tool whether or not that tool is in the group it was granted. Group membership therefore cannot constrain the target, which is the property that makes a tool broad-capability rather than an ordinary read."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "network-security-policy",
+      "purpose": "Read the firewall, zone, ACL, RADIUS, content-filter, DNS-filter and traffic-matching policy of the operator's own network.",
+      "risk_level": "medium",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Read-only, and the same read-only upstream guard applies as in network-inventory.",
+        "The output is the operator's own security posture. A policy dump is exactly what an attacker wants, so do not copy it into a shared transcript without redaction.",
+        "get_radius_account may carry RADIUS shared-secret material; treat its output as secret and do not paste it into a ticket or a repository."
+      ],
+      "suggested_consumers": [
+        "noesis-substrate"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 27,
+      "tools": [
+        "unifi__get_acl_rule",
+        "unifi__get_dns_filter_settings",
+        "unifi__get_firewall_group",
+        "unifi__get_firewall_policy",
+        "unifi__get_guest_portal_config",
+        "unifi__get_hotspot_package",
+        "unifi__get_radius_account",
+        "unifi__get_radius_profile",
+        "unifi__get_smart_queue_status",
+        "unifi__get_voucher",
+        "unifi__get_zone_networks",
+        "unifi__get_zone_policy_matrix",
+        "unifi__list_acl_rules",
+        "unifi__list_content_filter_categories",
+        "unifi__list_content_filters",
+        "unifi__list_firewall_groups",
+        "unifi__list_firewall_policies",
+        "unifi__list_firewall_rules",
+        "unifi__list_firewall_zones",
+        "unifi__list_firewall_zones_v2",
+        "unifi__list_hotspot_packages",
+        "unifi__list_port_forwards",
+        "unifi__list_radius_accounts",
+        "unifi__list_radius_profiles",
+        "unifi__list_traffic_matching_lists",
+        "unifi__list_traffic_routes",
+        "unifi__list_vouchers"
+      ],
+      "deployable_file": "groups/network-security-policy.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/network-security-policy/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 1,
+      "non_low_risk_members": [
+        "unifi__get_radius_account: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get details for a specific RADIUS account. The output is the RADIUS account configuration of the operator's site, which can carry shared-secret material, so it needs scoped credentials and redaction before it leaves the host."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "network-switching",
+      "purpose": "Read the operator's own layer-2 switching configuration: switch stacks, link aggregation groups, MLAG domains, port profiles and device tags.",
+      "risk_level": "low",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Read-only, and the same read-only upstream guard applies as in network-inventory.",
+        "Port profiles and device tags describe how a port is expected to behave, so this group reveals the intended segmentation of the operator's network. Treat the output as sensitive internal configuration."
+      ],
+      "suggested_consumers": [
+        "noesis-substrate"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 9,
+      "tools": [
+        "unifi__get_lag_details",
+        "unifi__get_mclag_domain",
+        "unifi__get_port_profile",
+        "unifi__get_switch_stack",
+        "unifi__list_device_tags",
+        "unifi__list_lags",
+        "unifi__list_mclag_domains",
+        "unifi__list_port_profiles",
+        "unifi__list_switch_stacks"
+      ],
+      "deployable_file": "groups/network-switching.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/network-switching/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 0,
+      "non_low_risk_members": [],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "network-telemetry",
+      "purpose": "Read per-client identity and per-client network activity on the operator's network.",
+      "risk_level": "medium",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Read-only. No tool in this group mutates the controller.",
+        "Every member returns client-attributed data: MAC addresses, client names, and the destinations clients reached. This is occupancy and browsing data for the operator's own house or office, so redact before it leaves the host.",
+        "Treat the destination fields as sensitive even for the operator's own traffic; the group exists because a reviewer needs to see what the network did, not to publish it."
+      ],
+      "suggested_consumers": [
+        "noesis-substrate"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 28,
+      "tools": [
+        "unifi__export_traffic_flows",
+        "unifi__filter_traffic_flows",
+        "unifi__find_flows_for_rule_reference",
+        "unifi__get_client_details",
+        "unifi__get_client_dpi",
+        "unifi__get_client_flow_aggregation",
+        "unifi__get_client_statistics",
+        "unifi__get_connection_states",
+        "unifi__get_device_by_mac",
+        "unifi__get_device_connections",
+        "unifi__get_device_port_overrides",
+        "unifi__get_device_statistics",
+        "unifi__get_dpi_statistics",
+        "unifi__get_flow_analytics",
+        "unifi__get_flow_risks",
+        "unifi__get_flow_statistics",
+        "unifi__get_flow_trends",
+        "unifi__get_top_flows",
+        "unifi__get_traffic_flow_details",
+        "unifi__get_traffic_flows",
+        "unifi__get_traffic_matching_list",
+        "unifi__list_active_clients",
+        "unifi__list_client_rf_health",
+        "unifi__list_dpi_application_categories",
+        "unifi__list_dpi_applications",
+        "unifi__list_dpi_categories",
+        "unifi__list_top_applications",
+        "unifi__search_clients"
+      ],
+      "deployable_file": "groups/network-telemetry.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/network-telemetry/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 17,
+      "non_low_risk_members": [
+        "unifi__export_traffic_flows: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Serialise the current flow sample to JSON or CSV. The output is per-client flow records naming source clients and the destinations they reached, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__filter_traffic_flows: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Client-side filter by a simple ''key=value'' expression list. The output is per-client flow records naming source clients and the destinations they reached, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__find_flows_for_rule_reference: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Find flows matching a *draft* firewall rule intent. The output is per-client flow records naming source clients and the destinations they reached, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_client_details: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get detailed information for a specific client. The output is client identity and per-client activity for the devices on the operator's network, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_client_dpi: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Get DPI statistics for a specific client. The output is client identity and per-client activity for the devices on the operator's network, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_client_flow_aggregation: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Aggregate the current flow sample for a specific client MAC. The output is client identity and per-client activity for the devices on the operator's network, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_client_statistics: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Retrieve bandwidth and connection statistics for a client. The output is client identity and per-client activity for the devices on the operator's network, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_connection_states: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Connection-state tracking — **not supported** on the v2 endpoint. The output is client identity and per-client activity for the devices on the operator's network, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_flow_analytics: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: High-level analytics over the current flow sample. The output is per-client flow records naming source clients and the destinations they reached, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_flow_statistics: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Aggregate statistics over the current flow sample. The output is per-client flow records naming source clients and the destinations they reached, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_flow_trends: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Historical trends — **not supported** on the v2 endpoint. The output is per-client flow records naming source clients and the destinations they reached, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_top_flows: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Return the top N flows in the current sample, sorted by volume. The output is per-client flow records naming source clients and the destinations they reached, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_traffic_flow_details: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Find a specific flow in the current 50-flow snapshot. The output is per-client flow records naming source clients and the destinations they reached, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__get_traffic_flows: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Retrieve recent traffic flows from the UniFi controller. The output is per-client flow records naming source clients and the destinations they reached, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_active_clients: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: List currently connected clients. The output is client identity and per-client activity for the devices on the operator's network, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__list_client_rf_health: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Per-client RF health: signal, rates, and retry percentages. The output is client identity and per-client activity for the devices on the operator's network, so it needs scoped credentials and redaction before it leaves the host.",
+        "unifi__search_clients: The upstream publishes no MCP annotations for this tool (the annotations object is empty), so the classification rests on its description and input schema alone: Search clients by MAC, IP, or hostname. The output is client identity and per-client activity for the devices on the operator's network, so it needs scoped credentials and redaction before it leaves the host."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "notion-agent-session-read",
+      "purpose": "Read the agent sessions, session events and saved memories of the operator's Notion workspace.",
+      "risk_level": "medium",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Read-only. No member starts, feeds or stops an agent.",
+        "Session events can quote private conversation content, so treat the output as sensitive and redact before it enters a shared surface.",
+        "A record carries whatever the agent wrote, including inferences. Do not promote an inference to a finding."
+      ],
+      "suggested_consumers": [
+        "noesis-architect",
+        "noesis-scribe"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 9,
+      "tools": [
+        "notion__notion-get-async-task",
+        "notion__notion-get-session-status",
+        "notion__notion-list-session-events",
+        "notion__notion-memory-search",
+        "notion__notion-query-sessions",
+        "notion__notion-read-session-event",
+        "notion__notion-search-agents",
+        "notion__notion-search-sessions",
+        "notion__notion-wait-session"
+      ],
+      "deployable_file": "groups/notion-agent-session-read.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/notion-agent-session-read/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 1,
+      "non_low_risk_members": [
+        "notion__notion-read-session-event: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Read the full visible content of one saved Custom Agent session event. The output is the full visible content of a saved agent session event, so it needs scoped credentials and redaction before it leaves the host."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "notion-agent-sessions",
+      "purpose": "Start, feed and stop Notion Custom Agents, and change which skills they may load.",
+      "risk_level": "high",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "spawn-session and send-message-to-session hand work to a published Custom Agent that keeps acting after the call returns, so per-action approval is impossible. Bound the task, and require operator approval before the call.",
+        "update-enabled-skills and convert-page-to-skill change what agents can load across the user's surfaces and any external MCP client. Require operator approval and record the change, because it is not confined to one page.",
+        "stop-session removes a live capability rather than data, so it is reversible by starting the session again."
+      ],
+      "suggested_consumers": [
+        "noesis-architect"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 5,
+      "tools": [
+        "notion__notion-convert-page-to-skill",
+        "notion__notion-send-message-to-session",
+        "notion__notion-spawn-session",
+        "notion__notion-stop-session",
+        "notion__notion-update-enabled-skills"
+      ],
+      "deployable_file": "groups/notion-agent-sessions.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/notion-agent-sessions/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 5,
+      "non_low_risk_members": [
+        "notion__notion-convert-page-to-skill: Upstream marks the operation destructive because it overwrites configuration: Mark an existing Notion page as a skill without changing its content. It marks an existing page as an agent skill, which changes what agents may load, and the rewritten configuration outlives the call.",
+        "notion__notion-send-message-to-session: Upstream marks the operation destructive: Send a follow-up message to a Custom Agent session you can access. It feeds more work to a running Custom Agent that keeps acting after the call returns, and the work continues after the call returns.",
+        "notion__notion-spawn-session: Upstream marks the operation destructive: Start a session with a published Custom Agent. It hands work to a published Custom Agent that keeps running after the call returns, and the work continues after the call returns.",
+        "notion__notion-stop-session: Upstream advertises readOnlyHint=false: Stop a running Custom Agent session you can access. The change is confined to the agent session's live work; the capability can be started again and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "notion__notion-update-enabled-skills: Upstream marks the operation destructive because it overwrites configuration: Enable Notion Skills for the current user, or turn them off for external MCP clients, Notion AI, or both. It enables or disables the skills available to the user and to external MCP clients and Notion AI, and the rewritten configuration outlives the call."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "notion-calendar-read",
+      "purpose": "Read the operator's calendars, events, contacts and room resources.",
+      "risk_level": "medium",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Read-only. No member creates, changes or cancels an event.",
+        "Contacts and coworker events are other people's records: they name colleagues and show when people are available. Treat them as sensitive.",
+        "Calendar discovery is scoped to the accounts connected to this connection; check which accounts are connected before assuming the read is the operator's own schedule."
+      ],
+      "suggested_consumers": [
+        "noesis-steward",
+        "noesis-herald"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 5,
+      "tools": [
+        "notion__notion-calendar-list-calendar-resources",
+        "notion__notion-calendar-list-calendars",
+        "notion__notion-calendar-list-contacts",
+        "notion__notion-calendar-list-coworkers-events",
+        "notion__notion-calendar-list-events"
+      ],
+      "deployable_file": "groups/notion-calendar-read.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/notion-calendar-read/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 2,
+      "non_low_risk_members": [
+        "notion__notion-calendar-list-contacts: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Find contacts by name or email across the user's connected Calendar accounts. The output is the contacts reachable across the operator's connected calendar accounts, so it needs scoped credentials and redaction before it leaves the host.",
+        "notion__notion-calendar-list-coworkers-events: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: List detailed events for coworkers in the same organization within a time range. The output is the event details of the operator's coworkers, which are other people's schedules, so it needs scoped credentials and redaction before it leaves the host."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "notion-calendar-write",
+      "purpose": "Create, change and cancel events on the operator's connected calendars.",
+      "risk_level": "high",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Every member publishes to calendars other people can see, and the upstream states that creation and cancellation may notify attendees. Nothing here may be invoked on the agent's own initiative.",
+        "Require explicit operator approval of the exact event, its time, its attendees and the target calendar before the call.",
+        "Scope the credential so the agent cannot write to calendars it was not asked to touch."
+      ],
+      "suggested_consumers": [
+        "noesis-steward",
+        "noesis-herald"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 3,
+      "tools": [
+        "notion__notion-calendar-cancel-events",
+        "notion__notion-calendar-create-events",
+        "notion__notion-calendar-update-events"
+      ],
+      "deployable_file": "groups/notion-calendar-write.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/notion-calendar-write/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 3,
+      "non_low_risk_members": [
+        "notion__notion-calendar-cancel-events: Upstream marks the operation as affecting the open world: Cancel one or more identified events the user can manage. It cancels events on calendars others can see, and may notify the attendees, so the effect crosses the Noesis boundary and is visible to third parties.",
+        "notion__notion-calendar-create-events: Upstream marks the operation as affecting the open world: Create one or more events on writable calendars. It creates events on calendars the operator's attendees can see, and may notify them, so the effect crosses the Noesis boundary and is visible to third parties.",
+        "notion__notion-calendar-update-events: Upstream marks the operation as affecting the open world: Update one or more identified events, including timing, attendees, recurrence, resources, or RSVP status. It changes event times, attendees or recurrence on calendars others can see, and may notify them, so the effect crosses the Noesis boundary and is visible to third parties."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "notion-data-query",
+      "purpose": "Query the operator's Notion data sources, meeting notes and multi-source records with read-only SQL.",
+      "risk_level": "medium",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Read-only: the queries run against the data sources in read-only mode.",
+        "The rows can hold personal records, including meeting notes that name attendees. Treat the output as sensitive and redact before it leaves the host.",
+        "The query accepts caller-supplied SQL. Constrain it in the runtime policy layer to SELECT-only against the intended collection, exactly as data-analytics does for the docs site."
+      ],
+      "suggested_consumers": [
+        "noesis-grid",
+        "noesis-scribe"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 3,
+      "tools": [
+        "notion__notion-query-data-sources",
+        "notion__notion-query-meeting-notes",
+        "notion__notion-query-multiple-data-sources"
+      ],
+      "deployable_file": "groups/notion-data-query.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/notion-data-query/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 3,
+      "non_low_risk_members": [
+        "notion__notion-query-data-sources: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Query data source rows, SQL, or a saved view. The output is bulk rows from the operator's Notion data sources, which may hold personal records, so it needs scoped credentials and redaction before it leaves the host.",
+        "notion__notion-query-meeting-notes: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Query the current user's meeting notes data source. The output is the content of the operator's meeting notes, including attendee records, so it needs scoped credentials and redaction before it leaves the host.",
+        "notion__notion-query-multiple-data-sources: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Query data across multiple Notion data sources using read-only SQLite SQL. The output is bulk rows across several of the operator's Notion data sources, so it needs scoped credentials and redaction before it leaves the host."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "notion-workspace-authoring",
+      "purpose": "Create and edit pages, databases, views, comments, folders, attachments and uploads in the operator's own Notion workspace.",
+      "risk_level": "medium",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Every member writes to the operator's workspace but removes nothing: each change is reversible from the Notion interface.",
+        "Comments and reactions are visible to anyone the page is shared with, so treat a comment as a message to third parties and require operator approval of the text.",
+        "Content written here is read by whoever the workspace is shared with. Never write a credential, token or private session content into a page."
+      ],
+      "suggested_consumers": [
+        "noesis-scribe",
+        "noesis-quill"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 16,
+      "tools": [
+        "notion__notion-create-attachment",
+        "notion__notion-create-comment",
+        "notion__notion-create-database",
+        "notion__notion-create-file-upload",
+        "notion__notion-create-folder",
+        "notion__notion-create-pages",
+        "notion__notion-create-view",
+        "notion__notion-duplicate-page",
+        "notion__notion-move-pages",
+        "notion__notion-restore-pages",
+        "notion__notion-set-comment-reaction",
+        "notion__notion-set-discussion-resolved",
+        "notion__notion-update-comment",
+        "notion__notion-update-folder",
+        "notion__notion-update-page",
+        "notion__notion-update-view"
+      ],
+      "deployable_file": "groups/notion-workspace-authoring.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/notion-workspace-authoring/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 16,
+      "non_low_risk_members": [
+        "notion__notion-create-attachment: Upstream advertises readOnlyHint=false: Create an attachment and upload it to Notion. The change is confined to the operator's own Notion workspace and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "notion__notion-create-comment: Upstream advertises readOnlyHint=false: Add a comment to a page or specific content. The change is confined to the operator's own Notion workspace and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "notion__notion-create-database: Upstream advertises readOnlyHint=false: Creates a new Notion database using SQL DDL syntax, or a canonical typed database for tasks, projects, or skills. The change is confined to the operator's own Notion workspace and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "notion__notion-create-file-upload: Upstream advertises readOnlyHint=false: Create a short-lived URL for uploading one local file directly to Notion. The change is confined to the operator's own Notion workspace and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "notion__notion-create-folder: Upstream advertises readOnlyHint=false: Creates an empty Notion Folder. The change is confined to the operator's own Notion workspace and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "notion__notion-create-pages: Upstream advertises readOnlyHint=false: Creates one or more Notion pages with the specified properties and content. The change is confined to the operator's own Notion workspace and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "notion__notion-create-view: Upstream advertises readOnlyHint=false: Create a new view on a Notion database. The change is confined to the operator's own Notion workspace and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "notion__notion-duplicate-page: Upstream advertises readOnlyHint=false: Duplicate a Notion page. The change is confined to the operator's own Notion workspace and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "notion__notion-move-pages: Upstream advertises readOnlyHint=false: Move one or more Notion pages or databases to a new parent. The change is confined to the operator's own Notion workspace and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "notion__notion-restore-pages: Upstream advertises readOnlyHint=false: Restore Notion pages or databases from Trash to where they were before they were deleted. The change is confined to the operator's own Notion workspace and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "notion__notion-set-comment-reaction: Upstream advertises readOnlyHint=false: Add or remove your emoji reaction on a comment. The change is confined to the operator's own Notion workspace and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "notion__notion-set-discussion-resolved: Upstream advertises readOnlyHint=false: Resolve or reopen a comment discussion. The change is confined to the operator's own Notion workspace and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "notion__notion-update-comment: Upstream advertises readOnlyHint=false: Replace the text of a comment you wrote. The change is confined to the operator's own Notion workspace and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "notion__notion-update-folder: Upstream advertises readOnlyHint=false: Update an existing Notion Folder with an explicit Folder operation. The change is confined to the operator's own Notion workspace and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "notion__notion-update-page: Upstream advertises readOnlyHint=false: Update a Notion page's properties, content, icon, or cover. The change is confined to the operator's own Notion workspace and is reversible; it removes nothing, publishes nothing externally and spends nothing.",
+        "notion__notion-update-view: Upstream advertises readOnlyHint=false: Update a view's name, filters, sorts, or display configuration. The change is confined to the operator's own Notion workspace and is reversible; it removes nothing, publishes nothing externally and spends nothing."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "notion-workspace-destructive",
+      "purpose": "Remove content from the operator's Notion workspace and rewrite data-source schemas.",
+      "risk_level": "high",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Every member removes content that cannot be restored from the API. Trash is recoverable from the Notion interface, but a dropped schema column takes its values with it.",
+        "Require explicit operator approval for each call, naming the pages, databases or columns affected before the call is made.",
+        "update_data-source accepts SQL DDL. Constrain it in the runtime policy layer to the intended data source, because a DROP COLUMN statement is destructive.",
+        "upload-skill overwrites the target page's title, description, body and files. Read the imported archive before uploading it."
+      ],
+      "suggested_consumers": [
+        "noesis-scribe"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 5,
+      "tools": [
+        "notion__notion-delete-comment",
+        "notion__notion-delete-databases",
+        "notion__notion-delete-pages",
+        "notion__notion-update-data-source",
+        "notion__notion-upload-skill"
+      ],
+      "deployable_file": "groups/notion-workspace-destructive.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/notion-workspace-destructive/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 5,
+      "non_low_risk_members": [
+        "notion__notion-delete-comment: Upstream marks the operation destructive: Delete a comment you wrote. It removes a comment, and with it the discussion when it was the last one, and no undo exists from the API.",
+        "notion__notion-delete-databases: Upstream marks the operation destructive: Move Notion databases to Trash. It moves a database and all of its rows to Trash, and no undo exists from the API.",
+        "notion__notion-delete-pages: Upstream marks the operation destructive: Move Notion pages to Trash. It moves pages and every database row to Trash, and the rows are gone from the workspace, and no undo exists from the API.",
+        "notion__notion-update-data-source: Upstream marks the operation destructive: Update a Notion data source's schema, title, attributes, or page layout. It accepts SQL DDL, so a DROP COLUMN statement removes a property and its values from every row, and no undo exists from the API.",
+        "notion__notion-upload-skill: Upstream marks the operation destructive: Import a spec-compliant Agent Skills directory into a page in a Skills database. It replaces the target page's title, description, body and files with the imported archive, and no undo exists from the API."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
+      "name": "notion-workspace-read",
+      "purpose": "Read the operator's own Notion workspace: pages, databases, comments, members, skills and file references.",
+      "risk_level": "medium",
+      "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
+      "required_controls": [
+        "Read-only. No member in this group writes to the workspace.",
+        "The Notion connection reaches the operator's personal workspace. Its scope must be confirmed at the upstream provider, because the gateway cannot see which pages the credential may read.",
+        "Workspace content is the operator's own material and may quote third parties. Do not copy it into a shared transcript without redaction."
+      ],
+      "suggested_consumers": [
+        "noesis-scribe",
+        "noesis-quill",
+        "noesis-architect"
+      ],
+      "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
+      "tool_count": 19,
+      "tools": [
+        "notion__notion-check-mcp-next-steps",
+        "notion__notion-download-attachment",
+        "notion__notion-download-skill",
+        "notion__notion-fetch",
+        "notion__notion-get-comments",
+        "notion__notion-get-enabled-skills",
+        "notion__notion-get-file-download-urls",
+        "notion__notion-get-groups",
+        "notion__notion-get-self",
+        "notion__notion-get-teams",
+        "notion__notion-get-tool-access",
+        "notion__notion-get-users",
+        "notion__notion-list-favorite-pages",
+        "notion__notion-list-page-backlinks",
+        "notion__notion-list-private-pages",
+        "notion__notion-list-recent-pages",
+        "notion__notion-list-shared-pages",
+        "notion__notion-search",
+        "notion__notion-show-advanced-analysis-next-steps"
+      ],
+      "deployable_file": "groups/notion-workspace-read.json",
+      "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/notion-workspace-read/mcp",
+      "endpoint_status": "live",
+      "endpoint_note": "Deployed to the gateway on 2026-10-26 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "deliberate_overlap": "",
+      "non_low_risk_member_count": 1,
+      "non_low_risk_members": [
+        "notion__notion-get-users: Upstream advertises readOnlyHint=true, but the content returned is the sensitive part: Retrieves a list of users in the current workspace. The output is the identity of every member and guest in the operator's workspace, so it needs scoped credentials and redaction before it leaves the host."
+      ],
+      "non_low_risk_member_note": "Every member whose risk_classification in tool-inventory.json is not 'low'. The medium-risk members are included deliberately: omitting them would make this field mislead a reviewer auditing which members of a group carry any elevated risk."
+    },
+    {
       "name": "observability",
-      "purpose": "Read deployment status and settings, workflow run history, reachable deployments and provider usage and cost.",
+      "purpose": "Read deployment status and settings, workflow run history, reachable deployments and provider usage and cost, including the Hunter account's credit and quota consumption.",
       "risk_level": "medium",
       "risk_basis": "The highest risk level among the member tools, using the per-tool classification in tool-inventory.json, raised to the group's declared floor where the declaration is the stricter judgement.",
       "required_controls": [
         "Read-only status and usage surface.",
-        "Usage and cost figures are the trigger for budget review: treat an unexplained increase as an incident signal rather than a data point."
+        "Usage and cost figures are the trigger for budget review: treat an unexplained increase as an incident signal rather than a data point.",
+        "hunter__Get-Usage reports the Hunter quota consumed in the current billing period. It is the signal that the credit-consuming lookups in hunter-contact-records are approaching the plan ceiling."
       ],
       "suggested_consumers": [
         "noesis-substrate",
         "noesis-steward"
       ],
       "consumer_basis": "Profile names verified against the 16 profile keys in profiles/noesis-roster.yaml. NoesisPraxis is a persona and host naming convention, not a roster profile: the repository's STANDING-GOAL-FINAL-DELIVERABLE.md records that 'noesis-praxis' is not an entry in profiles/noesis-roster.yaml, so it is not used as a consumer name. The infrastructure-operator role is represented by noesis-substrate. Reviewer-only profiles (noesis-sentinel, noesis-skeptic) receive no group that can write, delete, publish, spend or delegate; they may hold groups whose members only read, including reads of sensitive data, which a reviewer needs.",
-      "tool_count": 7,
+      "tool_count": 8,
       "tools": [
         "beacon-managed__beacon_usage",
         "firecrawl-search__firecrawl_credit_usage",
         "firecrawl-search__firecrawl_usage_dashboard",
+        "hunter__Get-Usage",
         "mintlify__deployment_status",
         "mintlify__get_deployment_settings",
         "mintlify__get_workflows",
@@ -1017,7 +2438,7 @@
       "deployable_file": "groups/observability.json",
       "proposed_endpoint": "https://mcpjungle.tailf99a0.ts.net/v0/groups/observability/mcp",
       "endpoint_status": "live",
-      "endpoint_note": "Deployed to the gateway on 2026-10-25 and verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
+      "endpoint_note": "Redeployed to the gateway on 2026-10-26 with the new members added, and re-verified by MCP initialize + tools/list against the group endpoint: the served tool set matches the declared included_tools exactly. The route shape /v0/groups/{group-name}/mcp was verified from the MCPJungle 0.4.6 source before deployment.",
       "deliberate_overlap": "",
       "non_low_risk_member_count": 0,
       "non_low_risk_members": [],
@@ -1592,7 +3013,7 @@
   ],
   "review_required_summary": {
     "definition": "Every tool whose per-tool risk classification is review-required, whether it sits in a group that is itself flagged review-required or is held out of all groups.",
-    "count": 4,
+    "count": 8,
     "tools": [
       {
         "tool": "court-listener__call_endpoint",
@@ -1623,6 +3044,42 @@
         "disposition": "held out of all groups",
         "groups": [],
         "reason": "Executes a caller-supplied JavaScript program that mutates a Framer project. This is arbitrary code execution against a third-party SaaS project; the arguments bound the effect, not the class of effect."
+      },
+      {
+        "tool": "gitbook-management__invoke_operation",
+        "source_server": "gitbook-management",
+        "disposition": "held in a review-required group",
+        "groups": [
+          "gitbook-proxy"
+        ],
+        "reason": "Runs one caller-selected GitBook API operation discovered through search, with caller-supplied path, query and body parameters. The upstream states that the operation surface includes actions that are visible to the public or cannot be undone, such as publishing a site or merging a change request, so the caller chooses the target and therefore the effect class. This is the same shape as court-listener__call_endpoint, and the curated GitBook tools are not a constraint on what it can reach."
+      },
+      {
+        "tool": "unifi__connector_network_get",
+        "source_server": "unifi",
+        "disposition": "held in a review-required group",
+        "groups": [
+          "network-proxy"
+        ],
+        "reason": "Generic GET proxy for the UniFi Network application: the caller supplies the console id and the sub-path under the Cloud Connector proxy prefix, and the raw upstream response is returned. The upstream restricts the request to GET and validates every path segment against traversal, but the endpoint itself is caller-selected, so group membership cannot constrain which UniFi endpoint is read. It is narrower than court-listener__call_endpoint, which also exposes the HTTP method, but it is the same shape: a caller-chosen target. In this deployment the tool is additionally inert, because UNIFI_SITE_MANAGER_ENABLED is unset and the call raises 'Site Manager API is not enabled'."
+      },
+      {
+        "tool": "unifi__connector_protect_get",
+        "source_server": "unifi",
+        "disposition": "held in a review-required group",
+        "groups": [
+          "network-proxy"
+        ],
+        "reason": "Generic GET proxy for the UniFi Protect application: the caller supplies the console id and the sub-path under the Cloud Connector proxy prefix, and the raw upstream response is returned. The upstream restricts the request to GET and validates every path segment against traversal, but the endpoint itself is caller-selected, so group membership cannot constrain which Protect endpoint is read, including the camera and event endpoints. In this deployment the tool is additionally inert, because UNIFI_SITE_MANAGER_ENABLED is unset and the call raises 'Site Manager API is not enabled'."
+      },
+      {
+        "tool": "unifi__fleet_fanout",
+        "source_server": "unifi",
+        "disposition": "held in a review-required group",
+        "groups": [
+          "network-proxy"
+        ],
+        "reason": "Runs one caller-named read tool across every controller in scope at once. The upstream enforces that only read-tier controller tools can be fanned out and rejects fleet-prefixed and unknown tool names, so the effect class is bounded to reads, but the caller still chooses which tool runs: a holder of this tool reaches every read-tier controller tool whether or not that tool is in the group it was granted. Group membership therefore cannot constrain the target, which is the property that makes a tool broad-capability rather than an ordinary read."
       }
     ]
   },
@@ -1656,26 +3113,36 @@
     {
       "category": "devops-readonly",
       "status": "coverage gap",
-      "reason": "No DevOps or infrastructure server is registered in this gateway. There is no Docker, Kubernetes, Terraform, Ansible, CI or cloud-provider tool among the 308 discovered tools. The nearest surfaces are n8n workflow inspection (workflow-inspection) and deployment and usage status (observability); neither is a DevOps tool surface, and naming either 'devops-readonly' would misrepresent it. Infrastructure execution lives in the noesis-ansible repository and in the Hermes terminal toolset, not in MCPJungle.",
+      "reason": "No DevOps or CI server is registered in this gateway. There is no Docker, Kubernetes, Terraform, Ansible, cloud-provider or CI tool among the 700 discovered tools. The nearest surfaces are workflow-inspection, observability and the network-* groups, and naming any of them 'devops-readonly' would misrepresent it: they report state, they do not change infrastructure. Infrastructure execution lives in the noesis-ansible repository and in the Hermes terminal toolset, not in MCPJungle.",
       "partial_analogue": [
         "workflow-inspection",
-        "observability"
+        "observability",
+        "network-inventory"
       ]
     },
     {
       "category": "network-operations-readonly",
-      "status": "coverage gap",
-      "reason": "No network-device or network-automation server is registered in this gateway. The UniFi MCP server is a separate, directly configured Hermes connection (unifi-local) that does not traverse MCPJungle, so it cannot be expressed as an MCPJungle group. That also means the UniFi surface is governed by Hermes connection configuration, not by any group in this catalog."
+      "status": "supported",
+      "reason": "The UniFi MCP server is registered in this gateway and contributes 212 read tools, split across seven groups by capability: network-inventory, network-security-policy, network-telemetry, network-protect, network-fleet, network-backup and network-controller, plus network-proxy which is held review-required. The deployment sets UNIFI_READ_ONLY=true, so the registered surface contains no mutating UniFi tool at all: these groups are a read-only view by construction, not by policy. Note that the separately-configured Hermes connection 'unifi-local' exposes 347 tools including mutating ones and is NOT constrained by any group here.",
+      "partial_analogue": [
+        "network-inventory",
+        "network-security-policy",
+        "network-telemetry",
+        "network-protect",
+        "network-fleet",
+        "network-backup",
+        "network-controller"
+      ]
     },
     {
       "category": "cloud-infrastructure-readonly",
       "status": "coverage gap",
-      "reason": "No cloud-provider server (AWS, GCP, Azure, Cloudflare) is registered in this gateway."
+      "reason": "No cloud-provider server (AWS, GCP, Azure, Cloudflare) is registered in this gateway. The UniFi groups cover on-premises network hardware, which is a different estate."
     },
     {
       "category": "cloud-infrastructure-write",
       "status": "coverage gap",
-      "reason": "Same as cloud-infrastructure-readonly: no cloud-provider server is registered. The closest mutation surface is Mintlify deployment administration (platform-administration), which manages one documentation site and is not cloud infrastructure.",
+      "reason": "Same as cloud-infrastructure-readonly: no cloud-provider server is registered. The closest mutation surface is platform-administration, which manages one documentation site, and the UniFi deployment is read-only.",
       "partial_analogue": [
         "platform-administration"
       ]
@@ -1693,41 +3160,92 @@
     {
       "category": "financial-actions",
       "status": "coverage gap",
-      "reason": "No spending, transfer, trading, payment or wallet tool exists anywhere in the 308-tool inventory. Every financial capability present is read-only research, grouped under market-research. The one payment-adjacent tool is court-listener__pray_for_document, which sits in legal-alerts under a spending control.",
+      "reason": "No spending, transfer, trading, payment or wallet tool exists anywhere in the 700-tool inventory. Hunter's credit-consuming lookups draw on a metered search and credit quota rather than money, and the connected account is on the free tier; on a paid plan the same calls would become billable, which is why the spending constraint is recorded on hunter-contact-records rather than treated as absent. The one payment-adjacent tool is court-listener__pray_for_document, which sits in legal-alerts under a spending control.",
       "partial_analogue": [
         "market-research",
-        "legal-alerts"
+        "legal-alerts",
+        "hunter-contact-records"
       ]
     },
     {
       "category": "communications-readonly (broad inbox)",
       "status": "partial",
-      "reason": "No mail, chat or SMS server is registered in this gateway. The only communications read surface is the Mintlify comment thread, which is what the group of the same name contains. The Herald workflow therefore has no inbox to read from and cannot verify prior outbound correspondence."
+      "reason": "No mail, chat or SMS server is registered in this gateway. The communications read surfaces are the Mintlify comment thread and the Notion calendar, which together are not an inbox: the Herald workflow still cannot read prior outbound correspondence, and no tool here can confirm what was already sent to anyone.",
+      "partial_analogue": [
+        "communications-readonly",
+        "notion-calendar-read"
+      ]
     },
     {
       "category": "database-readonly / database-write",
       "status": "supported",
-      "reason": "n8n data tables and the Mintlify deployment databases provide readable and writable tabular surfaces, and both groups exist. There is no generic SQL database server (no PostgreSQL, MySQL or SQLite tool), so 'database' here means the two tabular stores actually reachable, not a general SQL surface. The one SQL surface present, mintlify__query_analytics, is confined to the docs deployment's own analytics tables and is held in data-analytics."
+      "reason": "n8n data tables, the Mintlify deployment databases and the Notion data sources provide readable and writable tabular surfaces, and the groups exist. There is still no generic SQL database server (no PostgreSQL, MySQL or SQLite tool). The two SQL surfaces present are each confined to its own store: mintlify__query_analytics is held in data-analytics, and the Notion queries in notion-data-query are read-only by construction.",
+      "partial_analogue": [
+        "database-readonly",
+        "database-write",
+        "data-analytics",
+        "notion-data-query"
+      ]
     },
     {
       "category": "observability",
       "status": "supported",
-      "reason": "Deployment status, workflow run history, execution records and provider credit and usage reporting cover the read-only observability surface. There is no metrics, log-aggregation or tracing server (no Prometheus, Grafana or Loki) registered in this gateway, so infrastructure telemetry is not reachable through MCPJungle at all."
+      "reason": "Deployment status, workflow run history, execution records, provider credit and usage reporting, and the Hunter quota report cover the read-only observability surface. There is still no metrics, log-aggregation or tracing server (no Prometheus, Grafana or Loki) registered, and no infrastructure telemetry of any kind: the UniFi groups report controller state as read by the controller, not as collected telemetry.",
+      "partial_analogue": [
+        "observability",
+        "network-inventory",
+        "network-telemetry"
+      ]
     },
     {
       "category": "agent-infrastructure",
       "status": "supported",
-      "reason": "n8n provides agent draft authoring, versioning, validation and retirement; the Beacon-managed server provides the memory and trace substrate agents read from. Both groups exist."
+      "reason": "n8n provides agent draft authoring, versioning, validation and retirement; the Beacon-managed server provides the memory and trace substrate agents read from; and Notion provides Custom Agent sessions plus the skill enablement that decides what those agents may load. All three surfaces exist, and the groups exist.",
+      "partial_analogue": [
+        "agent-infrastructure",
+        "notion-agent-sessions",
+        "notion-agent-session-read",
+        "memory-management"
+      ]
     },
     {
       "category": "security-audit",
       "status": "supported but narrow",
-      "reason": "Only two genuine security surfaces exist: GitHub secret scanning and Beacon's security findings. There is no SAST, DAST, dependency-audit or container-scanning server registered, so the group cannot cover a full security review."
+      "reason": "Only two genuine security surfaces exist: GitHub secret scanning and Beacon's security findings. There is no SAST, DAST, dependency-audit or container-scanning server registered, so the group cannot cover a full security review. The UniFi groups read the operator's own security posture but are not a scanning surface.",
+      "partial_analogue": [
+        "security-audit",
+        "network-security-policy"
+      ]
     },
     {
       "category": "source-control-readonly / source-control-write",
       "status": "supported",
       "reason": "The GitHub MCP server exposes both surfaces, split across source-control-readonly, source-control-issues-readonly and source-control-write. It is the only source-control server registered."
+    },
+    {
+      "category": "outbound-messaging / sales-prospecting",
+      "status": "supported",
+      "reason": "Hunter registers 103 tools covering contact discovery, enrichment, CRM record management and outbound email sending, split across six groups. The sending surface is isolated in hunter-outbound-email, and the destructive record surface in hunter-record-destructive. This is the only registered capability that sends email to people who did not ask to be contacted, so it carries the strictest approval control in the catalog.",
+      "partial_analogue": [
+        "hunter-outbound-email",
+        "hunter-contact-records",
+        "hunter-record-authoring",
+        "hunter-record-destructive"
+      ]
+    },
+    {
+      "category": "workspace-document-management",
+      "status": "supported",
+      "reason": "Notion contributes 65 tools covering the operator's own workspace (pages, databases, comments, calendars and agent sessions) and GitBook contributes 12 covering the operator's own GitBook organization (sites, navigation, change requests and publication). The two are split by capability and by risk, and neither can be confused with the MISJustice/YWCA GitBook corpus, which stays in legal-research.",
+      "partial_analogue": [
+        "notion-workspace-read",
+        "notion-workspace-authoring",
+        "notion-workspace-destructive",
+        "notion-calendar-write",
+        "gitbook-org-read",
+        "gitbook-change-request",
+        "gitbook-publish"
+      ]
     }
   ]
 }

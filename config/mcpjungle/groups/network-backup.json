@@ -1,0 +1,14 @@
+{
+  "name": "network-backup",
+  "description": "Read the operator's controller backup and restore state, and export the network topology.",
+  "included_tools": [
+    "unifi__download_backup",
+    "unifi__export_topology",
+    "unifi__get_backup_details",
+    "unifi__get_backup_schedule",
+    "unifi__get_backup_status",
+    "unifi__get_restore_status",
+    "unifi__list_backups",
+    "unifi__validate_backup"
+  ]
+}

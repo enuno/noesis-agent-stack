@@ -1,0 +1,7 @@
+{
+  "name": "gitbook-proxy",
+  "description": "Held review-required: caller-selected GitBook API operations.",
+  "included_tools": [
+    "gitbook-management__invoke_operation"
+  ]
+}

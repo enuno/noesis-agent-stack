@@ -1,0 +1,9 @@
+{
+  "name": "network-proxy",
+  "description": "Held review-required: caller-selected UniFi proxy paths and fleet-wide tool fan-out.",
+  "included_tools": [
+    "unifi__connector_network_get",
+    "unifi__connector_protect_get",
+    "unifi__fleet_fanout"
+  ]
+}

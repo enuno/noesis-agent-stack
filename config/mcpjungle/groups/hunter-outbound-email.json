@@ -1,0 +1,9 @@
+{
+  "name": "hunter-outbound-email",
+  "description": "Send the operator's Hunter sequences: start, resume, and add recipients to a started sequence.",
+  "included_tools": [
+    "hunter__Add-Sequence-Recipients",
+    "hunter__Resume-Sequence",
+    "hunter__Start-Sequence"
+  ]
+}

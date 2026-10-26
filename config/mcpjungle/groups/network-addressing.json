@@ -1,0 +1,16 @@
+{
+  "name": "network-addressing",
+  "description": "Read the operator's own address assignment: DHCP reservations, MAC tags, dynamic DNS, WAN DNS, VLANs, subnets and port mappings.",
+  "included_tools": [
+    "unifi__get_dhcp_reservation",
+    "unifi__get_dynamic_dns",
+    "unifi__get_mac_tag",
+    "unifi__get_port_mappings",
+    "unifi__get_subnet_info",
+    "unifi__list_dhcp_reservations",
+    "unifi__list_dynamic_dns",
+    "unifi__list_mac_tags",
+    "unifi__list_vlans",
+    "unifi__list_wan_dns"
+  ]
+}

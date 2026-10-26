@@ -1,0 +1,17 @@
+{
+  "name": "network-fleet",
+  "description": "Read the multi-controller, multi-site and Cloud Site Manager view of the operator's own estate.",
+  "included_tools": [
+    "unifi__download_innerspace_asset",
+    "unifi__fleet_health",
+    "unifi__fleet_inventory",
+    "unifi__fleet_sites",
+    "unifi__get_carrier_service_plan",
+    "unifi__get_carrier_subscriber",
+    "unifi__get_innerspace_project",
+    "unifi__get_mobility_device",
+    "unifi__get_sdwan_config",
+    "unifi__get_sdwan_config_status",
+    "unifi__list_sdwan_configs"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "notion-calendar-write",
+  "description": "Create, change and cancel events on the operator's connected calendars.",
+  "included_tools": [
+    "notion__notion-calendar-cancel-events",
+    "notion__notion-calendar-create-events",
+    "notion__notion-calendar-update-events"
+  ]
+}

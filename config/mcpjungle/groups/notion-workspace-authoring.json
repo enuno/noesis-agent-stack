@@ -1,0 +1,22 @@
+{
+  "name": "notion-workspace-authoring",
+  "description": "Create and edit pages, databases, views, comments, folders, attachments and uploads in the operator's own Notion workspace.",
+  "included_tools": [
+    "notion__notion-create-attachment",
+    "notion__notion-create-comment",
+    "notion__notion-create-database",
+    "notion__notion-create-file-upload",
+    "notion__notion-create-folder",
+    "notion__notion-create-pages",
+    "notion__notion-create-view",
+    "notion__notion-duplicate-page",
+    "notion__notion-move-pages",
+    "notion__notion-restore-pages",
+    "notion__notion-set-comment-reaction",
+    "notion__notion-set-discussion-resolved",
+    "notion__notion-update-comment",
+    "notion__notion-update-folder",
+    "notion__notion-update-page",
+    "notion__notion-update-view"
+  ]
+}
