@@ -17,6 +17,18 @@ config/mcpjungle/
 
 Validation: `python3 scripts/validate_mcpjungle_groups.py -v` (offline, read-only).
 
+The catalog, the coverage gaps and this README are generated, not hand-edited:
+
+```bash
+python3 scripts/generate_mcpjungle_catalog.py --deployed   # inventory, groups, group files
+python3 scripts/update_mcpjungle_coverage_gaps.py           # coverage-gap categories
+python3 scripts/generate_mcpjungle_readme.py                # this file
+```
+
+The generator is idempotent: running it twice against a tree that already
+contains its own output reproduces it byte for byte, so the committed artifacts
+and the live gateway can always be reconciled against a fresh run.
+
 ---
 
 ## 1. What was discovered, and what "complete" means here
