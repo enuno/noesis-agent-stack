@@ -191,15 +191,6 @@ def _bounded_orch(tmp_path: Path, *, enforcer) -> Orchestrator:
     )
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "Gate defect G1 (missing enforcer fails open). "
-        "See workspace/orchestrator/jev-decision-layer/ORCHESTRATOR-GATE-PROBES.md "
-        "for the reproduced defect. Repair: require an enforcing-mode "
-        "enforcer on the bounded non-dry-run launch path."
-    ),
-)
 def test_gate_regression_missing_enforcer_fails_closed(tmp_path: Path) -> None:
     """A bounded, non-dry-run launch must block when the enforcer is None.
 
@@ -322,15 +313,6 @@ def test_gate_regression_resolved_pair_must_match(tmp_path: Path) -> None:
         orch.inference_enforcer.clear_profile_overrides()
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "Gate defect G4 (current assignment epoch optional at live caller boundary). "
-        "See workspace/orchestrator/jev-decision-layer/ORCHESTRATOR-GATE-PROBES.md. "
-        "Repair: require the current assignment epoch at the live CLI "
-        "and plugin launch path; preserve typed rejection for stale values."
-    ),
-)
 def test_gate_regression_normal_call_requires_current_epoch(tmp_path: Path) -> None:
     """A non-dry-run call without ``expected_epoch`` must be rejected.
 
