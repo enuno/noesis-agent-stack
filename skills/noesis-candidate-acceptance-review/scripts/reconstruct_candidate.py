@@ -84,14 +84,24 @@ def build_blob_index(repo: Path) -> dict[str, str]:
 def materialize(repo: Path, base: str, tree: Path, blobs: dict[str, str]) -> None:
     """Write the base tree into `tree`, then overlay candidate content.
 
-    The reconstruction directory is always recreated. Reusing a non-empty
-    tree would keep leftover files from a previous candidate and let the
-    fully-staged variant stage them as additions.
+    The reconstruction directory is recreated only after git archive has
+    returned a non-empty archive. Reusing a non-empty tree would keep
+    leftover files from a previous candidate and let the fully-staged
+    variant stage them as additions. An invalid base leaves the existing
+    tree untouched.
     """
-    archive = subprocess.run(
+    result = subprocess.run(
         ["git", "-C", str(repo), "archive", base],
         capture_output=True,
-    ).stdout
+    )
+    if result.returncode != 0 or not result.stdout:
+        err = result.stderr.decode("utf-8", errors="replace").strip()
+        reason = err or "empty archive"
+        raise SystemExit(
+            f"git archive {base} failed (exit {result.returncode}): {reason}; "
+            f"reconstruction directory left untouched"
+        )
+    archive = result.stdout
     if tree.exists():
         sys.stderr.write(
             f"reconstruction directory {tree} already exists; recreating it "
@@ -118,13 +128,31 @@ def overlay(repo: Path, tree: Path, index: dict[str, str], blob_specs: list[str]
     """Overlay candidate file content looked up by content SHA-256.
 
     Blobs are read from `repo`, not from the scratch directory. A failed
-    cat-file writes nothing.
+    cat-file writes nothing. The path from `<sha256>:<path>` is confined
+    to the reconstruction tree before any write: an absolute path or a
+    '..' segment is refused, and the resolved destination must stay under
+    that tree.
     """
     applied = []
     for spec in blob_specs:
         digest, _, rel = spec.partition(":")
         if not rel:
             raise SystemExit(f"--blob expects <sha256>:<path>, got {spec!r}")
+        blob_path = Path(rel)
+        if blob_path.is_absolute() or ".." in blob_path.parts:
+            raise SystemExit(
+                f"refusing --blob path {rel!r}: absolute paths and '..' "
+                f"segments are not allowed"
+            )
+        dest = (tree / blob_path).resolve()
+        root = tree.resolve()
+        try:
+            dest.relative_to(root)
+        except ValueError:
+            raise SystemExit(
+                f"refusing --blob path {rel!r}: resolved destination {dest} "
+                f"is outside reconstruction tree {root}"
+            ) from None
         oid = index.get(digest)
         if oid is None:
             raise SystemExit(f"no blob in object DB with sha256 {digest} ({rel})")
@@ -138,7 +166,6 @@ def overlay(repo: Path, tree: Path, index: dict[str, str], blob_specs: list[str]
                 f"git cat-file blob {oid} failed (exit {result.returncode}) "
                 f"for {rel}: {err}"
             )
-        dest = tree / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(result.stdout)
         applied.append(rel)
