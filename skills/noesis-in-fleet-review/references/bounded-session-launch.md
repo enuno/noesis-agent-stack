@@ -17,11 +17,18 @@ hermes -p <profile> chat \
   -t file,terminal \
   --ignore-user-config \
   --in <worktree> \
-  --run-budget <seconds> \
   --max-turns <turns> \
   --format stream-json \
   --reasoning <level>
 ```
+
+Note: `--run-budget <seconds>` is NOT in the canonical shape — the
+installed gateway CLI rejects the flag, so a wall-clock cap cannot be
+flag-enforced on this runtime. Bound the session with `--max-turns`,
+tool scope, and external supervision (background process + exit
+notification + operator-visible session log), and record the disclosure
+in the route amendment. Never describe such a session as time-bounded
+or unattended.
 
 ## Per-argument notes
 
@@ -70,12 +77,16 @@ hermes -p <profile> chat \
   inherits the operator's `$HOME` and `HERMES_HOME` and may touch
   files outside the worktree.
 
-- `--run-budget <seconds>`: hard wall-clock cap. For a Sentinel or
-  Skeptic review of ~5 in-scope files and a focused + full test
-  pair, 1800 s is enough. For a bounded implementer that must write
-  tests + production code + implementer result, 5400 s is enough.
-  Do not under-budget; running out of budget mid-test leaves the
-  worktree in a half-edited state and the verdict files unwritten.
+- `--run-budget <seconds>`: OPTIONAL wall-clock cap — supported only
+  on runtimes whose gateway accepts the flag. The installed gateway
+  CLI rejects it, so on this fleet the effective bounds are
+  `--max-turns`, tool scope, and external supervision. Record the
+  absence of a wall-clock bound in the route amendment ("wall-clock
+  control not enforceable via supported flags; bounded by --max-turns
+  plus supervision; not time-bounded or unattended") rather than
+  implying a bound that does not exist. Do not under-budget where the
+  flag IS supported; running out of budget mid-test leaves the
+  worktree half-edited and verdict files unwritten.
 
 - `--max-turns <turns>`: turn cap. For a reviewer, 300 turns is
   plenty (the reviewer does not write code, only reads and runs
@@ -118,10 +129,12 @@ When run as a background process via `terminal(background=true,
   latency.
 
 - `timeout=<seconds>`: the foreground call's own timeout, separate
-  from `--run-budget`. Set it slightly above `--run-budget` so
-  the foreground process does not cut the bounded session off
-  mid-cleanup. For `--run-budget 1800`, `timeout=1800` or
-  `timeout=1850` is right.
+  from `--run-budget` (which this runtime rejects). Set it generously
+  above the expected session duration — reviewer sessions can run for
+  hours under `--max-turns 300`, so use a background tracked process
+  with exit notification rather than a tight foreground timeout; a
+  foreground timeout that kills the session mid-verdict is not
+  evidence about the review, and a killed reviewer writes no verdict.
 
 ## What to do with the output
 

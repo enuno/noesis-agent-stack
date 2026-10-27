@@ -169,3 +169,19 @@ output; it is not an authorization to merge or activate anything."
 A reviewer session that writes the verdict without this final
 line has misbehaved; the orchestrator treats the verdict as
 malformed and re-dispatches.
+
+## Reviewer identity pin: profile manifest hash
+
+The operator packet pins each reviewer's identity-bearing profile files
+with a manifest SHA-256. Recipe (recovered from the reviewer's own
+hashing script): concatenate, over a fixed documented file set in a
+fixed order (SOUL.md, config.yaml, honcho.json), the bytes
+`name \0 <file bytes> \0` per file, then SHA-256 the concatenation.
+A contract that cites a profile manifest hash must name the exact file
+set and order, and receipt validation recomputes it rather than grepping
+for a recorded value. Store the hashing script in the durable evidence
+directory — reviewer scratch is pruned. If the script is lost, recover
+the exact recipe from the prior reviewer's stream-json session log
+(executed commands and heredocs are recorded there) instead of
+re-deriving it by trial; a recipe mismatch silently produces a different
+hash and fails every pin.
