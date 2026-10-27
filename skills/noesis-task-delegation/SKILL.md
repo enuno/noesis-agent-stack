@@ -536,7 +536,65 @@ script's correct refusal is not a script defect. Reset fixtures to pristine
 between drills. Never claim the live procedure passed from compilation or
 identity-only dry runs.
 
+**Run an independent review round on the exact delivered files before asking
+for operator approval.** Dispatch a separate reviewer context (fresh subagent,
+no shared transcript) that: verifies the sha256 of every hash-identified
+artifact first; reads the actual delivered files rather than the packet's
+claims; spot-checks the drill evidence by re-running drills in its own scratch
+dir; marks each claim PASS/FAIL/UNVERIFIED with file:line evidence; and hunts
+for fail-open paths, races, and output leaks the preparer missed. Reviewers
+find defects — expect at least a second revision. On any finding: produce a
+successor artifact with a NEW hash (never patch a hash-identified file), keep
+the superseded one byte-identical, document the findings and fixes in the new
+revision, and re-drill the changed paths. After fixes, run a second-round
+delta review (diff old vs new to confirm only intended changes; trace for
+regressions such as renamed-file inconsistencies across copy targets,
+refuse-lists, receipts, and recovery commands). See
+`references/operator-packet-review.md` for the approval-manifest structure and
+the review-round procedure.
+
 ## Pitfalls
+
+- **Place every precondition check before the first mutation, and gate the
+  launch on apply success.** A check that runs after apply (e.g. a YOLO-mode
+  or credential precondition inside the launch branch) fails with the
+  configuration already modified: the runner exits "refused" while both
+  profiles are live-mutated, with no restore and no pointer to recovery —
+  the same masking class the packet was written to prevent. Any check that
+  can fail after mutation must instead route through restore, never through
+  a bare `fail`. Equally: never launch when apply did not exit exactly 0 —
+  launching against unapplied or partially applied configuration is an
+  ungoverned dispatch. Both rules are enforced in runner design by a
+  pre-mutation phase (flags, YOLO, directory refusal) and a launch branch
+  conditional on `APPLY_RC -eq 0`.
+
+- **Cleanup success must not mask failure: the final exit code reports the
+  worst outcome.** A runner that restores configuration and then exits 0
+  after a failed launch (or failed restore) produces a success-shaped result
+  that automation and operators read as PASS. Exit non-zero on launch failure
+  (after clean restore), on restore failure, and on apply-not-complete; give
+  apply-not-complete-with-nothing-applied its own honest wording ("nothing
+  was applied; restore not applicable; verify-if-uncertain") instead of
+  "RESTORE FAILED". Every phase still records its own exit file so receipts
+  carry the full picture.
+
+- **A parsed CLI flag is not a honored flag — verify against dispatch code.**
+  `hermes --usage-file` is parsed at top level but absent from the chat
+  subcommand's passthrough table, so on `chat --oneshot` it is silently
+  ignored. Capture the target subcommand's `--help` before any mutation and
+  require every launch flag to appear; for any flag whose effect matters,
+  confirm in the installed source that the subcommand's dispatch actually
+  passes it through. Remove unhonored flags from the command line by design
+  decision recorded in the packet — never leave an instruction that tells
+  the operator to delete a flag and relaunch ad hoc.
+
+- **The byte-identical restore postcondition covers every target, including
+  ones apply never touched.** When apply is partial (first file replaced,
+  second interrupted), restore of the applied file can succeed while a second
+  profile drifted externally; exiting 0 there prints "RESTORE OK" over a
+  silent MISMATCH. Restore must clear success on any live-vs-preimage drift
+  for a not-applied profile (exit non-zero, MISMATCH prominent, file left
+  untouched) — fail-safe direction preserved, honesty restored.
 
 - **Keep capability claims honest across native and custom paths.** Native
   child-command approval (deny-by-default) is not a Noesis pre-spawn
@@ -1048,3 +1106,7 @@ Plus four invariant tests prove the negative space:
   backend: child toolset derivation, leaf-role blocks, config-authoritative
   iteration caps, MCP inheritance, the restricted-parent zero-tool-child
   recipe, and the profile_routes configuration shape.
+- `references/operator-packet-review.md` — approval-manifest structure
+  (the twelve sections), the independent review-round procedure, the
+  finding-to-revision discipline, and the reviewer fixture recipe for
+  operator-executed launch packets.

@@ -1,7 +1,7 @@
 ---
 name: noesis-delegation-monitoring
 description: "Route and monitor delegated work in the Noesis stack."
-version: 0.1.0
+version: 0.1.1
 author: Elvis Nuno (enuno), Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -451,6 +451,16 @@ as reviewed.
   continue"). Assume zero writes only after the hashes prove it,
   never because the process died early.
 
+- **pytest collection dying with `OSError [Errno 11] Resource deadlock
+  avoided` inside importlib.metadata is environmental, not a candidate
+  failure.** Third-party pytest plugin autoload intermittently trips this
+  on the system Python. Retry the identical command with
+  `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` (install nothing); the changed
+  variable alone must flip the run from collection error to pass. Record
+  both the failed and the retried run in the verification chronology so a
+  reviewer sees the environmental defect and the isolation step, not a
+  silently green rerun.
+
 - **A repeated "Duplicate tool output" response masks the real error.**
   When an identical tool call (e.g. a monitoring `process_manage`
   poll) is re-issued with empty or unserialized arguments, the runtime
@@ -507,6 +517,32 @@ as reviewed.
   as `localhost` is a deviation signal, not a passing check. See
   `references/offline-ansible-helm-validation.md` for the offline
   validation recipe.
+
+- **A timeout sweep's `failed`/`requeued` marking is not evidence the
+  work failed — reconcile the on-disk deliverable before any
+  redispatch.** Lease expiry requeues a task whose child may already
+  have completed its deliverable. Before launching a replacement (even
+  with a fresh idempotency key): inventory the task's expected artifact
+  paths, verify the acceptance criteria offline yourself (the same
+  tests, syntax checks, lint/render commands the contract named), and if
+  the deliverable is complete, close the original task with
+  `task_accepted` plus the post-hoc verification evidence. A blind
+  redispatch duplicates completed work and leaves two attempts in the
+  ledger for one deliverable.
+
+- **Diagnose from the child's captured error text before writing a
+  durable block/fail reason — a wrong recorded reason misleads every
+  future recovery.** Routing-event flags such as `model_driven_canary`
+  and `verification_pending` are static fields written for all
+  non-dry-run launches; they describe contract shape, not live provider
+  state. A refused launch that "looks like" a poisoned canary or an
+  exhausted quota may simply be `No usable credentials found for
+  provider '<X>'` in the child's process log. Read the log first, record
+  the mechanism verbatim with the real unblock condition in the
+  `block`/`fail` reason — that reason is the durable payload a future
+  session recovers from. If the reason was already recorded wrong,
+  correct it with a superseding event; do not leave the misdiagnosis in
+  the ledger.
 
 ## Verification
 

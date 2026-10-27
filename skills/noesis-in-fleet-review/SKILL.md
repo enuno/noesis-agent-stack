@@ -20,6 +20,22 @@ contexts. This skill is the procedure; `omh-code-review` is the
 shape-of-findings authority; `noesis-task-delegation` is the broader
 delegation context.
 
+**Scope boundary — formal qualification rounds are operator-mediated.**
+The in-fleet default above governs ordinary implementation reviews. A
+*formal qualification round* — an independent Sentinel then Skeptic receipt
+chain bound to a frozen candidate digest, with an operator action packet
+and retained promotion holds — is an operator-mediated external event by
+standing operator policy: the operator hand-carries the frozen packet, and
+each reviewer runs as a fresh one-shot session; the orchestrator never
+launches reviewer inference itself unless the operator's authorization
+for that round explicitly delegates the launch. On that class,
+the orchestrator's duties are packet preparation, receipt validation, gate
+state maintenance, remediation-round staging, and synthesis — see
+`references/formal-qualification-rounds.md`. Everything else in this skill
+(propose/claim/launch mechanics, verdict schema, cross-reviewer pattern,
+remediation cycle) still applies to the operator-launched sessions as
+contract shape, not as orchestrator-side launch steps.
+
 ## When to Use
 
 - A Noesis implementation candidate has just returned
@@ -32,6 +48,10 @@ delegation context.
   this", or otherwise directed the in-fleet review path.
 
 Do not use for:
+- Formal qualification rounds (frozen-candidate Sentinel/Skeptic receipt
+  chains): those are operator-mediated external events — use
+  `references/formal-qualification-rounds.md` for the orchestrator-side
+  duties; this skill supplies only contract shape.
 - Pure ad-hoc OMH review of arbitrary code; use `omh-code-review` and
   the `references/review-dispatch.md` flow it already documents.
 - A pre-commit hook on the operator's own uncommitted changes; use
@@ -148,11 +168,12 @@ Do not use for:
      -t file,terminal \
      --ignore-user-config \
      --in <worktree> \
-     --run-budget 1800 \
      --max-turns 300 \
      --format stream-json \
      --reasoning high
    ```
+   (No `--run-budget`: the installed gateway CLI rejects it; see
+   `references/bounded-session-launch.md`.)
    Run it as `background=true`, `notify=true`, with
    `persist_on_release=true` so the verdict is preserved across
    compaction. The `--ignore-user-config` + explicit provider/model
@@ -275,20 +296,43 @@ Do not use for:
    lane. The user does not need to re-authorize per iteration; only the
    `idempotency_key` and the iteration letter change.
 
+8b. **When the remediation-cycle budget is spent, end the workstream with a
+   concrete blocker instead of starting another cycle.** The budget counts
+   implementation/review repair cycles, not reviewer verdicts, and it is
+   spent whether the cycle produced a PASS or a REQUEST_CHANGES. Once the
+   last allowed cycle's candidate has had its full review chain, a
+   publication-affecting negative verdict ends the workstream: record the
+   blocker with the file, the line, the concrete failure sequence, and the
+   remediation that would fix it, preserve the final candidate and every
+   verdict as evidence, and report the workstream as blocked. Do not
+   dispatch a third implementer, and do not re-review an earlier digest —
+   the earlier verdicts are superseded, not reusable. Distinguish this from
+   a mid-chain negative verdict, which routes back to the implementer
+   normally. Also note when the final candidate passed one reviewer and
+   failed the other: that asymmetry is the strongest evidence that the
+   remaining gap is real and is worth naming, because the passing reviewer
+   had already cleared the specification while the adversarial reviewer
+   found a path the specification did not cover.
+
 ## Pitfalls
 
-- **Do not require the operator to hand-carry the review packet.**
-  The user has stated the preference explicitly and emphatically:
-  never ask the operator to transport prompts, packets, or receipts
-  between agents. If the in-fleet reviewer route is genuinely
-  unavailable, return one precise blocker naming the missing profile,
-  lane, or permission — do not freeze a packet and ask the operator to
-  run the review manually. The default for "needs review" is to
-  dispatch Sentinel and Skeptic as in-fleet child sessions through
+- **Do not require the operator to hand-carry the review packet —
+  except in formal qualification rounds, where that IS the authorized
+  path.**
+  For ordinary implementation reviews the user has stated the preference
+  explicitly and emphatically: never ask the operator to transport prompts,
+  packets, or receipts between agents. If the in-fleet reviewer route is
+  genuinely unavailable, return one precise blocker naming the missing
+  profile, lane, or permission — do not freeze a packet and ask the
+  operator to run the review manually. The default for "needs review" is
+  to dispatch Sentinel and Skeptic as in-fleet child sessions through
   the same canonical `Orchestrator.propose → approve → claim → start`
-  lifecycle the implementer used. The operator preference is not
-  negotiable; the moment you reach for "the operator will run this
-  manually," you have already lost the right framing for the task.
+  lifecycle the implementer used. For a formal qualification round the
+  framing inverts: the operator-mediated launch is the authorized
+  reviewer path (the packet says so), and launching reviewer inference
+  from the orchestrator would itself be the deviation. Keep the two
+  classes distinct and never silently apply one class's routing to the
+  other.
 
 - **Do not launch the reviewer with the orchestrator's own
   provider/model lane as a default.** Always use the lane the
@@ -337,6 +381,22 @@ Do not use for:
   (`[...]`, `<...>`) in a `-q` argument crash the CLI before the
   model is invoked. The contract is too long and too structured to
   survive shell parsing; the file is the safe channel.
+
+- **Do not put GitHub Actions expressions in a double-quoted `-q`
+  argument.** `${{ ... }}` is a brace expansion the shell tries to
+  substitute, so the launch dies with a `bad substitution` error
+  before the reviewer ever runs — and because the reviewer then
+  produces no verdict file, the failure looks like a slow or absent
+  reviewer rather than a launch bug. When the contract or prompt must
+  quote a workflow expression, pass the prompt through a FILE and
+  reference it: `-q "$(cat <prompt-file>)"`. A prompt file is also
+  the right channel for any prompt carrying `$`, backticks, or newlines.
+
+- **Read the launch's own output when the expected artifact does not
+  appear.** A background reviewer that exits without writing its
+  verdict file has usually failed at launch, not at review. Read the
+  process log before re-dispatching, so a launch bug is fixed once
+  instead of being re-run into the same failure.
 
 - **Reconcile the complete status against the closed in-scope path set before
   review.** Run `git status --porcelain` and `git diff --stat HEAD`; do not inspect
@@ -400,6 +460,14 @@ Do not use for:
   for the other, and a reviewer that cannot reproduce both must return
   `BLOCKED`.
 
+- **Do not confuse an in-scope untracked path with out-of-scope pollution,
+  and do not confuse a sibling workstream's files with yours.** A new file
+  inside the closed candidate set is candidate content and must be in the
+  digest. A file belonging to a different, possibly blocked workstream is
+  not yours to stage, revert, or cite as evidence; if it shares the working
+  tree, leave it exactly where it is and say in your receipt which paths
+  you did not touch.
+
 - **Iteration-letter the artifact filenames.** The first implementer
   writes `IMPLEMENTER-RESULT-A1.md`; the first Sentinel writes
   `SENTINEL-VERDICT-A1.md`; the first Skeptic writes
@@ -440,6 +508,15 @@ Do not use for:
 - `references/bounded-session-launch.md` — the exact `hermes -p <profile> chat --query-file ... --oneshot --provider <lane> -m <model> -t file,terminal --ignore-user-config --in <worktree> --run-budget <s> --max-turns <N> --format stream-json --reasoning <level>` invocation, per-flag notes, background-process parameters, and failure modes.
 - `references/review-task-state-machine.md` — the exact `Orchestrator` method sequence to close a review-task on the canonical ledger after the verdict file lands: `enqueue → claim → start → submit_candidate → submit_handoff → record_review(stage='spec') → record_review(stage='quality') → succeed` (or `fail` on `REQUEST_CHANGES`/`BLOCKED`). Includes every PolicyViolation the orchestrator raises and the trigger that raises it, plus the cross-reviewer pattern for `record_review` (reviewer argument must differ from `assignee_profile`).
 - `references/verdict-schema-and-digest-recipe.md` — the byte-exact verdict-file schema (Sentinel and Skeptic), the candidate-identity block both contracts must mirror, the `implementation_plan_md_clean: <true|false>` boolean gate, the cross-reviewer mirror of the same field on Skeptic's verdict, and the recipe to compute `combined_sha256` from `git diff HEAD` plus each untracked file's contents. Use this when authoring a B-series contract.
+- `references/formal-qualification-rounds.md` — the operator-mediated
+  qualification lifecycle: freeze/stability, packet gate-state
+  maintenance, receipt validation, Skeptic hard-dependency, remediation
+  rounds on a new digest, and the never-carry-verdicts-across-digests
+  rule.
+- `references/provenance-attribution.md` — read-only archaeology for an
+  unrecorded edit (session stores, shell history, mtimes; circumstantial
+  vs attribution) and the P1 attestation / P2 risk-acceptance / P3
+  re-author resolution menu for installation assurance.
 
 ## Verification
 

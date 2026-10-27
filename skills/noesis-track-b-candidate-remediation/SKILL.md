@@ -55,7 +55,11 @@ Hard rules that never relax:
   Noesis TaskStore to the Hermes `DurableAttemptAuthority`) with a plan + SHA and an
   explicitly authorized additive interface change — see the dedicated section below.
 - An operator issues a bounded REPAIR turn: named defects (D-items), restricted files,
-  prescribed verification commands, and required evidence items — see the dedicated
+  prescribed verification commands, and required evidence items — see the dedicated section below.
+- You are REVIEWING a candidate deliverable produced by another agent (verifying its
+  claimed hashes, test results, and held operations) rather than producing one — load
+  `noesis-candidate-acceptance-review` instead of this skill. This skill covers the
+  implementer side; that one covers the independent acceptance verdict.
   section below.
 
 ## Pre-checks (fail-closed)
