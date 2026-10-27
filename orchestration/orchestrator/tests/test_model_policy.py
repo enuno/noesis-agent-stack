@@ -7,8 +7,11 @@ not call providers, open network sockets, or read Hermes profile credentials.
 from __future__ import annotations
 
 import json
+from collections.abc import Collection
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -842,7 +845,13 @@ def test_wrong_backend_or_profile_provenance_refused():
     assert admission.allowed is False
     assert "wrong_backend" in admission.reason
     mismatched = _result_for(route, actual_provider="minimax-oauth", actual_model="MiniMax-M3")
-    provenance = validate_result_provenance(route, mismatched)
+    provenance = validate_result_provenance(
+        route,
+        mismatched,
+        policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
     assert provenance.allowed is False
     assert "provider" in provenance.reason
 
@@ -973,14 +982,23 @@ def test_result_reporting_different_route_provider_or_model_rejected():
     route_mismatch = validate_result_provenance(
         route,
         _result_for(route, actual_route="noesis_implement_primary"),
+        policy,
+        task_epoch=EPOCH,
+        now=NOW,
     )
     provider_mismatch = validate_result_provenance(
         route,
         _result_for(route, actual_provider="minimax-oauth"),
+        policy,
+        task_epoch=EPOCH,
+        now=NOW,
     )
     model_mismatch = validate_result_provenance(
         route,
         _result_for(route, actual_model="MiniMax-M3"),
+        policy,
+        task_epoch=EPOCH,
+        now=NOW,
     )
     assert route_mismatch.allowed is False
     assert "route" in route_mismatch.reason
@@ -988,7 +1006,13 @@ def test_result_reporting_different_route_provider_or_model_rejected():
     assert "provider" in provider_mismatch.reason
     assert model_mismatch.allowed is False
     assert "model" in model_mismatch.reason
-    matching = validate_result_provenance(route, _result_for(route))
+    matching = validate_result_provenance(
+        route,
+        _result_for(route),
+        policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
     assert matching.allowed is True
 
 
@@ -1038,6 +1062,58 @@ def test_side_effects_may_have_occurred_refuses_retry_and_fallback(tmp_path):
     )
     assert retry.allowed is False
     assert "side effect" in retry.reason
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("partial_output", None),
+        ("partial_output", 0),
+        ("partial_output", ""),
+        ("partial_output", []),
+        ("partial_output", {}),
+        ("partial_output", False),
+        ("partial_output", True),
+        ("side_effects_may_have_occurred", None),
+        ("side_effects_may_have_occurred", 0),
+        ("side_effects_may_have_occurred", ""),
+        ("side_effects_may_have_occurred", []),
+        ("side_effects_may_have_occurred", {}),
+        ("side_effects_may_have_occurred", False),
+        ("side_effects_may_have_occurred", True),
+    ],
+)
+def test_planner_and_retry_refuse_non_boolean_clear_flags(tmp_path, field, value):
+    """The planner and the retry authorizer must match the success path.
+
+    The success path already requires `is not False` (model_policy.py:808-813),
+    so a flag that is anything other than exactly False is unsafe. The planner
+    and the retry authorizer used truthiness, which admitted None, 0 and "".
+    """
+    policy, evidence = _fallback_fixture(tmp_path)
+    expected_allowed = value is False
+    plan = plan_fallback_sequence(
+        policy,
+        "origin",
+        failure_category="rate_limited",
+        evidence_by_route=evidence,
+        task_epoch=EPOCH,
+        now=NOW,
+        **{field: value},
+    )
+    retry = authorize_retry(
+        proposed_route="origin",
+        attempt_count=0,
+        failure_category="rate_limited",
+        **{field: value},
+    )
+    assert plan.allowed is expected_allowed
+    assert retry.allowed is expected_allowed
+    if expected_allowed:
+        assert plan.routes == ("changed",)
+    else:
+        assert plan.routes == ()
+        assert "partial output" in plan.reason or "side effect" in plan.reason
 
 
 def test_duplicate_retry_prevented():
@@ -1122,6 +1198,7 @@ def test_synchronous_result_reconciliation_background_unsupported():
     matched = reconcile_synchronous_result(
         route,
         _result_for(route),
+        policy=policy,
         task_epoch=EPOCH,
         now=NOW,
         execution_mode="synchronous",
@@ -1133,6 +1210,7 @@ def test_synchronous_result_reconciliation_background_unsupported():
     background = reconcile_synchronous_result(
         route,
         _result_for(route),
+        policy=policy,
         task_epoch=EPOCH,
         now=NOW,
         execution_mode="background",
@@ -1145,6 +1223,7 @@ def test_synchronous_result_reconciliation_background_unsupported():
     drifted = reconcile_synchronous_result(
         route,
         _result_for(route, actual_model="other-model"),
+        policy=policy,
         task_epoch=EPOCH,
         now=NOW,
         execution_mode="synchronous",
@@ -1405,6 +1484,7 @@ def test_synchronous_success_requires_epoch_timestamp_and_selectability():
     accepted = reconcile_synchronous_result(
         route,
         _result_for(route),
+        policy=policy,
         task_epoch=EPOCH,
         now=NOW,
     )
@@ -1413,6 +1493,7 @@ def test_synchronous_success_requires_epoch_timestamp_and_selectability():
     cross_epoch = reconcile_synchronous_result(
         route,
         _result_for(route, task_epoch="other-epoch"),
+        policy=policy,
         task_epoch=EPOCH,
         now=NOW,
     )
@@ -1421,6 +1502,7 @@ def test_synchronous_success_requires_epoch_timestamp_and_selectability():
     future = reconcile_synchronous_result(
         route,
         _result_for(route, evidence_timestamp=NOW + timedelta(days=30)),
+        policy=policy,
         task_epoch=EPOCH,
         now=NOW,
     )
@@ -1430,6 +1512,7 @@ def test_synchronous_success_requires_epoch_timestamp_and_selectability():
     stale = reconcile_synchronous_result(
         route,
         _result_for(route, evidence_timestamp=NOW - timedelta(days=400)),
+        policy=policy,
         task_epoch=EPOCH,
         now=NOW,
     )
@@ -1443,6 +1526,7 @@ def test_synchronous_success_requires_epoch_timestamp_and_selectability():
             task_epoch="other-epoch",
             evidence_timestamp=NOW + timedelta(days=30),
         ),
+        policy=policy,
         task_epoch=EPOCH,
         now=NOW,
     )
@@ -1451,6 +1535,7 @@ def test_synchronous_success_requires_epoch_timestamp_and_selectability():
     disabled_success = reconcile_synchronous_result(
         disabled,
         _result_for(disabled),
+        policy=policy,
         task_epoch=EPOCH,
         now=NOW,
     )
@@ -1458,6 +1543,7 @@ def test_synchronous_success_requires_epoch_timestamp_and_selectability():
     partial = reconcile_synchronous_result(
         route,
         _result_for(route, partial_output=True),
+        policy=policy,
         task_epoch=EPOCH,
         now=NOW,
     )
@@ -1465,6 +1551,7 @@ def test_synchronous_success_requires_epoch_timestamp_and_selectability():
     side_effects = reconcile_synchronous_result(
         route,
         _result_for(route, side_effects_may_have_occurred=True),
+        policy=policy,
         task_epoch=EPOCH,
         now=NOW,
     )
@@ -1649,6 +1736,30 @@ def test_fallback_does_not_plan_attempted_route(tmp_path):
     assert "changed" not in plan.routes
 
 
+def test_fallback_refuses_string_attempted_routes(tmp_path):
+    """A bare str is a Collection[str], so it would be iterated per character.
+
+    The character set never equals the route name, so the duplicate-retry
+    exclusion would never fire and an already-attempted route could be planned
+    again. The planner must refuse the invalid shape instead.
+    """
+    policy, evidence = _fallback_fixture(tmp_path)
+    plan = plan_fallback_sequence(
+        policy,
+        "origin",
+        failure_category="rate_limited",
+        evidence_by_route=evidence,
+        task_epoch=EPOCH,
+        now=NOW,
+        attempted_routes="changed",
+    )
+    assert plan.allowed is False
+    assert plan.routes == ()
+    assert "changed" not in plan.routes
+    assert "attempted_routes" in plan.reason
+    assert "not a string" in plan.reason
+
+
 def test_fallback_rejects_candidate_below_caller_risk(tmp_path):
     policy, evidence = _fallback_fixture(tmp_path)
     plan = plan_fallback_sequence(
@@ -1820,6 +1931,33 @@ def test_valid_credential_category_labels_remain_accepted(tmp_path, scope):
 
 
 @pytest.mark.parametrize(
+    "scope",
+    [
+        "scope-sklive",
+        "scope-xoxb",
+        "scope-bearertoken",
+        "scope-privatekey",
+        "scope-sk",
+    ],
+)
+def test_concatenated_secret_prefix_credential_scope_rejected(tmp_path, scope):
+    """A secret prefix must be recognised even when its delimiter is dropped.
+
+    The prefix detector used to require the prefix at a segment start or after
+    a hyphen, so 'scope-sklive' and friends satisfied the category grammar and
+    were then copied verbatim into credential_safe_summary's credential-safe
+    output. The concatenated forms must be refused at load.
+    """
+    path = write_policy(
+        tmp_path,
+        {"lane_a": _route(credential_scope=scope)},
+        name=f"concatenated-{scope}.yaml",
+    )
+    with pytest.raises(ModelPolicyError, match="credential scope"):
+        load_model_policy(path)
+
+
+@pytest.mark.parametrize(
     ("field", "value"),
     [
         ("partial_output", None),
@@ -1836,8 +1974,490 @@ def test_synchronous_success_rejects_non_boolean_clear_flags(field, value):
     decision = reconcile_synchronous_result(
         route,
         _result_for(route, **{field: value}),
+        policy=policy,
         task_epoch=EPOCH,
         now=NOW,
     )
     assert decision.allowed is False
     assert decision.reconciled is True
+
+
+def test_caller_supplied_route_is_rebound_to_policy():
+    """A caller RouteDefinition is not authoritative. The policy route is.
+
+    A fabricated object shadowing a shipped name with a different provider/model,
+    status='approved', or an inflated readiness TTL must be refused. A name
+    absent from the policy must be refused. The genuine shipped route must
+    still reconcile with fresh same-epoch evidence.
+    """
+
+    policy = _load_shipped()
+    review = policy.routes["noesis_review_primary"]
+    disabled = policy.routes["noesis_implement_primary"]
+    fabricated = replace(
+        disabled,
+        provider="rogue-provider",
+        model="rogue-model",
+        status="approved",
+        evidence=replace(review.evidence, readiness_ttl_seconds=10**9),
+    )
+    matching_fabrication = _result_for(fabricated)
+    reconciled = reconcile_synchronous_result(
+        fabricated,
+        matching_fabrication,
+        policy=policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
+    assert reconciled.allowed is False
+    assert "provider" in reconciled.reason
+    provenance = validate_result_provenance(
+        fabricated,
+        matching_fabrication,
+        policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
+    assert provenance.allowed is False
+    assert "provider" in provenance.reason
+
+    status_shadow = replace(disabled, status="approved", evidence=review.evidence)
+    status_decision = reconcile_synchronous_result(
+        status_shadow,
+        _result_for(status_shadow),
+        policy=policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
+    assert status_decision.allowed is False
+    assert "status" in status_decision.reason
+
+    inflated = replace(review, evidence=replace(review.evidence, readiness_ttl_seconds=10**9))
+    stale_result = _result_for(review, evidence_timestamp=NOW - timedelta(days=400))
+    stale_reconciled = reconcile_synchronous_result(
+        inflated,
+        stale_result,
+        policy=policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
+    assert stale_reconciled.allowed is False
+    assert "stale" in stale_reconciled.reason
+    assert "future" not in stale_reconciled.reason
+    stale_provenance = validate_result_provenance(
+        inflated,
+        stale_result,
+        policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
+    assert stale_provenance.allowed is False
+    assert "stale" in stale_provenance.reason
+    fresh_inflated = reconcile_synchronous_result(
+        inflated,
+        _result_for(review),
+        policy=policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
+    assert fresh_inflated.allowed is False
+    assert "readiness_ttl_seconds" in fresh_inflated.reason
+
+    absent = replace(review, name="not-a-shipped-route")
+    absent_reconciled = reconcile_synchronous_result(
+        absent,
+        _result_for(absent),
+        policy=policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
+    assert absent_reconciled.allowed is False
+    assert "not defined" in absent_reconciled.reason
+    absent_provenance = validate_result_provenance(
+        absent,
+        _result_for(absent),
+        policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
+    assert absent_provenance.allowed is False
+    assert "not defined" in absent_provenance.reason
+    absent_name = validate_result_provenance(
+        "not-a-shipped-route",
+        _result_for(review),
+        policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
+    assert absent_name.allowed is False
+    assert "not defined" in absent_name.reason
+
+    genuine = reconcile_synchronous_result(
+        review,
+        _result_for(review),
+        policy=policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
+    assert genuine.allowed is True
+    assert genuine.reconciled is True
+    genuine_provenance = validate_result_provenance(
+        review,
+        _result_for(review),
+        policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
+    assert genuine_provenance.allowed is True
+    by_name = validate_result_provenance(
+        review.name,
+        _result_for(review),
+        policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
+    assert by_name.allowed is True
+
+
+def test_provenance_enforces_task_epoch_and_freshness():
+    """Provenance itself refuses a cross-epoch, future, or stale result.
+
+    reconcile_synchronous_result keeps refusing those same inputs. A fresh
+    same-epoch identity match is still allowed.
+    """
+
+    policy = _load_shipped()
+    route = policy.routes["noesis_review_primary"]
+    cases = (
+        (_result_for(route, task_epoch="other-epoch"), "epoch", "stale"),
+        (_result_for(route, evidence_timestamp=NOW + timedelta(days=30)), "future", "stale"),
+        (_result_for(route, evidence_timestamp=NOW - timedelta(days=400)), "stale", "future"),
+    )
+    for result, needle, absent in cases:
+        provenance = validate_result_provenance(
+            route,
+            result,
+            policy,
+            task_epoch=EPOCH,
+            now=NOW,
+        )
+        assert provenance.allowed is False
+        assert needle in provenance.reason
+        assert absent not in provenance.reason
+        decision = reconcile_synchronous_result(
+            route,
+            result,
+            policy=policy,
+            task_epoch=EPOCH,
+            now=NOW,
+        )
+        assert decision.allowed is False
+        assert needle in decision.reason
+    fresh = validate_result_provenance(
+        route,
+        _result_for(route),
+        policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
+    assert fresh.allowed is True
+    accepted = reconcile_synchronous_result(
+        route,
+        _result_for(route),
+        policy=policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
+    assert accepted.allowed is True
+    assert accepted.reconciled is True
+
+
+def test_dispatch_result_rejects_naive_evidence_timestamp():
+    """A naive DispatchResult timestamp is refused at construction.
+
+    The timezone-aware equivalent still reconciles.
+    """
+
+    policy = _load_shipped()
+    route = policy.routes["noesis_review_primary"]
+    with pytest.raises(ModelPolicyError, match="timezone-aware"):
+        _result_for(route, evidence_timestamp=NOW.replace(tzinfo=None))
+    aware = reconcile_synchronous_result(
+        route,
+        _result_for(route, evidence_timestamp=NOW),
+        policy=policy,
+        task_epoch=EPOCH,
+        now=NOW,
+    )
+    assert aware.allowed is True
+    assert aware.reconciled is True
+
+
+@pytest.mark.parametrize(
+    "shape",
+    ["bytes", "bytearray", "memoryview", "list-of-bytes"],
+)
+def test_fallback_refuses_non_string_attempted_route_elements(tmp_path, shape):
+    """Byte-like attempted_routes must not be planned again.
+
+    A bytes, bytearray, or memoryview value iterates as ints, and a list of
+    bytes iterates as bytes. str(item) is then not the route name, so the
+    duplicate-retry exclusion would not fire. Every such shape is refused.
+    """
+
+    attempted_routes = {
+        "bytes": b"changed",
+        "bytearray": bytearray(b"changed"),
+        "memoryview": memoryview(b"changed"),
+        "list-of-bytes": [b"changed"],
+    }[shape]
+    policy, evidence = _fallback_fixture(tmp_path)
+    plan = plan_fallback_sequence(
+        policy,
+        "origin",
+        failure_category="rate_limited",
+        evidence_by_route=evidence,
+        task_epoch=EPOCH,
+        now=NOW,
+        attempted_routes=attempted_routes,
+    )
+    assert plan.allowed is False
+    assert plan.routes == ()
+    assert "changed" not in plan.routes
+    assert "attempted_routes" in plan.reason
+    assert "invalid shape" in plan.reason
+
+
+def test_fallback_string_element_collections_still_exclude_or_plan(tmp_path):
+    """List form still excludes by name. None still plans the route.
+
+    Tuple, set, and generator forms of route-name strings keep that same
+    exclusion. The element-type guard must not over-refuse them.
+    """
+
+    policy, evidence = _fallback_fixture(tmp_path)
+    for attempted in (
+        ["changed"],
+        ("changed",),
+        {"changed"},
+        (name for name in ("changed",)),
+    ):
+        plan = plan_fallback_sequence(
+            policy,
+            "origin",
+            failure_category="rate_limited",
+            evidence_by_route=evidence,
+            task_epoch=EPOCH,
+            now=NOW,
+            attempted_routes=attempted,
+        )
+        assert plan.allowed is False
+        assert plan.routes == ()
+        assert "duplicate retry" in plan.reason
+    omitted = plan_fallback_sequence(
+        policy,
+        "origin",
+        failure_category="rate_limited",
+        evidence_by_route=evidence,
+        task_epoch=EPOCH,
+        now=NOW,
+        attempted_routes=None,
+    )
+    assert omitted.allowed is True
+    assert omitted.routes == ("changed",)
+
+
+@pytest.mark.parametrize(
+    "scope",
+    [
+        "risk-tier",
+        "task-scope",
+        "ask-approval",
+        "disk-permission",
+        "masked",
+        "task",
+        "risk",
+        "mask",
+        "ask",
+    ],
+)
+def test_ordinary_category_words_are_not_secret_prefixes(tmp_path, scope):
+    """A category word that merely contains 'sk' is not a secret prefix.
+
+    The unanchored prefix alternative refused these ordinary labels. They are
+    category words, and they must load.
+    """
+
+    policy = load_model_policy(
+        write_policy(
+            tmp_path,
+            {"lane_a": _route(credential_scope=scope)},
+            name=f"ordinary-{scope}.yaml",
+        )
+    )
+    assert policy.routes["lane_a"].credential_scope == scope
+
+
+@pytest.mark.parametrize(
+    "scope",
+    [
+        "oauth-sk-live",
+        "my-sklive",
+        "sk-live",
+        "ghp_token",
+        "github_pat_abc",
+        "xoxb-1234",
+        "akiaiosfodnn7example",
+        "bearer-token",
+        "my-password-here",
+        "private-key-material",
+        "-----begin-rsa",
+        "cat-a1b2c3d4e5f678901234ab",
+    ],
+)
+def test_secret_prefix_forms_remain_rejected_after_anchor(tmp_path, scope):
+    """Anchoring the prefix must not admit a secret-shaped scope.
+
+    Mid-scope forms and every form the pre-repair regex refused stay refused.
+    """
+
+    path = write_policy(
+        tmp_path,
+        {"lane_a": _route(credential_scope=scope)},
+        name=f"still-secret-{scope}.yaml",
+    )
+    with pytest.raises(ModelPolicyError, match="credential scope"):
+        load_model_policy(path)
+
+
+class _HostileRouteName(str):
+    """str subclass whose str() is not the route name."""
+
+    def __str__(self) -> str:
+        return "not-the-route-name"
+
+
+class _SameValueRouteName(str):
+    """str subclass whose str() equals the underlying route name."""
+
+    def __str__(self) -> str:
+        return str.__str__(self)
+
+
+@pytest.mark.parametrize(
+    "attempted_routes",
+    [
+        [_HostileRouteName("changed")],
+        [_SameValueRouteName("changed")],
+    ],
+    ids=["overridden-str-different", "overridden-str-same-value"],
+)
+def test_fallback_refuses_str_subclass_attempted_route_elements(tmp_path, attempted_routes):
+    """A str subclass is not a plain route-name string.
+
+    isinstance(item, str) is True for a subclass, and str(item) then calls an
+    overridden __str__. When that returns a different string, the route name
+    never enters the attempted set and the already-attempted route is planned
+    again. An exact-type test refuses every subclass, including one whose
+    __str__ returns the same value.
+
+    The fixture must reach this guard. Origin permits fallback to the distinct
+    route 'changed', and the evidence route_name matches that route. A control
+    with attempted_routes=None must plan it. Otherwise an upstream exclusion
+    such as malformed route evidence would mask the fail-open.
+    """
+
+    policy, evidence = _fallback_fixture(tmp_path)
+    assert policy.routes["origin"].fallback_allowed is True
+    assert policy.routes["origin"].fallback_routes == ("changed",)
+    assert evidence["changed"].route_name == "changed"
+    assert evidence["changed"].provider == policy.routes["changed"].provider
+    assert evidence["changed"].model == policy.routes["changed"].model
+    control = plan_fallback_sequence(
+        policy,
+        "origin",
+        failure_category="rate_limited",
+        evidence_by_route=evidence,
+        task_epoch=EPOCH,
+        now=NOW,
+        attempted_routes=None,
+    )
+    assert control.allowed is True
+    assert control.routes == ("changed",)
+    item = attempted_routes[0]
+    assert type(item) is not str
+    assert isinstance(item, str)
+    if type(item) is _SameValueRouteName:
+        assert str(item) == "changed"
+    else:
+        assert str(item) == "not-the-route-name"
+        assert str(item) != "changed"
+    plan = plan_fallback_sequence(
+        policy,
+        "origin",
+        failure_category="rate_limited",
+        evidence_by_route=evidence,
+        task_epoch=EPOCH,
+        now=NOW,
+        attempted_routes=attempted_routes,
+    )
+    assert plan.allowed is False
+    assert plan.routes == ()
+    assert "changed" not in plan.routes
+    assert "attempted_routes" in plan.reason
+    assert "invalid shape" in plan.reason
+    assert "duplicate retry" not in plan.reason
+    assert "malformed" not in plan.reason
+
+
+def test_fallback_exact_str_elements_still_exclude_or_plan(tmp_path):
+    """Plain route-name strings are still excluded by name, not by shape.
+
+    The exact-type guard must not over-refuse a list, a generator, None, or a
+    fallback to a route that has not been attempted.
+    """
+
+    policy, evidence = _fallback_fixture(tmp_path)
+    assert evidence["changed"].route_name == "changed"
+    generated = (name for name in ("changed",))
+    assert type(generated).__name__ == "generator"
+    for attempted in (
+        ["changed"],
+        cast(Collection[str], generated),
+    ):
+        plan = plan_fallback_sequence(
+            policy,
+            "origin",
+            failure_category="rate_limited",
+            evidence_by_route=evidence,
+            task_epoch=EPOCH,
+            now=NOW,
+            attempted_routes=attempted,
+        )
+        assert plan.allowed is False
+        assert plan.routes == ()
+        assert "duplicate retry" in plan.reason
+        assert "invalid shape" not in plan.reason
+    omitted = plan_fallback_sequence(
+        policy,
+        "origin",
+        failure_category="rate_limited",
+        evidence_by_route=evidence,
+        task_epoch=EPOCH,
+        now=NOW,
+        attempted_routes=None,
+    )
+    assert omitted.allowed is True
+    assert omitted.routes == ("changed",)
+    unattempted = plan_fallback_sequence(
+        policy,
+        "origin",
+        failure_category="rate_limited",
+        evidence_by_route=evidence,
+        task_epoch=EPOCH,
+        now=NOW,
+        attempted_routes=["not-yet-attempted"],
+    )
+    assert unattempted.allowed is True
+    assert unattempted.routes == ("changed",)
+    assert "planned" in unattempted.reason

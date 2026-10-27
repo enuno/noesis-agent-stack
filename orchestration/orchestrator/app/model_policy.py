@@ -104,6 +104,17 @@ _CATEGORY_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 _SECRET_SCOPE_RE = re.compile(
     r"(?i)(?:(?:^|-)(?:sk-|ghp_|github_pat_|xox[baprs]-|akia|bearer\b)|password|private-key|-----begin)"
 )
+# A secret prefix is recognised at the start of a hyphen-separated segment, or
+# after a non-letter within that segment, with or without its trailing
+# delimiter. Without this, a value that drops the delimiter ('scope-sklive',
+# 'scope-xoxb', 'scope-bearertoken', 'scope-privatekey', 'scope-sk') satisfies
+# the category grammar and would then be copied verbatim into
+# credential_safe_summary's credential-safe output. The prefix is anchored so
+# an ordinary word that merely contains those letters ('risk', 'task', 'mask',
+# 'ask') is not treated as a secret-prefix form.
+_SECRET_SCOPE_PREFIX_RE = re.compile(
+    r"(?i)(?:^|[^a-z])(?:sk|ghp|githubpat|xox[baprs]|akia|bearer|password|private)"
+)
 
 
 class ModelPolicyError(ValueError):
@@ -217,7 +228,11 @@ class ReadinessEvidence:
 
 @dataclass(frozen=True)
 class DispatchResult:
-    """Synchronous result reported by a caller. This module does not produce one."""
+    """Synchronous result reported by a caller. This module does not produce one.
+
+    evidence_timestamp must be timezone-aware. A naive timestamp is refused at
+    construction so it cannot be silently read as UTC.
+    """
 
     selected_route_name: str
     provider: str
@@ -232,6 +247,12 @@ class DispatchResult:
     actual_route: str
     partial_output: bool
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.evidence_timestamp, datetime) or self.evidence_timestamp.tzinfo is None:
+            raise ModelPolicyError(
+                "malformed dispatch result: evidence_timestamp must be a timezone-aware datetime"
+            )
+
 
 @dataclass(frozen=True)
 class AdmissionDecision:
@@ -244,7 +265,7 @@ class AdmissionDecision:
 
 @dataclass(frozen=True)
 class ProvenanceDecision:
-    """Whether a result reports the route, provider, and model that were selected."""
+    """Whether a result is bound to the policy route, task epoch, and freshness bound."""
 
     allowed: bool
     reason: str
@@ -563,30 +584,85 @@ def admit_route(
     return AdmissionDecision(True, f"admitted route '{resolved.name}'", route_name)
 
 
+def _policy_bound_route(
+    policy: ModelPolicy,
+    selected_route: str | RouteDefinition,
+) -> tuple[RouteDefinition | None, str]:
+    """Re-bind a caller route to the policy. The policy object is authoritative.
+
+    A name absent from the policy is refused. A caller-supplied RouteDefinition
+    whose provider, model, or status disagrees with the policy route is refused.
+    Readiness TTL is not compared here; freshness must use the policy TTL so an
+    inflated caller TTL cannot make a stale timestamp look fresh.
+    """
+
+    if not isinstance(policy, ModelPolicy):
+        return None, "malformed route: selected route is not defined"
+    resolved = _resolve_route(policy, selected_route)
+    if resolved is None:
+        return None, f"malformed route: route '{_route_name(selected_route)}' is not defined"
+    if isinstance(selected_route, RouteDefinition):
+        mismatches: list[str] = []
+        if selected_route.provider != resolved.provider or selected_route.model != resolved.model:
+            mismatches.append("provider/model")
+        if selected_route.status != resolved.status:
+            mismatches.append("status")
+        if mismatches:
+            return None, "caller-supplied route is not the policy route: " + ", ".join(mismatches)
+    return resolved, ""
+
+
+def _caller_ttl_disagrees(selected_route: str | RouteDefinition, bound: RouteDefinition) -> str:
+    """Refuse a caller TTL that is not the policy TTL.
+
+    Called only after the freshness check, so a stale timestamp is refused as
+    stale against the policy TTL rather than as a field mismatch.
+    """
+
+    if not isinstance(selected_route, RouteDefinition):
+        return ""
+    if selected_route.evidence.readiness_ttl_seconds != bound.evidence.readiness_ttl_seconds:
+        return "caller-supplied route is not the policy route: readiness_ttl_seconds"
+    return ""
+
+
 def validate_result_provenance(
     selected_route: str | RouteDefinition,
     result: DispatchResult,
-    policy: ModelPolicy | None = None,
+    policy: ModelPolicy,
+    *,
+    task_epoch: str,
+    now: datetime,
 ) -> ProvenanceDecision:
-    """Reject a result that reports a different route, provider, or model."""
+    """Reject a result that is not bound to the policy route, task epoch, and freshness bound."""
 
-    route = selected_route if isinstance(selected_route, RouteDefinition) else None
-    if route is None and policy is not None and isinstance(selected_route, str):
-        route = policy.routes.get(selected_route)
-    if not isinstance(route, RouteDefinition):
-        return ProvenanceDecision(False, "malformed route: selected route is not defined")
+    bound, binding_reason = _policy_bound_route(policy, selected_route)
+    if bound is None:
+        return ProvenanceDecision(False, binding_reason)
     mismatches: list[str] = []
-    if result.actual_route != route.name or result.selected_route_name != route.name:
+    if result.actual_route != bound.name or result.selected_route_name != bound.name:
         mismatches.append("actual route")
-    if result.actual_provider != route.provider or result.provider != route.provider:
+    if result.actual_provider != bound.provider or result.provider != bound.provider:
         mismatches.append("actual provider")
-    if result.actual_model != route.model or result.model != route.model:
+    if result.actual_model != bound.model or result.model != bound.model:
         mismatches.append("actual model")
     if mismatches:
         return ProvenanceDecision(
             False,
             "result provenance mismatch: " + ", ".join(mismatches),
         )
+    if not isinstance(task_epoch, str) or not task_epoch.strip() or result.task_epoch != task_epoch:
+        return ProvenanceDecision(False, "result task epoch does not match the caller task epoch")
+    time_reason = _evidence_time_reason(
+        result.evidence_timestamp,
+        bound.evidence.readiness_ttl_seconds,
+        now,
+    )
+    if time_reason:
+        return ProvenanceDecision(False, time_reason)
+    ttl_reason = _caller_ttl_disagrees(selected_route, bound)
+    if ttl_reason:
+        return ProvenanceDecision(False, ttl_reason)
     return ProvenanceDecision(True, "result provenance matches the selected route, provider, and model")
 
 
@@ -613,9 +689,40 @@ def plan_fallback_sequence(
 
     if isinstance(attempt_count, bool) or not isinstance(attempt_count, int) or attempt_count < 0:
         return FallbackPlan(False, (), "duplicate retry refused: attempt_count is invalid")
-    if partial_output or failure_category == "partial_output":
+    if isinstance(attempted_routes, str):
+        # A bare str is a Collection[str], so iterating it yields one character
+        # per route name. The duplicate-retry exclusion would never fire and an
+        # already-attempted route could be planned again. Refuse the shape.
+        return FallbackPlan(
+            False,
+            (),
+            "attempted_routes must be a collection of route names, not a string",
+        )
+    if attempted_routes is not None:
+        # Element-type guard, at the same position as the str guard. bytes,
+        # bytearray, and memoryview iterate as ints, and a list of bytes is a
+        # collection of non-str elements. A str subclass passes isinstance, and
+        # str(item) then invokes an overridden __str__, which may not be the
+        # route name. Either way the duplicate-retry exclusion would not fire
+        # and an already-attempted route could be planned again. Refuse unless
+        # every element is exactly type str, so every surviving element
+        # satisfies str(item) == item. Materialize once so a generator of names
+        # is still excluded by name below, and so this check stays ahead of the
+        # partial-output and side-effect gates.
+        try:
+            attempted_names = tuple(attempted_routes)
+        except TypeError:
+            attempted_names = None
+        if attempted_names is None or not all(type(item) is str for item in attempted_names):
+            return FallbackPlan(
+                False,
+                (),
+                "attempted_routes has an invalid shape: every element must be a route-name string",
+            )
+        attempted_routes = attempted_names
+    if partial_output is not False or failure_category == "partial_output":
         return FallbackPlan(False, (), "partial output before failure; fallback refused")
-    if side_effects_may_have_occurred:
+    if side_effects_may_have_occurred is not False:
         return FallbackPlan(False, (), "side effects may already have occurred; fallback refused")
     classified = categorize_failure(failure_category)
     if not classified.known:
@@ -711,9 +818,9 @@ def authorize_retry(
 
     if isinstance(attempt_count, bool) or not isinstance(attempt_count, int) or attempt_count < 0:
         return RetryDecision(False, "duplicate retry refused: attempt_count is invalid")
-    if partial_output or failure_category == "partial_output":
+    if partial_output is not False or failure_category == "partial_output":
         return RetryDecision(False, f"partial output before failure; retry of '{proposed_route}' refused")
-    if side_effects_may_have_occurred:
+    if side_effects_may_have_occurred is not False:
         return RetryDecision(False, f"side effects may already have occurred; retry of '{proposed_route}' refused")
     if attempt_count >= 1:
         return RetryDecision(False, f"duplicate retry of '{proposed_route}' refused")
@@ -744,11 +851,12 @@ def reconcile_synchronous_result(
     selected_route: RouteDefinition,
     result: DispatchResult,
     *,
+    policy: ModelPolicy,
     task_epoch: str,
     now: datetime,
     execution_mode: str = "synchronous",
 ) -> ReconciliationDecision:
-    """Accept one synchronous success only when epoch, time, and selectability bind."""
+    """Accept one synchronous success only when the policy route, epoch, time, and selectability bind."""
 
     if execution_mode != "synchronous":
         return ReconciliationDecision(
@@ -766,7 +874,24 @@ def reconcile_synchronous_result(
             execution_mode="synchronous",
             background_supported=BACKGROUND_EXECUTION_SUPPORTED,
         )
-    provenance = validate_result_provenance(selected_route, result)
+    # Re-bind before trusting any field. A fabricated object that shadows a
+    # shipped name is not authoritative for provider, model, status, or TTL.
+    bound, binding_reason = _policy_bound_route(policy, selected_route)
+    if bound is None:
+        return ReconciliationDecision(
+            allowed=False,
+            reconciled=False,
+            reason=binding_reason,
+            execution_mode="synchronous",
+            background_supported=BACKGROUND_EXECUTION_SUPPORTED,
+        )
+    provenance = validate_result_provenance(
+        selected_route,
+        result,
+        policy,
+        task_epoch=task_epoch,
+        now=now,
+    )
     if not provenance.allowed:
         return ReconciliationDecision(
             allowed=False,
@@ -775,6 +900,7 @@ def reconcile_synchronous_result(
             execution_mode="synchronous",
             background_supported=BACKGROUND_EXECUTION_SUPPORTED,
         )
+    # Own epoch check, kept even though provenance applies the same comparison.
     if not isinstance(task_epoch, str) or not task_epoch.strip() or result.task_epoch != task_epoch:
         return ReconciliationDecision(
             allowed=False,
@@ -783,9 +909,10 @@ def reconcile_synchronous_result(
             execution_mode="synchronous",
             background_supported=BACKGROUND_EXECUTION_SUPPORTED,
         )
+    # Own freshness check. The TTL is the policy route's, not the caller's.
     time_reason = _evidence_time_reason(
         result.evidence_timestamp,
-        selected_route.evidence.readiness_ttl_seconds,
+        bound.evidence.readiness_ttl_seconds,
         now,
     )
     if time_reason:
@@ -796,12 +923,21 @@ def reconcile_synchronous_result(
             execution_mode="synchronous",
             background_supported=BACKGROUND_EXECUTION_SUPPORTED,
         )
-    selectable, selectable_reason = _policy_route_selectable(selected_route)
+    selectable, selectable_reason = _policy_route_selectable(bound)
     if not selectable:
         return ReconciliationDecision(
             allowed=False,
             reconciled=False,
             reason=selectable_reason,
+            execution_mode="synchronous",
+            background_supported=BACKGROUND_EXECUTION_SUPPORTED,
+        )
+    ttl_reason = _caller_ttl_disagrees(selected_route, bound)
+    if ttl_reason:
+        return ReconciliationDecision(
+            allowed=False,
+            reconciled=False,
+            reason=ttl_reason,
             execution_mode="synchronous",
             background_supported=BACKGROUND_EXECUTION_SUPPORTED,
         )
@@ -1117,6 +1253,13 @@ def _credential_scope_is_category(value: Any) -> bool:
     parts = value.split("-")
     for part in parts:
         if len(part) > _MAX_SINGLE_SEGMENT_CATEGORY_LENGTH or any(ch.isdigit() for ch in part):
+            return False
+        # A secret prefix is refused when it begins the segment, or follows a
+        # non-letter inside it. The delimiter may be dropped ('scope-sklive')
+        # and the prefix may sit in a later segment ('oauth-sk-live',
+        # 'my-sklive'). An ordinary word that merely contains those letters
+        # ('risk', 'task', 'mask', 'ask') is not a secret-prefix form.
+        if _SECRET_SCOPE_PREFIX_RE.search(part):
             return False
     if _SECRET_SCOPE_RE.search(value):
         return False
