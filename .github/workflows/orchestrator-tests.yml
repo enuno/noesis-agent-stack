@@ -85,7 +85,12 @@ name: Orchestrator A and C validation
       - "integrations/hermes-plugin/noesis-specialist-router/**"
       - "platform/model-routing-policy.yaml"
       - "platform/inference-routing.yaml"
+      - "platform/runtime-reconciliation.yaml"
+      - "shared/models.yaml"
+      - "shared/model-aliases.yaml"
+      - "shared/provider-policies.yaml"
       - "docs/model-routing-policy.md"
+      - "profiles/noesis-roster.yaml"
       - "profiles/live/**"
       - "agency/secretscan.py"
       - "agency/validate-specs.py"
@@ -100,7 +105,12 @@ name: Orchestrator A and C validation
       - "integrations/hermes-plugin/noesis-specialist-router/**"
       - "platform/model-routing-policy.yaml"
       - "platform/inference-routing.yaml"
+      - "platform/runtime-reconciliation.yaml"
+      - "shared/models.yaml"
+      - "shared/model-aliases.yaml"
+      - "shared/provider-policies.yaml"
       - "docs/model-routing-policy.md"
+      - "profiles/noesis-roster.yaml"
       - "profiles/live/**"
       - "agency/secretscan.py"
       - "agency/validate-specs.py"
@@ -362,7 +372,9 @@ jobs:
 
 
           def summary_counts(text: str) -> tuple[str, dict[str, int]]:
-              matches = list(re.finditer(r"={5,}\s*(.*?)\s+in\s+[0-9.]+s\s*={5,}", text))
+              # pytest appends " (H:MM:SS)" at 60s, via timedelta (also "N day(s), ").
+              # Group 1 stays the counts portion. No duration, or a malformed one, does not match.
+              matches = list(re.finditer(r"={5,}\s*(.*?)\s+in\s+[0-9.]+s(?:\s+\((?:\d+ day(?:s)?, )?\d+:\d{2}:\d{2}\))?\s*={5,}", text))
               if not matches:
                   raise SystemExit("no pytest summary line found")
               summary = matches[-1].group(1)
@@ -912,7 +924,9 @@ jobs:
 
 
           def summary_counts(text: str) -> tuple[str, dict[str, int]]:
-              matches = list(re.finditer(r"={5,}\s*(.*?)\s+in\s+[0-9.]+s\s*={5,}", text))
+              # pytest appends " (H:MM:SS)" at 60s, via timedelta (also "N day(s), ").
+              # Group 1 stays the counts portion. No duration, or a malformed one, does not match.
+              matches = list(re.finditer(r"={5,}\s*(.*?)\s+in\s+[0-9.]+s(?:\s+\((?:\d+ day(?:s)?, )?\d+:\d{2}:\d{2}\))?\s*={5,}", text))
               if not matches:
                   raise SystemExit("no pytest summary line found")
               summary = matches[-1].group(1)
