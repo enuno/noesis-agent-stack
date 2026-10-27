@@ -181,12 +181,12 @@ def test_route_with_preflight_records_select_propose_preflight_in_order(
     assert adapter.calls, "launcher was not invoked during the ordered path"
 
 
-def test_preflight_then_route_runs_through_route_with_preflight(
+def test_plan_then_route_runs_through_route_with_preflight(
     tmp_path: Path,
 ) -> None:
     """§3.1: the plugin entrypoint now enters through route_with_preflight.
 
-    The legacy route_and_launch is preserved but ``preflight_then_route``
+    The legacy route_and_launch is preserved but ``plan_then_route``
     is the canonical B2 surface.
     """
     from app.control_plane import Orchestrator
@@ -198,7 +198,7 @@ def test_preflight_then_route_runs_through_route_with_preflight(
         capability_index=CapabilityIndex.from_repo(adapter=adapter),
         runtime_adapter=adapter,
     )
-    result = orch.preflight_then_route(
+    result = orch.plan_then_route(
         title="plugin entrypoint",
         intent="Implement a deterministic input-validation function with tests",
         acceptance_criteria=["plugin entrypoint wired"],
@@ -212,6 +212,82 @@ def test_preflight_then_route_runs_through_route_with_preflight(
     assert result.task.assignee_profile == "noesis-forge"
     # Preflight evidence was recorded on the canonical task.
     assert result.task.preflight_evidence is not None
+
+
+def test_plan_then_route_is_the_public_entrypoint_name() -> None:
+    """F3: the plugin-facing entrypoint is named ``plan_then_route``.
+
+    The former ``preflight_then_route`` name claimed the method runs a
+    preflight before routing, but it only forwards to
+    ``route_with_preflight``; the ordering it documents starts at
+    selection. The old name is removed rather than aliased so no caller
+    can keep using the misleading spelling.
+    """
+    from app.control_plane import Orchestrator
+
+    assert hasattr(Orchestrator, "plan_then_route"), "plan_then_route is missing"
+    assert not hasattr(
+        Orchestrator, "preflight_then_route"
+    ), "the misleading preflight_then_route name is still exposed"
+
+
+def test_plan_then_route_forwards_to_route_with_preflight(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """F3: the rename is behaviour-preserving — the method still forwards
+    to ``route_with_preflight`` with the same keyword arguments.
+    """
+    from app.control_plane import Orchestrator
+    from app.specialist_routing import CapabilityIndex
+
+    adapter = _FakeRuntimeAdapter(installed=ELIGIBLE)
+    orch = Orchestrator(
+        tmp_path / "tasks.jsonl",
+        capability_index=CapabilityIndex.from_repo(adapter=adapter),
+        runtime_adapter=adapter,
+    )
+    seen: dict[str, object] = {}
+
+    def _route_with_preflight(self, **kwargs):
+        seen.update(kwargs)
+        return "sentinel-result"
+
+    monkeypatch.setattr(
+        "app.control_plane.Orchestrator.route_with_preflight", _route_with_preflight
+    )
+    result = orch.plan_then_route(
+        title="forwarding probe",
+        intent="Implement a deterministic input-validation function with tests",
+        acceptance_criteria=["forwards to route_with_preflight"],
+        verification=__import__("app.models", fromlist=["Verification"]).Verification(
+            method="synthetic"
+        ),
+        idempotency_key="b2-plan-then-route-forwarding",
+        dry_run=True,
+        required_capability="implementation",
+        risk_tier="r0",
+        timeout_s=321,
+        max_attempts=3,
+        reviewer_profile="noesis-sentinel",
+        approval_required=False,
+        parent_task_id=None,
+        max_depth=1,
+        allow_generic_fallback=False,
+        inference_routing_context={"requested_lane": "KIMI_CODE"},
+        approved_provider="KIMI_CODE",
+        approved_model="kimi-k2.7-code",
+        workspace=str(tmp_path),
+        expected_epoch=7,
+        allow_unknown_quota=True,
+    )
+    assert result == "sentinel-result"
+    assert seen["title"] == "forwarding probe"
+    assert seen["idempotency_key"] == "b2-plan-then-route-forwarding"
+    assert seen["timeout_s"] == 321
+    assert seen["max_attempts"] == 3
+    assert seen["reviewer_profile"] == "noesis-sentinel"
+    assert seen["allow_unknown_quota"] is True
+    assert seen["expected_epoch"] == 7
 
 
 def test_route_and_launch_is_deprecated(tmp_path: Path) -> None:
@@ -237,6 +313,9 @@ def test_route_and_launch_is_deprecated(tmp_path: Path) -> None:
     assert deprecations, "route_and_launch did not emit a DeprecationWarning"
     assert any(
         "route_with_preflight" in str(w.message) for w in deprecations
+    ), deprecations
+    assert any(
+        "plan_then_route" in str(w.message) for w in deprecations
     ), deprecations
 
 
@@ -446,7 +525,7 @@ def test_unknown_quota_remains_visible(tmp_path: Path) -> None:
 
 def test_allow_unknown_quota_flows_through_dispatcher(tmp_path: Path) -> None:
     """§3.4: the dispatcher's ``allow_unknown_quota`` flag is forwarded
-    to the preflight. Without it, ``preflight_then_route`` blocks.
+    to the preflight. Without it, ``plan_then_route`` blocks.
     """
     from app.control_plane import Orchestrator
     from app.specialist_routing import CapabilityIndex
@@ -457,11 +536,11 @@ def test_allow_unknown_quota_flows_through_dispatcher(tmp_path: Path) -> None:
         capability_index=CapabilityIndex.from_repo(adapter=adapter),
         runtime_adapter=adapter,
     )
-    # Dry-run preflight_then_route must not raise regardless of the
+    # Dry-run plan_then_route must not raise regardless of the
     # flag; the B2 path's flag forwarding is verified by exercising
     # the dry-run code. The flag value is forwarded into the
     # preflight's ``evidence_digest`` so a replay can verify it.
-    result = orch.preflight_then_route(
+    result = orch.plan_then_route(
         title="allow-unknown-quota flag",
         intent="Implement a deterministic input-validation function with tests",
         acceptance_criteria=["flag forwarding"],
@@ -477,7 +556,7 @@ def test_allow_unknown_quota_flows_through_dispatcher(tmp_path: Path) -> None:
     # Replay with the flag flipped: the persisted envelope records
     # ``allow_unknown_quota=False`` so a replay can verify the same
     # exception shape.
-    result_with_flag = orch.preflight_then_route(
+    result_with_flag = orch.plan_then_route(
         title="allow-unknown-quota flag 2",
         intent="Implement a deterministic input-validation function with tests",
         acceptance_criteria=["flag forwarding"],
@@ -1112,7 +1191,7 @@ def test_block_or_missing_required_evidence_prevents_fake_launch(
     assert decision_stale.allowed is False
     assert "stale_preflight_evidence" in decision_stale.reason
 
-    # (c) The full ``preflight_then_route`` path with a freshly run
+    # (c) The full ``plan_then_route`` path with a freshly run
     # preflight never raises for the KEEP case; the gate accepts.
     fresh.preflight_evidence = {
         current_epoch: [
@@ -1203,7 +1282,7 @@ def test_canonical_ledger_required(tmp_path: Path) -> None:
         capability_index=CapabilityIndex.from_repo(adapter=adapter),
         runtime_adapter=adapter,
     )
-    result = orch.preflight_then_route(
+    result = orch.plan_then_route(
         title="canonical ledger required",
         intent="Implement a deterministic input-validation function with tests",
         acceptance_criteria=["canonical ledger required"],
