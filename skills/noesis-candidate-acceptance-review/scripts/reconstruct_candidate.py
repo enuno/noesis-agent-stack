@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -81,12 +82,31 @@ def build_blob_index(repo: Path) -> dict[str, str]:
 
 
 def materialize(repo: Path, base: str, tree: Path, blobs: dict[str, str]) -> None:
-    """Write the base tree into `tree`, then overlay candidate content."""
+    """Write the base tree into `tree`, then overlay candidate content.
+
+    The reconstruction directory is always recreated. Reusing a non-empty
+    tree would keep leftover files from a previous candidate and let the
+    fully-staged variant stage them as additions.
+    """
     archive = subprocess.run(
         ["git", "-C", str(repo), "archive", base],
         capture_output=True,
     ).stdout
-    tree.mkdir(parents=True, exist_ok=True)
+    if tree.exists():
+        sys.stderr.write(
+            f"reconstruction directory {tree} already exists; recreating it "
+            f"before extracting the base so leftover files from a previous "
+            f"candidate cannot contaminate this reconstruction\n"
+        )
+        try:
+            shutil.rmtree(tree)
+        except OSError as exc:
+            raise SystemExit(
+                f"refusing to extract into existing reconstruction directory {tree}: "
+                f"could not recreate it ({exc}). Leftover files would contaminate "
+                f"the candidate."
+            ) from exc
+    tree.mkdir(parents=True)
     import io
     import tarfile
 
@@ -94,8 +114,12 @@ def materialize(repo: Path, base: str, tree: Path, blobs: dict[str, str]) -> Non
         tf.extractall(tree)
 
 
-def overlay(tree: Path, index: dict[str, str], blob_specs: list[str]) -> list[str]:
-    """Overlay candidate file content looked up by content SHA-256."""
+def overlay(repo: Path, tree: Path, index: dict[str, str], blob_specs: list[str]) -> list[str]:
+    """Overlay candidate file content looked up by content SHA-256.
+
+    Blobs are read from `repo`, not from the scratch directory. A failed
+    cat-file writes nothing.
+    """
     applied = []
     for spec in blob_specs:
         digest, _, rel = spec.partition(":")
@@ -104,13 +128,19 @@ def overlay(tree: Path, index: dict[str, str], blob_specs: list[str]) -> list[st
         oid = index.get(digest)
         if oid is None:
             raise SystemExit(f"no blob in object DB with sha256 {digest} ({rel})")
-        data = subprocess.run(
-            ["git", "-C", str(tree.parent), "cat-file", "blob", oid],
+        result = subprocess.run(
+            ["git", "-C", str(repo), "cat-file", "blob", oid],
             capture_output=True,
-        ).stdout
+        )
+        if result.returncode != 0:
+            err = result.stderr.decode("utf-8", errors="replace").strip()
+            raise SystemExit(
+                f"git cat-file blob {oid} failed (exit {result.returncode}) "
+                f"for {rel}: {err}"
+            )
         dest = tree / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_bytes(data)
+        dest.write_bytes(result.stdout)
         applied.append(rel)
     return applied
 
@@ -122,15 +152,28 @@ def diff_variants(repo: Path, base: str, tree: Path, new_paths: list[str]) -> di
     env["GIT_INDEX_FILE"] = str(scratch / "idx")
     env["GIT_WORK_TREE"] = str(tree)
 
-    def run_diff(extra: list[str]) -> str:
-        out = scratch / "variant.diff"
-        subprocess.run(
-            ["git", "-C", str(repo), "diff", "--no-color", *extra],
-            capture_output=True,
-            text=True,
-            env=env,
-            stdout=out.open("w"),
-        )
+    def run_diff(extra: list[str], out_name: str) -> str:
+        # stdout goes to its own file; stderr is captured separately so a
+        # failure is visible. capture_output cannot be combined with stdout.
+        out = scratch / out_name
+        with out.open("wb") as fh:
+            result = subprocess.run(
+                ["git", "-C", str(repo), "diff", "--no-color", *extra],
+                stdout=fh,
+                stderr=subprocess.PIPE,
+                env=env,
+            )
+        err = result.stderr.decode("utf-8", errors="replace")
+        if err:
+            sys.stderr.write(err)
+            if not err.endswith("\n"):
+                sys.stderr.write("\n")
+        # git diff exits 1 when the patch is non-empty; only >1 is a failure.
+        if result.returncode > 1:
+            raise RuntimeError(
+                f"git diff --no-color {' '.join(extra)} failed "
+                f"(exit {result.returncode}): {err.strip()}"
+            )
         return sha256_file(out)
 
     variants: dict[str, str] = {}
@@ -140,7 +183,7 @@ def diff_variants(repo: Path, base: str, tree: Path, new_paths: list[str]) -> di
     if idx.exists():
         idx.unlink()
     git(repo, "read-tree", base, env=env)
-    variants["tracked-only"] = run_diff([])
+    variants["tracked-only"] = run_diff([], "tracked-only.diff")
 
     # B: new files included as additions via intent-to-add
     if new_paths:
@@ -150,7 +193,7 @@ def diff_variants(repo: Path, base: str, tree: Path, new_paths: list[str]) -> di
             text=True,
             env=env,
         )
-    variants["tracked+new-as-additions"] = run_diff([])
+    variants["tracked+new-as-additions"] = run_diff([], "tracked-plus-new.diff")
 
     # C: fully staged
     subprocess.run(
@@ -159,15 +202,7 @@ def diff_variants(repo: Path, base: str, tree: Path, new_paths: list[str]) -> di
         text=True,
         env=env,
     )
-    staged = scratch / "staged.diff"
-    subprocess.run(
-        ["git", "-C", str(repo), "diff", "--no-color", "--cached", base],
-        capture_output=True,
-        text=True,
-        env=env,
-        stdout=staged.open("w"),
-    )
-    variants["fully-staged"] = sha256_file(staged)
+    variants["fully-staged"] = run_diff(["--cached", base], "staged.diff")
 
     return variants
 
@@ -203,7 +238,7 @@ def main() -> int:
     index = build_blob_index(repo)
     materialize(repo, args.base, tree, index)
     if args.blob:
-        overlay(tree, index, args.blob)
+        overlay(repo, tree, index, args.blob)
 
     print("== reconstructed tree per-file sha256 ==")
     for rel in args.tracked + args.new:
@@ -215,7 +250,7 @@ def main() -> int:
 
     variants = diff_variants(repo, args.base, tree, args.new)
     if args.new:
-        tracked_diff = scratch / "variant.diff"
+        tracked_diff = scratch / "tracked-only.diff"
         variants["combined"] = combined_hash(tracked_diff, tree, args.new)
 
     print("\n== diff hash variants ==")
