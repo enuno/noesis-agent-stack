@@ -26,10 +26,13 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import os
 import shutil
 import subprocess
 import sys
+import tarfile
+import tempfile
 from pathlib import Path
 
 
@@ -84,11 +87,13 @@ def build_blob_index(repo: Path) -> dict[str, str]:
 def materialize(repo: Path, base: str, tree: Path, blobs: dict[str, str]) -> None:
     """Write the base tree into `tree`, then overlay candidate content.
 
-    The reconstruction directory is recreated only after git archive has
-    returned a non-empty archive. Reusing a non-empty tree would keep
-    leftover files from a previous candidate and let the fully-staged
-    variant stage them as additions. An invalid base leaves the existing
-    tree untouched.
+    The reconstruction directory is replaced only after git archive has
+    returned a non-empty archive and that archive has been extracted
+    successfully into a temporary sibling directory. An invalid base, or
+    an archive that cannot be extracted, leaves the existing tree
+    untouched. Reusing a non-empty tree would keep leftover files from a
+    previous candidate and let the fully-staged variant stage them as
+    additions.
     """
     result = subprocess.run(
         ["git", "-C", str(repo), "archive", base],
@@ -102,26 +107,49 @@ def materialize(repo: Path, base: str, tree: Path, blobs: dict[str, str]) -> Non
             f"reconstruction directory left untouched"
         )
     archive = result.stdout
+    # Same parent as `tree` so the final replace is a same-filesystem rename.
+    # filter='data' is Python 3.14's default and 3.11's opt-in. Without it,
+    # 3.11 extracts a symlink that points outside the destination and the
+    # successful extract would then replace the prior reconstruction.
+    staging = Path(tempfile.mkdtemp(prefix=f".{tree.name}.", dir=tree.parent))
+    try:
+        with tarfile.open(fileobj=io.BytesIO(archive)) as tf:
+            tf.extractall(staging, filter="data")
+    except Exception as exc:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise SystemExit(
+            f"extracting git archive {base} failed ({type(exc).__name__}): {exc}; "
+            f"reconstruction directory left untouched"
+        ) from exc
     if tree.exists():
         sys.stderr.write(
-            f"reconstruction directory {tree} already exists; recreating it "
-            f"before extracting the base so leftover files from a previous "
+            f"reconstruction directory {tree} already exists; replacing it "
+            f"after a successful extraction so leftover files from a previous "
             f"candidate cannot contaminate this reconstruction\n"
         )
         try:
             shutil.rmtree(tree)
         except OSError as exc:
+            shutil.rmtree(staging, ignore_errors=True)
             raise SystemExit(
                 f"refusing to extract into existing reconstruction directory {tree}: "
                 f"could not recreate it ({exc}). Leftover files would contaminate "
                 f"the candidate."
             ) from exc
-    tree.mkdir(parents=True)
-    import io
-    import tarfile
-
-    with tarfile.open(fileobj=io.BytesIO(archive)) as tf:
-        tf.extractall(tree)
+    try:
+        staging.rename(tree)
+    except OSError as exc:
+        if tree.exists():
+            shutil.rmtree(staging, ignore_errors=True)
+            raise SystemExit(
+                f"extracted git archive {base} but could not move it into {tree}: {exc}; "
+                f"reconstruction directory left untouched"
+            ) from exc
+        raise SystemExit(
+            f"extracted git archive {base} but could not move {staging} into {tree}: {exc}. "
+            f"The extracted tree was left at {staging}; the previous reconstruction "
+            f"was already removed."
+        ) from exc
 
 
 def overlay(repo: Path, tree: Path, index: dict[str, str], blob_specs: list[str]) -> list[str]:

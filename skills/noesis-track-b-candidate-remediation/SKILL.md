@@ -60,7 +60,6 @@ Hard rules that never relax:
   claimed hashes, test results, and held operations) rather than producing one — load
   `noesis-candidate-acceptance-review` instead of this skill. This skill covers the
   implementer side; that one covers the independent acceptance verdict.
-  section below.
 
 ## Pre-checks (fail-closed)
 
