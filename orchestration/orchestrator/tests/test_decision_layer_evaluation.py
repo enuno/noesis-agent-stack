@@ -665,20 +665,15 @@ def _classify_active_outcome(outcome, scenario: DecisionScenario) -> str:
 # ----------------------------------------------------------------------------
 
 
-_EVAL_RESULTS_PATH = Path(
-    "/Users/elvis/projects/noesis-agent-stack/workspace/orchestrator/"
-    "jev-decision-layer/evaluation-results.md"
-)
-
-
 def _write_results(
     *,
     off_results: dict[str, dict],
     shadow_results: dict[str, dict],
     active_results: dict[str, dict],
     metrics: dict,
+    results_path: Path,
 ) -> None:
-    """Persist the evaluation report to the workspace path."""
+    """Persist the evaluation report under the caller-supplied path."""
     inventory_lines = [
         "| scenario_id | type | baseline_candidate | expected_active_outcome | observed_active_outcome | observed_active_fallback |",
         "| --- | --- | --- | --- | --- | --- |",
@@ -888,8 +883,8 @@ def _write_results(
     add()
 
     body = "\n".join(body_lines)
-    _EVAL_RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    _EVAL_RESULTS_PATH.write_text(body, encoding="utf-8")
+    results_path.parent.mkdir(parents=True, exist_ok=True)
+    results_path.write_text(body, encoding="utf-8")
 
 
 # ----------------------------------------------------------------------------
@@ -897,14 +892,14 @@ def _write_results(
 # ----------------------------------------------------------------------------
 
 
-def test_decision_layer_offline_evaluation() -> None:
+def test_decision_layer_offline_evaluation(tmp_path: Path) -> None:
     """Run the offline evaluation across 25 scenarios × 3 modes.
 
     This is the single evaluator. It:
 
     1. Iterates over each scenario and runs it in OFF, SHADOW, ACTIVE.
     2. Collects the outcomes and computes six metrics.
-    3. Writes the results to ``evaluation-results.md``.
+    3. Writes the results under the test tmp_path.
     4. Asserts the metrics fall within expected ranges.
     """
     # --- Run all scenarios -----------------------------------------------
@@ -992,11 +987,13 @@ def test_decision_layer_offline_evaluation() -> None:
     )
 
     # --- Write results ---------------------------------------------------
+    results_path = tmp_path / "jev-decision-layer" / "evaluation-results.md"
     _write_results(
         off_results=off_results,
         shadow_results=shadow_results,
         active_results=active_results,
         metrics=metrics,
+        results_path=results_path,
     )
 
     # --- Assertions ------------------------------------------------------
@@ -1074,9 +1071,12 @@ def test_decision_layer_offline_evaluation() -> None:
         f"budget_exhaustion fallback was {budget_outcome.fallback_reason}; "
         f"expected BUDGET_EXHAUSTED"
     )
-    # Sanity: results file was written.
-    assert _EVAL_RESULTS_PATH.exists(), (
-        f"evaluation-results.md was not written to {_EVAL_RESULTS_PATH}"
+    # Sanity: results file was written under the test tmp_path.
+    assert results_path.is_file(), (
+        f"evaluation-results.md was not written to {results_path}"
+    )
+    assert results_path.is_relative_to(tmp_path), (
+        f"evaluation report {results_path} is not under {tmp_path}"
     )
 
 

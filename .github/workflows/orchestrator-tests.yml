@@ -1,0 +1,1124 @@
+name: Orchestrator A and C validation
+
+# Separate CI for Workstream A (PR #14) and Workstream C (PR #15).
+# The inference-routing workflow is path-filtered and does not run these suites.
+# This file must stay a separate change from the A and C candidate bytes.
+#
+# Least privilege: workflow permissions are contents: read only.
+# This repository is public. It is not checked out with actions/checkout.
+# actions/checkout@v4 requires its token input (src/input-helper.ts calls
+# getInput('token', {required: true})) and defaults that input to github.token.
+# An empty token raises "Input required and not supplied: token". A present
+# token is written as http.https://github.com/.extraheader before fetch.
+# Every git fetch in this workflow uses the public HTTPS URL, disables
+# credential.helper, and sets no extraheader. No credential is read, persisted,
+# printed, or passed into pytest.
+# Privileged pull-request events, OIDC, package writes, and action writes are not requested.
+# No provider credential is read.
+#
+# Hermes is installed from a pinned upstream SOURCE checkout, not from PyPI.
+# Tag v0.22.5 is an annotated tag. FETCH_HEAD is the tag object; checkout
+# peels it to commit bf0203a794a07aac3ff764972ab9087baa4e4f4e. The job fails
+# if the checked-out commit is anything else. The install is editable
+# (pip install --no-deps -e) because upstream setup.py blocks wheel and sdist
+# builds. That install lands only in the throwaway CI environment. It is not
+# a live Hermes install, not a profile activation, and not a credential.
+# Upstream gates its pyproject dependencies behind python_version >= 3.14, so
+# Python 3.11 installs the explicit pins in
+# .github/workflows/orchestrator-test-requirements.txt, including psutil==7.2.2
+# and ruamel-yaml==0.18.16.
+# Tests run with an isolated HOME under RUNNER_TEMP. The runner's real home
+# is never used. The gitignored historical ledger is not created, fetched,
+# or required; its two tests must remain skipped.
+#
+# pull_request checks out the proposed merge state, not the isolated head.
+# github.sha on pull_request is the merge commit. The job fetches
+# refs/pull/<number>/merge with credential.helper disabled and no extraheader,
+# and fails unless that object is exactly github.sha. If the merge ref is
+# absent, the job fails. It does not fall back to the head.
+# push and workflow_dispatch keep github.sha. There is no merge ref.
+# The combined job uses the same checkout, then merges the pinned commits
+# and fails unless the fetched objects are exactly:
+#   A 8528bf0d736521d32f0f1fcd93728fd4a6087485
+#   C 91bfe722e7e46b8e96e1934e4f447cad879670e6
+# A merge of a pinned commit already in the tree is a clean no-op.
+# A merge conflict fails the job. The merge identity is supplied per
+# invocation and is not written with git config.
+#
+# Measured hermetic baseline after removing the stale G1 and G4 xfail markers
+# (G2 and G3 remain open xfail). Counts are asserted below so drift fails the
+# build. Do not suppress, skip, ignore, or weaken a test to manufacture green.
+#
+#   Event tree (proposed merge state). Suite passed is a floor. Structural
+#   counts are exact:
+#     passed >= 608, failed = 0, skipped = 2, xfailed = 2, xpassed = 0
+#     608 is the measured base+CI tree. Every proposed merge state contains it.
+#   Combined A+C merged onto that revision. These counts are exact, not floors:
+#     passed = 761, failed = 0, skipped = 2, xfailed = 2, xpassed = 0
+#   Focused A on that combined tree: 39 passed (exact)
+#   Focused C on that combined tree: 147 passed (exact)
+#   Event-tree focused A: 3 files present -> passed >= 39; 2 files present ->
+#   passed >= 33. Fewer than 2 focused A files fails the step. It is not a skip.
+#   Event-tree focused C, when tests/test_model_policy.py is present:
+#   passed >= 147. Absence skips that step. The combined job fails if it is absent.
+#
+# Measured variants, base d0eda032 plus the CI test repairs:
+#   base+CI      608 passed, 2 skipped, 2 xfailed; focused A 33; C absent
+#   base+CI+A    614 passed, 2 skipped, 2 xfailed; focused A 39; C absent
+#   base+CI+C    755 passed, 2 skipped, 2 xfailed; focused A 33; focused C 147
+#   base+CI+A+C  761 passed, 2 skipped, 2 xfailed; focused A 39; focused C 147
+#
+# The two skips are requires_historical_ledger in test_lease_lifecycle.py and
+# test_lease_persisted_fold.py. A third skip, or a skip count of 0, is drift.
+# xfailed must be exactly G2 (observe_deny_does_not_authorize) and G3
+# (resolved_pair_must_match). xpassed must be 0 because G1 and G4 are repaired
+# in control_plane.py and their stale markers are removed in this change.
+# If a gate repair lands, update this comment and the assertions together.
+# Do not delete the G2 or G3 markers in order to go green.
+
+"on":
+  pull_request:
+    paths:
+      - ".github/workflows/orchestrator-tests.yml"
+      - ".github/workflows/orchestrator-test-requirements.txt"
+      - "orchestration/orchestrator/**"
+      - "integrations/hermes-plugin/noesis-specialist-router/**"
+      - "platform/model-routing-policy.yaml"
+      - "platform/inference-routing.yaml"
+      - "platform/runtime-reconciliation.yaml"
+      - "shared/models.yaml"
+      - "shared/model-aliases.yaml"
+      - "shared/provider-policies.yaml"
+      - "docs/model-routing-policy.md"
+      - "profiles/noesis-roster.yaml"
+      - "profiles/live/**"
+      - "agency/secretscan.py"
+      - "agency/validate-specs.py"
+      - "scripts/validate_inference_routing.py"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/orchestrator-tests.yml"
+      - ".github/workflows/orchestrator-test-requirements.txt"
+      - "orchestration/orchestrator/**"
+      - "integrations/hermes-plugin/noesis-specialist-router/**"
+      - "platform/model-routing-policy.yaml"
+      - "platform/inference-routing.yaml"
+      - "platform/runtime-reconciliation.yaml"
+      - "shared/models.yaml"
+      - "shared/model-aliases.yaml"
+      - "shared/provider-policies.yaml"
+      - "docs/model-routing-policy.md"
+      - "profiles/noesis-roster.yaml"
+      - "profiles/live/**"
+      - "agency/secretscan.py"
+      - "agency/validate-specs.py"
+      - "scripts/validate_inference_routing.py"
+  workflow_dispatch:
+    inputs:
+      ref_a:
+        description: "Workstream A commit. Must be the measured SHA. Ignored when combined_ref is set."
+        required: false
+        default: "8528bf0d736521d32f0f1fcd93728fd4a6087485"
+      ref_c:
+        description: "Workstream C commit. Must be the measured SHA. Ignored when combined_ref is set."
+        required: false
+        default: "91bfe722e7e46b8e96e1934e4f447cad879670e6"
+      combined_ref:
+        description: "Optional single combined ref to test instead of merging ref_a and ref_c onto this workflow revision."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  event-tree:
+    name: Event tree validation
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out repository without credentials
+        env:
+          # pull_request: github.sha is the merge commit, not the head.
+          # push: github.sha is the pushed commit. This job does not run on
+          # workflow_dispatch; that event uses the same expression below.
+          CHECKOUT_SHA: ${{ github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number || '' }}
+        run: |
+          set -eu
+          export GIT_TERMINAL_PROMPT=0
+          cd "$GITHUB_WORKSPACE"
+          if [ -e .git ]; then
+            echo "refusing to reuse an existing git directory" >&2
+            exit 1
+          fi
+          git init
+          git remote add origin https://github.com/enuno/noesis-agent-stack.git
+          git config --local credential.helper ""
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          if git config --local --get-regexp 'extraheader'; then
+            echo "credential extraheader present before fetch" >&2
+            exit 1
+          fi
+          # Full history of advertised branches. Public URL, no token, no extraheader.
+          git -c credential.helper= fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*'
+          if ! printf '%s' "$CHECKOUT_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "refusing non-sha checkout ref" >&2
+            exit 1
+          fi
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            # Test the tree the event proposes to merge. GITHUB_SHA is that
+            # merge commit. Fetch refs/pull/<number>/merge and require it.
+            # Do not fall back to the head if the ref is absent.
+            if ! printf '%s' "$PR_NUMBER" | grep -Eq '^[0-9]+$'; then
+              echo "pull_request number is not an integer; refusing to guess a checkout" >&2
+              exit 1
+            fi
+            if ! git -c credential.helper= fetch --no-tags origin "refs/pull/${PR_NUMBER}/merge"; then
+              echo "refs/pull/${PR_NUMBER}/merge is absent; the pull request is not mergeable" >&2
+              echo "refusing to fall back to the head" >&2
+              exit 1
+            fi
+            FETCHED="$(git rev-parse 'FETCH_HEAD^{commit}')"
+            if [ "$FETCHED" != "$CHECKOUT_SHA" ]; then
+              echo "refs/pull/${PR_NUMBER}/merge is ${FETCHED}, expected GITHUB_SHA ${CHECKOUT_SHA}" >&2
+              echo "refusing to check out a different object" >&2
+              exit 1
+            fi
+          else
+            # push: github.sha is the event commit. There is no merge ref.
+            if ! git cat-file -e "${CHECKOUT_SHA}^{commit}" >/dev/null 2>&1; then
+              git -c credential.helper= fetch --no-tags origin "$GITHUB_REF"
+            fi
+          fi
+          if ! git cat-file -e "${CHECKOUT_SHA}^{commit}" >/dev/null 2>&1; then
+            echo "event commit ${CHECKOUT_SHA} was not fetched without credentials" >&2
+            exit 1
+          fi
+          git checkout --detach "$CHECKOUT_SHA"
+          test "$(git rev-parse HEAD)" = "$CHECKOUT_SHA"
+          if git config --local --get-regexp 'extraheader'; then
+            echo "fetch wrote an auth extraheader" >&2
+            exit 1
+          fi
+          echo "GIT_TERMINAL_PROMPT=0" >> "$GITHUB_ENV"
+          echo "checked out $(git rev-parse HEAD) with no credential"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pinned Hermes source and test dependencies
+        run: |
+          set -eu
+          export GIT_TERMINAL_PROMPT=0
+          PIN_SHA="bf0203a794a07aac3ff764972ab9087baa4e4f4e"
+          PIN_FILE_SHA="313df39afdb0eab013700bd33b32858473a03dd32e95cb5a481fd18cc605c031"
+          DEST="${RUNNER_TEMP}/hermes-agent"
+          git init "$DEST"
+          git -C "$DEST" remote add origin https://github.com/NousResearch/hermes-agent.git
+          git -C "$DEST" config --local credential.helper ""
+          git -C "$DEST" -c credential.helper= fetch --no-tags --depth 1 origin tag v0.22.5
+          PEELED="$(git -C "$DEST" rev-parse 'FETCH_HEAD^{commit}')"
+          if [ "$PEELED" != "$PIN_SHA" ]; then
+            echo "tag v0.22.5 peeled to ${PEELED}, expected ${PIN_SHA}" >&2
+            echo "FETCH_HEAD tag object $(git -C "$DEST" rev-parse FETCH_HEAD)" >&2
+            exit 1
+          fi
+          git -C "$DEST" checkout --detach FETCH_HEAD
+          HEAD_SHA="$(git -C "$DEST" rev-parse HEAD)"
+          if [ "$HEAD_SHA" != "$PIN_SHA" ]; then
+            echo "checked-out Hermes ${HEAD_SHA} != ${PIN_SHA}" >&2
+            exit 1
+          fi
+          FILE_SHA="$(sha256sum "$DEST/hermes_cli/fallback_config.py" | awk '{print $1}')"
+          if [ "$FILE_SHA" != "$PIN_FILE_SHA" ]; then
+            echo "fallback_config.py ${FILE_SHA} != ${PIN_FILE_SHA}" >&2
+            exit 1
+          fi
+          if git -C "$DEST" config --local --get-regexp 'extraheader'; then
+            echo "Hermes fetch wrote an auth extraheader" >&2
+            exit 1
+          fi
+          python -m pip install --disable-pip-version-check \
+            -r .github/workflows/orchestrator-test-requirements.txt
+          python -m pip install --disable-pip-version-check --no-deps -e "$DEST"
+          python -m pip check
+          echo "HERMES_PIN_DIR=${DEST}" >> "$GITHUB_ENV"
+          echo "pinned Hermes ${HEAD_SHA} installed editably from ${DEST}"
+
+      - name: Verify pinned Hermes provenance and console script
+        run: |
+          set -eu
+          python - <<'PY'
+          import importlib.metadata as metadata
+          import inspect
+          import os
+          from pathlib import Path
+
+          expected = {
+              "PyYAML": "6.0.3",
+              "jsonschema": "4.26.0",
+              "pytest": "9.1.1",
+              "psutil": "7.2.2",
+              "ruamel.yaml": "0.18.16",
+          }
+          for name, version in expected.items():
+              installed = metadata.version(name)
+              if installed != version:
+                  raise SystemExit(f"{name}=={installed}, expected {version}")
+              print(f"{name}=={installed}")
+          dist = metadata.distribution("hermes-agent")
+          print(f"hermes-agent metadata version={dist.version}")
+          import hermes_cli.fallback_config as fc
+          if not callable(getattr(fc, "scoped_fallback_chain", None)):
+              raise SystemExit("scoped_fallback_chain is not importable from the pinned checkout")
+          src = Path(inspect.getfile(fc)).resolve()
+          pin = Path(os.environ["HERMES_PIN_DIR"]).resolve()
+          if pin not in src.parents:
+              raise SystemExit(f"imported {src}, expected a file under {pin}")
+          operator = Path("/Users/elvis/.hermes/hermes-agent")
+          if operator in src.parents:
+              raise SystemExit(f"imported the operator live tree: {src}")
+          print(f"scoped_fallback_chain from {src}")
+          PY
+          command -v hermes
+          test -x "$(command -v hermes)"
+          # Do not execute the hermes console script in setup. Pytest invokes it.
+
+      - name: Document expected xfail xpass and skip baseline
+        run: |
+          set -eu
+          cat <<'EOF'
+          Expected orchestrator baseline on this workflow revision:
+            failed=0 skipped=2 xfailed=2 xpassed=0
+            passed>=608 on the proposed merge state (floor; 608 is base plus this CI change)
+            failed=0 errors=0 xpassed=0 are exact. skipped=2 and xfailed=2 are exact.
+          Focused C, when present, must be passed>=147. The combined job locks exact counts.
+          xfailed must be G2 observe_deny_does_not_authorize and G3 resolved_pair_must_match.
+          xpassed must be 0. G1 and G4 markers were removed because those defects are already repaired.
+          skipped must be the two requires_historical_ledger tests. Do not synthesize that fixture.
+          Do not ignore, xfail, or swallow any failing test, including
+          test_child_and_reviewer_sessions_keep_the_empty_chain. That test still
+          inserts /Users/elvis/.hermes/hermes-agent before importing
+          scoped_fallback_chain. On the runner that path is absent, so the import
+          resolves to the pinned editable checkout, which provides the name.
+          A failure there fails this job. Do not skip it.
+          EOF
+
+      - name: Materialize isolated roster and plugin-host fixture
+        run: |
+          set -eu
+          if [ -e workspace/subgoal5-sandbox/control-plane-ledger.jsonl ]; then
+            echo "historical ledger must not be present in CI" >&2
+            exit 1
+          fi
+          ISO_HOME="${RUNNER_TEMP}/ci-home"
+          rm -rf "$ISO_HOME"
+          mkdir -p "$ISO_HOME/.hermes/profiles" "$ISO_HOME/.hermes/hermes-agent"
+          cp -R profiles/live/. "$ISO_HOME/.hermes/profiles/"
+          PROFILE_COUNT="$(find "$ISO_HOME/.hermes/profiles" -type f | wc -l | tr -d ' ')"
+          if [ "$PROFILE_COUNT" != "33" ]; then
+            echo "expected 33 tracked profile files, found $PROFILE_COUNT" >&2
+            exit 1
+          fi
+          SITE_PACKAGES="$(python - <<'PY'
+          import hermes_cli
+          import os
+          print(os.path.dirname(os.path.dirname(hermes_cli.__file__)))
+          PY
+          )"
+          ln -s "$SITE_PACKAGES/hermes_cli" "$ISO_HOME/.hermes/hermes-agent/hermes_cli"
+          test -f "$ISO_HOME/.hermes/hermes-agent/hermes_cli/plugins.py"
+          test -f "$ISO_HOME/.hermes/hermes-agent/hermes_cli/fallback_config.py"
+          LINK_SHA="$(sha256sum "$ISO_HOME/.hermes/hermes-agent/hermes_cli/fallback_config.py" | awk '{print $1}')"
+          if [ "$LINK_SHA" != "313df39afdb0eab013700bd33b32858473a03dd32e95cb5a481fd18cc605c031" ]; then
+            echo "symlinked fallback_config.py ${LINK_SHA} is not the pinned file" >&2
+            exit 1
+          fi
+          python -c 'from hermes_cli.fallback_config import scoped_fallback_chain; assert callable(scoped_fallback_chain)'
+          PY_DIR="$(dirname "$(command -v python)")"
+          echo "ISO_HOME=$ISO_HOME" >> "$GITHUB_ENV"
+          echo "PY_DIR=$PY_DIR" >> "$GITHUB_ENV"
+          echo "HERMETIC_PATH=$PY_DIR:/usr/bin:/bin" >> "$GITHUB_ENV"
+          echo "REPO_ROOT=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+          cat > "$RUNNER_TEMP/hermetic-pytest.sh" <<'EOF'
+          #!/bin/bash
+          set -eu
+          cd "$REPO_ROOT/orchestration/orchestrator"
+          exec env -i \
+            HOME="$ISO_HOME" \
+            LANG=C.UTF-8 \
+            LC_ALL=C.UTF-8 \
+            PATH="$HERMETIC_PATH" \
+            TMPDIR="$RUNNER_TEMP" \
+            PYTHONDONTWRITEBYTECODE=1 \
+            "$PY_DIR/python" -m pytest -rA "$@"
+          EOF
+          chmod +x "$RUNNER_TEMP/hermetic-pytest.sh"
+          cat > "$RUNNER_TEMP/assert_pytest_summary.py" <<'PY'
+          from __future__ import annotations
+
+          import re
+          import sys
+
+
+          def summary_counts(text: str) -> tuple[str, dict[str, int]]:
+              # pytest appends " (H:MM:SS)" at 60s, via timedelta (also "N day(s), ").
+              # Group 1 stays the counts portion. No duration, or a malformed one, does not match.
+              matches = list(re.finditer(r"={5,}\s*(.*?)\s+in\s+[0-9.]+s(?:\s+\((?:\d+ day(?:s)?, )?\d+:\d{2}:\d{2}\))?\s*={5,}", text))
+              if not matches:
+                  raise SystemExit("no pytest summary line found")
+              summary = matches[-1].group(1)
+              counts = {}
+              for name in ("passed", "failed", "skipped", "xfailed", "xpassed", "errors"):
+                  # pytest prints "1 error" and "N errors". Other count tokens stay plural.
+                  token = "errors?" if name == "errors" else name
+                  found = re.search(rf"(\d+)\s+{token}\b", summary)
+                  counts[name] = int(found.group(1)) if found else 0
+              return summary, counts
+
+
+          def main() -> int:
+              path, failed, skipped, xfailed, xpassed = sys.argv[1:6]
+              passed_exact = sys.argv[6] if len(sys.argv) > 6 else ""
+              passed_min = sys.argv[7] if len(sys.argv) > 7 else ""
+              text = open(path, encoding="utf-8", errors="replace").read()
+              summary, counts = summary_counts(text)
+              print(f"pytest summary: {summary}")
+              print(
+                  "counts "
+                  f"passed={counts['passed']} failed={counts['failed']} "
+                  f"skipped={counts['skipped']} xfailed={counts['xfailed']} "
+                  f"xpassed={counts['xpassed']} errors={counts['errors']}"
+              )
+              expected = {
+                  "failed": int(failed),
+                  "skipped": int(skipped),
+                  "xfailed": int(xfailed),
+                  "xpassed": int(xpassed),
+                  "errors": 0,
+              }
+              mismatches = []
+              for name, want in expected.items():
+                  if counts[name] != want:
+                      mismatches.append(f"{name}={counts[name]} expected {want}")
+              if passed_exact != "":
+                  if counts["passed"] != int(passed_exact):
+                      mismatches.append(f"passed={counts['passed']} expected {passed_exact}")
+              if passed_min != "":
+                  if counts["passed"] < int(passed_min):
+                      mismatches.append(f"passed={counts['passed']} below minimum {passed_min}")
+              if mismatches:
+                  print("BASELINE MISMATCH")
+                  for item in mismatches:
+                      print(item)
+                  return 1
+              print("baseline assertion passed")
+              return 0
+
+
+          if __name__ == "__main__":
+              raise SystemExit(main())
+          PY
+          echo "isolated HOME=$ISO_HOME"
+          echo "profile_files=$PROFILE_COUNT"
+          echo "plugin_host=$ISO_HOME/.hermes/hermes-agent/hermes_cli/plugins.py"
+
+      - name: Validate inference routing policy
+        run: |
+          set -eu
+          python scripts/validate_inference_routing.py --strict
+
+      - name: Validate agency specs
+        run: |
+          set -eu
+          python agency/validate-specs.py
+
+      - name: Parse routing YAML and model policy schema
+        run: |
+          set -eu
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          import yaml
+
+          inference = Path("platform/inference-routing.yaml")
+          data = yaml.safe_load(inference.read_text(encoding="utf-8"))
+          if not isinstance(data, dict):
+              raise SystemExit(f"{inference} did not parse to a mapping")
+          print(f"parsed {inference}")
+
+          policy = Path("platform/model-routing-policy.yaml")
+          if not policy.is_file():
+              print("platform/model-routing-policy.yaml is not in this tree")
+              print("the combined A+C job strict-loads it and fails if it is absent")
+              raise SystemExit(0)
+          parsed = yaml.safe_load(policy.read_text(encoding="utf-8"))
+          if not isinstance(parsed, dict):
+              raise SystemExit(f"{policy} did not parse to a mapping")
+          print(f"parsed {policy}")
+          sys.path.insert(0, "orchestration/orchestrator")
+          from app.model_policy import load_model_policy
+          loaded = load_model_policy(policy)
+          print(f"strict model policy version={loaded.version} routes={len(loaded.routes)}")
+          PY
+
+      - name: Diff hygiene and secret scan
+        run: |
+          set -eu
+          git remote set-url origin https://github.com/enuno/noesis-agent-stack.git
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            # Unauthenticated: this repository is public.
+            git -c credential.helper= fetch --no-tags origin "${{ github.base_ref }}"
+            BASE="origin/${{ github.base_ref }}"
+          elif [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            echo "new branch push has no before SHA; scanning the workflow tree only"
+            BASE=""
+          else
+            BASE="${{ github.event.before }}"
+          fi
+          if [ -n "$BASE" ]; then
+            git diff --check "$BASE"...HEAD
+            git diff -U0 "$BASE"...HEAD > "$RUNNER_TEMP/pr.diff"
+          else
+            : > "$RUNNER_TEMP/pr.diff"
+          fi
+          DIFF_BASE="$BASE" DIFF_FILE="$RUNNER_TEMP/pr.diff" python - <<'PY'
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, "agency")
+          from secretscan import scan_file
+
+          base = os.environ.get("DIFF_BASE", "")
+          findings = []
+          changed = []
+          if base:
+              changed = subprocess.check_output(
+                  ["git", "diff", "--name-only", "--diff-filter=ACMRD", f"{base}...HEAD"],
+                  text=True,
+              ).splitlines()
+          for rel in changed:
+              path = Path(rel)
+              if not path.is_file():
+                  continue
+              raw = path.read_bytes()
+              if b"\0" in raw:
+                  findings.append(f"{rel}: stray binary file in diff")
+                  continue
+              text = raw.decode("utf-8", errors="replace")
+              for number, line in enumerate(text.splitlines(), start=1):
+                  if line.startswith("<<<<<<<") or line.startswith(">>>>>>>") or line == "=======":
+                      findings.append(f"{rel}:{number}: conflict marker")
+              findings.extend(scan_file(path))
+          diff_path = Path(os.environ["DIFF_FILE"])
+          if diff_path.is_file():
+              for number, line in enumerate(diff_path.read_text(encoding="utf-8", errors="replace").splitlines(), start=1):
+                  if line.startswith("+<<<<<<<") or line.startswith("+>>>>>>>") or line == "+=======":
+                      findings.append(f"diff:{number}: conflict marker")
+          if findings:
+              print("diff hygiene failed")
+              for item in findings:
+                  print(item)
+              raise SystemExit(1)
+          print(f"diff hygiene clean; scanned {len(changed)} changed file(s)")
+          PY
+          git remote set-url origin https://github.com/enuno/noesis-agent-stack.git
+
+      - name: Focused A regression tests
+        run: |
+          set -eu
+          cd orchestration/orchestrator
+          files=(
+            tests/test_adaptive_specialist_preflight_b2.py
+            tests/test_dispatch_cli_enforcer_wiring.py
+            tests/test_routing_context_task_class.py
+          )
+          present=()
+          for file in "${files[@]}"; do
+            if [ -f "$file" ]; then
+              present+=("$file")
+            else
+              echo "ABSENT $file; combined A+C job requires this file"
+            fi
+          done
+          # 3 files: A is present, including test_routing_context_task_class.py -> 39.
+          # 2 files: base tree; that A-only file is absent -> 33.
+          # Fewer than 2 is an unexpected tree. Fail here. Do not apply either threshold.
+          if [ "${#present[@]}" -eq 3 ]; then
+            focus_a_min=39
+          elif [ "${#present[@]}" -eq 2 ]; then
+            focus_a_min=33
+          else
+            echo "focused A expected 3 files (39 passed) or 2 files (33 passed); found ${#present[@]}" >&2
+            echo "fewer than 2 focused A files is an unexpected tree; not skipping" >&2
+            exit 1
+          fi
+          set +e
+          "$RUNNER_TEMP/hermetic-pytest.sh" "${present[@]}" > "$RUNNER_TEMP/focus-a.txt" 2>&1
+          ec=$?
+          set -e
+          cat "$RUNNER_TEMP/focus-a.txt"
+          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/focus-a.txt" 0 0 0 0 "" "$focus_a_min"
+          if [ "$ec" -ne 0 ]; then
+            echo "focused A pytest exited $ec"
+            exit "$ec"
+          fi
+
+      - name: Focused C regression tests
+        run: |
+          set -eu
+          cd orchestration/orchestrator
+          # File must exist before pytest. A missing path is not passed to pytest.
+          # Absence is expected on an event tree that does not contain Workstream C.
+          # The combined job fails if this file is absent.
+          if [ ! -f tests/test_model_policy.py ]; then
+            echo "ABSENT tests/test_model_policy.py" >&2
+            echo "Event tree does not contain Workstream C. pytest is not invoked." >&2
+            echo "The combined A+C job fails if this file is absent or failing." >&2
+            exit 0
+          fi
+          test -f tests/test_model_policy.py
+          set +e
+          "$RUNNER_TEMP/hermetic-pytest.sh" tests/test_model_policy.py > "$RUNNER_TEMP/focus-c.txt" 2>&1
+          ec=$?
+          set -e
+          cat "$RUNNER_TEMP/focus-c.txt"
+          # Floor. The repaired C file has 147 tests. Combined job asserts 147 exactly.
+          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/focus-c.txt" 0 0 0 0 "" 147
+          if [ "$ec" -ne 0 ]; then
+            echo "focused C pytest exited $ec"
+            exit "$ec"
+          fi
+
+      - name: Orchestrator suite
+        run: |
+          set -eu
+          echo "event tree under test: $(git rev-parse HEAD)"
+          set +e
+          "$RUNNER_TEMP/hermetic-pytest.sh" tests > "$RUNNER_TEMP/suite.txt" 2>&1
+          ec=$?
+          set -e
+          cat "$RUNNER_TEMP/suite.txt"
+          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 "" 608
+          if [ "$ec" -ne 0 ]; then
+            echo "orchestrator suite pytest exited $ec"
+            exit "$ec"
+          fi
+
+  combined-a-c-merge-state:
+    name: Combined A+C proposed merge state
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PIN_A: "8528bf0d736521d32f0f1fcd93728fd4a6087485"
+      PIN_C: "91bfe722e7e46b8e96e1934e4f447cad879670e6"
+      REF_A: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref_a || '8528bf0d736521d32f0f1fcd93728fd4a6087485' }}
+      REF_C: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref_c || '91bfe722e7e46b8e96e1934e4f447cad879670e6' }}
+      COMBINED_REF: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.combined_ref || '' }}
+      # pull_request: github.sha is the merge commit. push and workflow_dispatch: github.sha is the event commit.
+      CHECKOUT_SHA: ${{ github.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number || '' }}
+    steps:
+      - name: Check out workflow revision without credentials
+        run: |
+          set -eu
+          export GIT_TERMINAL_PROMPT=0
+          cd "$GITHUB_WORKSPACE"
+          if [ -e .git ]; then
+            echo "refusing to reuse an existing git directory" >&2
+            exit 1
+          fi
+          git init
+          git remote add origin https://github.com/enuno/noesis-agent-stack.git
+          git config --local credential.helper ""
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          if git config --local --get-regexp 'extraheader'; then
+            echo "credential extraheader present before fetch" >&2
+            exit 1
+          fi
+          git -c credential.helper= fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*'
+          if [ -n "${COMBINED_REF:-}" ]; then
+            git -c credential.helper= fetch --no-tags origin "$COMBINED_REF" \
+              || git -c credential.helper= fetch origin "refs/tags/${COMBINED_REF}:refs/tags/${COMBINED_REF}"
+            git checkout --detach FETCH_HEAD
+          else
+            # pull_request: github.sha is the merge commit. Fetch that ref.
+            # push and workflow_dispatch: github.sha is the event commit.
+            if ! printf '%s' "$CHECKOUT_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+              echo "refusing non-sha checkout ref" >&2
+              exit 1
+            fi
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+              if ! printf '%s' "$PR_NUMBER" | grep -Eq '^[0-9]+$'; then
+                echo "pull_request number is not an integer; refusing to guess a checkout" >&2
+                exit 1
+              fi
+              if ! git -c credential.helper= fetch --no-tags origin "refs/pull/${PR_NUMBER}/merge"; then
+                echo "refs/pull/${PR_NUMBER}/merge is absent; the pull request is not mergeable" >&2
+                echo "refusing to fall back to the head" >&2
+                exit 1
+              fi
+              FETCHED="$(git rev-parse 'FETCH_HEAD^{commit}')"
+              if [ "$FETCHED" != "$CHECKOUT_SHA" ]; then
+                echo "refs/pull/${PR_NUMBER}/merge is ${FETCHED}, expected GITHUB_SHA ${CHECKOUT_SHA}" >&2
+                echo "refusing to check out a different object" >&2
+                exit 1
+              fi
+            elif ! git cat-file -e "${CHECKOUT_SHA}^{commit}" >/dev/null 2>&1; then
+              git -c credential.helper= fetch --no-tags origin "$GITHUB_REF"
+            fi
+            if ! git cat-file -e "${CHECKOUT_SHA}^{commit}" >/dev/null 2>&1; then
+              echo "event commit ${CHECKOUT_SHA} was not fetched without credentials" >&2
+              exit 1
+            fi
+            git checkout --detach "$CHECKOUT_SHA"
+            test "$(git rev-parse HEAD)" = "$CHECKOUT_SHA"
+          fi
+          if git config --local --get-regexp 'extraheader'; then
+            echo "fetch wrote an auth extraheader" >&2
+            exit 1
+          fi
+          echo "GIT_TERMINAL_PROMPT=0" >> "$GITHUB_ENV"
+          echo "checked out $(git rev-parse HEAD) with no credential"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pinned Hermes source and test dependencies
+        run: |
+          set -eu
+          export GIT_TERMINAL_PROMPT=0
+          PIN_SHA="bf0203a794a07aac3ff764972ab9087baa4e4f4e"
+          PIN_FILE_SHA="313df39afdb0eab013700bd33b32858473a03dd32e95cb5a481fd18cc605c031"
+          DEST="${RUNNER_TEMP}/hermes-agent"
+          git init "$DEST"
+          git -C "$DEST" remote add origin https://github.com/NousResearch/hermes-agent.git
+          git -C "$DEST" config --local credential.helper ""
+          git -C "$DEST" -c credential.helper= fetch --no-tags --depth 1 origin tag v0.22.5
+          PEELED="$(git -C "$DEST" rev-parse 'FETCH_HEAD^{commit}')"
+          if [ "$PEELED" != "$PIN_SHA" ]; then
+            echo "tag v0.22.5 peeled to ${PEELED}, expected ${PIN_SHA}" >&2
+            echo "FETCH_HEAD tag object $(git -C "$DEST" rev-parse FETCH_HEAD)" >&2
+            exit 1
+          fi
+          git -C "$DEST" checkout --detach FETCH_HEAD
+          HEAD_SHA="$(git -C "$DEST" rev-parse HEAD)"
+          if [ "$HEAD_SHA" != "$PIN_SHA" ]; then
+            echo "checked-out Hermes ${HEAD_SHA} != ${PIN_SHA}" >&2
+            exit 1
+          fi
+          FILE_SHA="$(sha256sum "$DEST/hermes_cli/fallback_config.py" | awk '{print $1}')"
+          if [ "$FILE_SHA" != "$PIN_FILE_SHA" ]; then
+            echo "fallback_config.py ${FILE_SHA} != ${PIN_FILE_SHA}" >&2
+            exit 1
+          fi
+          if git -C "$DEST" config --local --get-regexp 'extraheader'; then
+            echo "Hermes fetch wrote an auth extraheader" >&2
+            exit 1
+          fi
+          python -m pip install --disable-pip-version-check \
+            -r .github/workflows/orchestrator-test-requirements.txt
+          python -m pip install --disable-pip-version-check --no-deps -e "$DEST"
+          python -m pip check
+          echo "HERMES_PIN_DIR=${DEST}" >> "$GITHUB_ENV"
+          echo "pinned Hermes ${HEAD_SHA} installed editably from ${DEST}"
+
+      - name: Verify pinned Hermes provenance and console script
+        run: |
+          set -eu
+          python - <<'PY'
+          import importlib.metadata as metadata
+          import inspect
+          import os
+          from pathlib import Path
+
+          expected = {
+              "PyYAML": "6.0.3",
+              "jsonschema": "4.26.0",
+              "pytest": "9.1.1",
+              "psutil": "7.2.2",
+              "ruamel.yaml": "0.18.16",
+          }
+          for name, version in expected.items():
+              installed = metadata.version(name)
+              if installed != version:
+                  raise SystemExit(f"{name}=={installed}, expected {version}")
+              print(f"{name}=={installed}")
+          dist = metadata.distribution("hermes-agent")
+          print(f"hermes-agent metadata version={dist.version}")
+          import hermes_cli.fallback_config as fc
+          if not callable(getattr(fc, "scoped_fallback_chain", None)):
+              raise SystemExit("scoped_fallback_chain is not importable from the pinned checkout")
+          src = Path(inspect.getfile(fc)).resolve()
+          pin = Path(os.environ["HERMES_PIN_DIR"]).resolve()
+          if pin not in src.parents:
+              raise SystemExit(f"imported {src}, expected a file under {pin}")
+          operator = Path("/Users/elvis/.hermes/hermes-agent")
+          if operator in src.parents:
+              raise SystemExit(f"imported the operator live tree: {src}")
+          print(f"scoped_fallback_chain from {src}")
+          PY
+          command -v hermes
+          test -x "$(command -v hermes)"
+          # Do not execute the hermes console script in setup. Pytest invokes it.
+
+      - name: Merge proposed A and C refs
+        run: |
+          set -eu
+          git remote set-url origin https://github.com/enuno/noesis-agent-stack.git
+          PRE_MERGE="$(git rev-parse HEAD)"
+          echo "PRE_MERGE=$PRE_MERGE" >> "$GITHUB_ENV"
+          if [ -n "$COMBINED_REF" ]; then
+            echo "tested_tree=single-combined-ref" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "combined_ref=$COMBINED_REF" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "head=$(git rev-parse HEAD)" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "tree=$(git rev-parse 'HEAD^{tree}')" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          fetch_exact() {
+            # Unauthenticated: this repository is public.
+            # Fetch the measured commit itself. Fail unless FETCH_HEAD is that commit.
+            want="$1"
+            label="$2"
+            if ! printf '%s' "$want" | grep -Eq '^[0-9a-f]{40}$'; then
+              echo "${label} is not a 40-hex SHA" >&2
+              exit 1
+            fi
+            git -c credential.helper= fetch --no-tags origin "$want"
+            raw="$(git rev-parse FETCH_HEAD)"
+            peeled="$(git rev-parse 'FETCH_HEAD^{commit}')"
+            if [ "$raw" != "$want" ] || [ "$peeled" != "$want" ]; then
+              echo "${label} fetched ${raw} (peeled ${peeled}), expected exactly ${want}" >&2
+              exit 1
+            fi
+          }
+          if [ "$REF_A" != "$PIN_A" ] || [ "$REF_C" != "$PIN_C" ]; then
+            echo "ref_a=${REF_A} ref_c=${REF_C} are not the measured SHAs" >&2
+            echo "expected ref_a=${PIN_A}" >&2
+            echo "expected ref_c=${PIN_C}" >&2
+            exit 1
+          fi
+          fetch_exact "$PIN_A" "ref_a"
+          fetch_exact "$PIN_C" "ref_c"
+          A_SHA="$PIN_A"
+          C_SHA="$PIN_C"
+          # Identity is per invocation. Do not write user.name or user.email
+          # to a config file. Worktrees share .git/config.
+          merge_pinned() {
+            label="$1"
+            sha="$2"
+            if ! GIT_AUTHOR_NAME="ci-orchestrator-tests" \
+                 GIT_AUTHOR_EMAIL="ci-orchestrator-tests@users.noreply.github.com" \
+                 GIT_COMMITTER_NAME="ci-orchestrator-tests" \
+                 GIT_COMMITTER_EMAIL="ci-orchestrator-tests@users.noreply.github.com" \
+                 git -c user.name="ci-orchestrator-tests" \
+                     -c user.email="ci-orchestrator-tests@users.noreply.github.com" \
+                     merge --no-edit "$sha"; then
+              echo "merge of ${label} ${sha} failed. A conflict is not tolerated." >&2
+              exit 1
+            fi
+            if [ -f .git/MERGE_HEAD ]; then
+              echo "merge of ${label} ${sha} left an unresolved merge. Not tolerated." >&2
+              exit 1
+            fi
+          }
+          merge_pinned "ref_a" "$A_SHA"
+          merge_pinned "ref_c" "$C_SHA"
+          {
+            echo "tested_tree=combined-a-c-on-workflow-revision"
+            echo "workflow_revision=$PRE_MERGE"
+            echo "ref_a=$REF_A"
+            echo "ref_a_sha=$A_SHA"
+            echo "ref_c=$REF_C"
+            echo "ref_c_sha=$C_SHA"
+            echo "merged_head=$(git rev-parse HEAD)"
+            echo "merged_tree=$(git rev-parse 'HEAD^{tree}')"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          git remote set-url origin https://github.com/enuno/noesis-agent-stack.git
+
+      - name: Document expected xfail xpass and skip baseline
+        run: |
+          set -eu
+          cat <<'EOF'
+          Combined A+C baseline asserted by this job, measured with the hermetic recipe
+          after the stale G1 and G4 xfail markers were removed:
+            passed=761 failed=0 skipped=2 xfailed=2 xpassed=0
+          These combined counts are exact. Do not turn them into floors.
+          Focused A must be 39 passed. Focused C must be 147 passed.
+          xfailed is G2 and G3 only. Do not delete those markers to go green.
+          skipped is the two historical-ledger tests. Do not create that fixture.
+          Measured commits, fetched by SHA. A different object fails this job:
+            A 8528bf0d736521d32f0f1fcd93728fd4a6087485
+            C 91bfe722e7e46b8e96e1934e4f447cad879670e6
+          EOF
+
+      - name: Materialize isolated roster and plugin-host fixture
+        run: |
+          set -eu
+          if [ -e workspace/subgoal5-sandbox/control-plane-ledger.jsonl ]; then
+            echo "historical ledger must not be present in CI" >&2
+            exit 1
+          fi
+          ISO_HOME="${RUNNER_TEMP}/ci-home"
+          rm -rf "$ISO_HOME"
+          mkdir -p "$ISO_HOME/.hermes/profiles" "$ISO_HOME/.hermes/hermes-agent"
+          cp -R profiles/live/. "$ISO_HOME/.hermes/profiles/"
+          PROFILE_COUNT="$(find "$ISO_HOME/.hermes/profiles" -type f | wc -l | tr -d ' ')"
+          if [ "$PROFILE_COUNT" != "33" ]; then
+            echo "expected 33 tracked profile files, found $PROFILE_COUNT" >&2
+            exit 1
+          fi
+          SITE_PACKAGES="$(python - <<'PY'
+          import hermes_cli
+          import os
+          print(os.path.dirname(os.path.dirname(hermes_cli.__file__)))
+          PY
+          )"
+          ln -s "$SITE_PACKAGES/hermes_cli" "$ISO_HOME/.hermes/hermes-agent/hermes_cli"
+          test -f "$ISO_HOME/.hermes/hermes-agent/hermes_cli/plugins.py"
+          test -f "$ISO_HOME/.hermes/hermes-agent/hermes_cli/fallback_config.py"
+          LINK_SHA="$(sha256sum "$ISO_HOME/.hermes/hermes-agent/hermes_cli/fallback_config.py" | awk '{print $1}')"
+          if [ "$LINK_SHA" != "313df39afdb0eab013700bd33b32858473a03dd32e95cb5a481fd18cc605c031" ]; then
+            echo "symlinked fallback_config.py ${LINK_SHA} is not the pinned file" >&2
+            exit 1
+          fi
+          python -c 'from hermes_cli.fallback_config import scoped_fallback_chain; assert callable(scoped_fallback_chain)'
+          PY_DIR="$(dirname "$(command -v python)")"
+          echo "ISO_HOME=$ISO_HOME" >> "$GITHUB_ENV"
+          echo "PY_DIR=$PY_DIR" >> "$GITHUB_ENV"
+          echo "HERMETIC_PATH=$PY_DIR:/usr/bin:/bin" >> "$GITHUB_ENV"
+          echo "REPO_ROOT=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+          cat > "$RUNNER_TEMP/hermetic-pytest.sh" <<'EOF'
+          #!/bin/bash
+          set -eu
+          cd "$REPO_ROOT/orchestration/orchestrator"
+          exec env -i \
+            HOME="$ISO_HOME" \
+            LANG=C.UTF-8 \
+            LC_ALL=C.UTF-8 \
+            PATH="$HERMETIC_PATH" \
+            TMPDIR="$RUNNER_TEMP" \
+            PYTHONDONTWRITEBYTECODE=1 \
+            "$PY_DIR/python" -m pytest -rA "$@"
+          EOF
+          chmod +x "$RUNNER_TEMP/hermetic-pytest.sh"
+          cat > "$RUNNER_TEMP/assert_pytest_summary.py" <<'PY'
+          from __future__ import annotations
+
+          import re
+          import sys
+
+
+          def summary_counts(text: str) -> tuple[str, dict[str, int]]:
+              # pytest appends " (H:MM:SS)" at 60s, via timedelta (also "N day(s), ").
+              # Group 1 stays the counts portion. No duration, or a malformed one, does not match.
+              matches = list(re.finditer(r"={5,}\s*(.*?)\s+in\s+[0-9.]+s(?:\s+\((?:\d+ day(?:s)?, )?\d+:\d{2}:\d{2}\))?\s*={5,}", text))
+              if not matches:
+                  raise SystemExit("no pytest summary line found")
+              summary = matches[-1].group(1)
+              counts = {}
+              for name in ("passed", "failed", "skipped", "xfailed", "xpassed", "errors"):
+                  # pytest prints "1 error" and "N errors". Other count tokens stay plural.
+                  token = "errors?" if name == "errors" else name
+                  found = re.search(rf"(\d+)\s+{token}\b", summary)
+                  counts[name] = int(found.group(1)) if found else 0
+              return summary, counts
+
+
+          def main() -> int:
+              path, failed, skipped, xfailed, xpassed = sys.argv[1:6]
+              passed_exact = sys.argv[6] if len(sys.argv) > 6 else ""
+              passed_min = sys.argv[7] if len(sys.argv) > 7 else ""
+              text = open(path, encoding="utf-8", errors="replace").read()
+              summary, counts = summary_counts(text)
+              print(f"pytest summary: {summary}")
+              print(
+                  "counts "
+                  f"passed={counts['passed']} failed={counts['failed']} "
+                  f"skipped={counts['skipped']} xfailed={counts['xfailed']} "
+                  f"xpassed={counts['xpassed']} errors={counts['errors']}"
+              )
+              expected = {
+                  "failed": int(failed),
+                  "skipped": int(skipped),
+                  "xfailed": int(xfailed),
+                  "xpassed": int(xpassed),
+                  "errors": 0,
+              }
+              mismatches = []
+              for name, want in expected.items():
+                  if counts[name] != want:
+                      mismatches.append(f"{name}={counts[name]} expected {want}")
+              if passed_exact != "":
+                  if counts["passed"] != int(passed_exact):
+                      mismatches.append(f"passed={counts['passed']} expected {passed_exact}")
+              if passed_min != "":
+                  if counts["passed"] < int(passed_min):
+                      mismatches.append(f"passed={counts['passed']} below minimum {passed_min}")
+              if mismatches:
+                  print("BASELINE MISMATCH")
+                  for item in mismatches:
+                      print(item)
+                  return 1
+              print("baseline assertion passed")
+              return 0
+
+
+          if __name__ == "__main__":
+              raise SystemExit(main())
+          PY
+          echo "isolated HOME=$ISO_HOME"
+          echo "profile_files=$PROFILE_COUNT"
+
+      - name: Validate inference routing policy
+        run: |
+          set -eu
+          python scripts/validate_inference_routing.py --strict
+
+      - name: Validate agency specs
+        run: |
+          set -eu
+          python agency/validate-specs.py
+
+      - name: Parse routing YAML and model policy schema
+        run: |
+          set -eu
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          import yaml
+
+          inference = Path("platform/inference-routing.yaml")
+          data = yaml.safe_load(inference.read_text(encoding="utf-8"))
+          if not isinstance(data, dict):
+              raise SystemExit(f"{inference} did not parse to a mapping")
+          print(f"parsed {inference}")
+          policy = Path("platform/model-routing-policy.yaml")
+          if not policy.is_file():
+              raise SystemExit("platform/model-routing-policy.yaml is required on the combined tree")
+          parsed = yaml.safe_load(policy.read_text(encoding="utf-8"))
+          if not isinstance(parsed, dict):
+              raise SystemExit(f"{policy} did not parse to a mapping")
+          print(f"parsed {policy}")
+          sys.path.insert(0, "orchestration/orchestrator")
+          from app.model_policy import load_model_policy
+          loaded = load_model_policy(policy)
+          print(f"strict model policy version={loaded.version} routes={len(loaded.routes)}")
+          PY
+
+      - name: Diff hygiene and secret scan
+        run: |
+          set -eu
+          git remote set-url origin https://github.com/enuno/noesis-agent-stack.git
+          git diff --check "$PRE_MERGE" HEAD
+          python - <<'PY'
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, "agency")
+          from secretscan import scan_file
+
+          base = os.environ["PRE_MERGE"]
+          changed = subprocess.check_output(
+              ["git", "diff", "--name-only", "--diff-filter=ACMR", base, "HEAD"],
+              text=True,
+          ).splitlines()
+          findings = []
+          for rel in changed:
+              path = Path(rel)
+              if not path.is_file():
+                  continue
+              raw = path.read_bytes()
+              if b"\0" in raw:
+                  findings.append(f"{rel}: stray binary file in diff")
+                  continue
+              for number, line in enumerate(raw.decode("utf-8", errors="replace").splitlines(), start=1):
+                  if line.startswith("<<<<<<<") or line.startswith(">>>>>>>") or line == "=======":
+                      findings.append(f"{rel}:{number}: conflict marker")
+              findings.extend(scan_file(path))
+          if findings:
+              print("diff hygiene failed")
+              for item in findings:
+                  print(item)
+              raise SystemExit(1)
+          print(f"combined diff hygiene clean; scanned {len(changed)} file(s)")
+          PY
+
+      - name: Focused A regression tests
+        run: |
+          set -eu
+          cd orchestration/orchestrator
+          files=(
+            tests/test_adaptive_specialist_preflight_b2.py
+            tests/test_dispatch_cli_enforcer_wiring.py
+            tests/test_routing_context_task_class.py
+          )
+          for file in "${files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "missing focused A file on combined tree: $file" >&2
+              exit 1
+            fi
+          done
+          set +e
+          "$RUNNER_TEMP/hermetic-pytest.sh" "${files[@]}" > "$RUNNER_TEMP/focus-a.txt" 2>&1
+          ec=$?
+          set -e
+          cat "$RUNNER_TEMP/focus-a.txt"
+          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/focus-a.txt" 0 0 0 0 39
+          if [ "$ec" -ne 0 ]; then
+            echo "focused A pytest exited $ec"
+            exit "$ec"
+          fi
+
+      - name: Focused C regression tests
+        run: |
+          set -eu
+          cd orchestration/orchestrator
+          # File must exist on the combined tree. Do not pass a missing path to pytest.
+          if [ ! -f tests/test_model_policy.py ]; then
+            echo "missing focused C file on combined tree: tests/test_model_policy.py" >&2
+            exit 1
+          fi
+          test -f tests/test_model_policy.py
+          set +e
+          "$RUNNER_TEMP/hermetic-pytest.sh" tests/test_model_policy.py > "$RUNNER_TEMP/focus-c.txt" 2>&1
+          ec=$?
+          set -e
+          cat "$RUNNER_TEMP/focus-c.txt"
+          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/focus-c.txt" 0 0 0 0 147
+          if [ "$ec" -ne 0 ]; then
+            echo "focused C pytest exited $ec"
+            exit "$ec"
+          fi
+
+      - name: Orchestrator suite on combined tree
+        run: |
+          set -eu
+          echo "combined tree head=$(git rev-parse HEAD)"
+          echo "combined tree tree=$(git rev-parse 'HEAD^{tree}')"
+          set +e
+          "$RUNNER_TEMP/hermetic-pytest.sh" tests > "$RUNNER_TEMP/suite.txt" 2>&1
+          ec=$?
+          set -e
+          cat "$RUNNER_TEMP/suite.txt"
+          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 761
+          if [ "$ec" -ne 0 ]; then
+            echo "combined orchestrator suite pytest exited $ec"
+            exit "$ec"
+          fi
