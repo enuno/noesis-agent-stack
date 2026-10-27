@@ -32,10 +32,12 @@ name: Orchestrator A and C validation
 # or required; its two tests must remain skipped.
 #
 # pull_request checks out the proposed merge state, not the isolated head.
-# github.sha on pull_request is the merge commit. The job fetches
-# refs/pull/<number>/merge with credential.helper disabled and no extraheader,
-# and fails unless that object is exactly github.sha. If the merge ref is
-# absent, the job fails. It does not fall back to the head.
+# The job fetches refs/pull/<number>/merge with credential.helper disabled
+# and no extraheader. GitHub may rewrite that ref's commit SHA between the
+# event and the fetch, so the job does not compare it to github.sha. It
+# requires a 2-parent merge whose second parent is the approved head SHA
+# and whose first parent is an ancestor of the base branch tip. If the
+# merge ref is absent, the job fails. It does not fall back to the head.
 # push and workflow_dispatch keep github.sha. There is no merge ref.
 # The combined job uses the same checkout, then merges the pinned commits
 # and fails unless the fetched objects are exactly:
@@ -154,6 +156,57 @@ jobs:
         run: |
           set -eu
           export GIT_TERMINAL_PROMPT=0
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            # BEGIN merge-ref-structure-check
+            # Called only for pull_request, after refs/pull/<n>/merge is fetched.
+            # GitHub may rewrite that ref's commit SHA. Require a 2-parent merge
+            # of a base-branch commit and the approved head. Do not compare SHAs.
+            # Do not fall back to the head.
+            merge_ref_structure_check() {
+              FETCHED="$(git rev-parse 'FETCH_HEAD^{commit}')"
+              PARENTS="$(git rev-parse "${FETCHED}^@")"
+              PARENT_COUNT=0
+              MERGE_BASE=""
+              MERGE_HEAD=""
+              if [ -n "$PARENTS" ]; then
+                for parent in $PARENTS; do
+                  PARENT_COUNT=$((PARENT_COUNT + 1))
+                  if [ "$PARENT_COUNT" -eq 1 ]; then
+                    MERGE_BASE="$parent"
+                  elif [ "$PARENT_COUNT" -eq 2 ]; then
+                    MERGE_HEAD="$parent"
+                  fi
+                done
+              fi
+              if [ "$PARENT_COUNT" -ne 2 ]; then
+                echo "refs/pull/${PR_NUMBER}/merge ${FETCHED} has ${PARENT_COUNT} parents, expected exactly 2" >&2
+                echo "refusing to check out a merge ref that is not a 2-parent merge; refusing to fall back to the head" >&2
+                echo "the check is on structure and content, not on a SHA GitHub rewrites" >&2
+                exit 1
+              fi
+              APPROVED_HEAD="${{ github.event.pull_request.head.sha }}"
+              if ! printf '%s' "$APPROVED_HEAD" | grep -Eq '^[0-9a-f]{40}$'; then
+                echo "approved head SHA is missing or not 40 hex; refusing to fall back to the head" >&2
+                echo "the check is on structure and content, not on a SHA GitHub rewrites" >&2
+                exit 1
+              fi
+              if [ "$MERGE_HEAD" != "$APPROVED_HEAD" ]; then
+                echo "refs/pull/${PR_NUMBER}/merge second parent is ${MERGE_HEAD}, expected approved head ${APPROVED_HEAD}" >&2
+                echo "refusing to fall back to the head; the check is on structure and content, not on a SHA GitHub rewrites" >&2
+                exit 1
+              fi
+              if ! git merge-base --is-ancestor "$MERGE_BASE" "origin/${{ github.base_ref }}"; then
+                echo "refs/pull/${PR_NUMBER}/merge first parent ${MERGE_BASE} is not an ancestor of origin/${{ github.base_ref }}" >&2
+                echo "refusing to check out a merge whose base side is not a base-branch commit; refusing to fall back to the head" >&2
+                echo "the check is on structure and content, not on a SHA GitHub rewrites" >&2
+                exit 1
+              fi
+              echo "refs/pull/${PR_NUMBER}/merge ${FETCHED} is a 2-parent merge of base ${MERGE_BASE} and approved head ${APPROVED_HEAD}"
+              echo "event GITHUB_SHA was ${CHECKOUT_SHA}; checking out ${FETCHED} because the check is on structure and content, not on a SHA GitHub rewrites"
+              CHECKOUT_SHA="$FETCHED"
+            }
+            # END merge-ref-structure-check
+            fi
           cd "$GITHUB_WORKSPACE"
           if [ -e .git ]; then
             echo "refusing to reuse an existing git directory" >&2
@@ -174,9 +227,9 @@ jobs:
             exit 1
           fi
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            # Test the tree the event proposes to merge. GITHUB_SHA is that
-            # merge commit. Fetch refs/pull/<number>/merge and require it.
-            # Do not fall back to the head if the ref is absent.
+            # Test the fetched merge ref. GitHub may rewrite its SHA.
+            # Require merge structure and the approved head. Do not fall
+            # back to the head if the ref is absent.
             if ! printf '%s' "$PR_NUMBER" | grep -Eq '^[0-9]+$'; then
               echo "pull_request number is not an integer; refusing to guess a checkout" >&2
               exit 1
@@ -186,12 +239,7 @@ jobs:
               echo "refusing to fall back to the head" >&2
               exit 1
             fi
-            FETCHED="$(git rev-parse 'FETCH_HEAD^{commit}')"
-            if [ "$FETCHED" != "$CHECKOUT_SHA" ]; then
-              echo "refs/pull/${PR_NUMBER}/merge is ${FETCHED}, expected GITHUB_SHA ${CHECKOUT_SHA}" >&2
-              echo "refusing to check out a different object" >&2
-              exit 1
-            fi
+            merge_ref_structure_check
           else
             # push: github.sha is the event commit. There is no merge ref.
             if ! git cat-file -e "${CHECKOUT_SHA}^{commit}" >/dev/null 2>&1; then
@@ -635,6 +683,57 @@ jobs:
         run: |
           set -eu
           export GIT_TERMINAL_PROMPT=0
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            # BEGIN merge-ref-structure-check
+            # Called only for pull_request, after refs/pull/<n>/merge is fetched.
+            # GitHub may rewrite that ref's commit SHA. Require a 2-parent merge
+            # of a base-branch commit and the approved head. Do not compare SHAs.
+            # Do not fall back to the head.
+            merge_ref_structure_check() {
+              FETCHED="$(git rev-parse 'FETCH_HEAD^{commit}')"
+              PARENTS="$(git rev-parse "${FETCHED}^@")"
+              PARENT_COUNT=0
+              MERGE_BASE=""
+              MERGE_HEAD=""
+              if [ -n "$PARENTS" ]; then
+                for parent in $PARENTS; do
+                  PARENT_COUNT=$((PARENT_COUNT + 1))
+                  if [ "$PARENT_COUNT" -eq 1 ]; then
+                    MERGE_BASE="$parent"
+                  elif [ "$PARENT_COUNT" -eq 2 ]; then
+                    MERGE_HEAD="$parent"
+                  fi
+                done
+              fi
+              if [ "$PARENT_COUNT" -ne 2 ]; then
+                echo "refs/pull/${PR_NUMBER}/merge ${FETCHED} has ${PARENT_COUNT} parents, expected exactly 2" >&2
+                echo "refusing to check out a merge ref that is not a 2-parent merge; refusing to fall back to the head" >&2
+                echo "the check is on structure and content, not on a SHA GitHub rewrites" >&2
+                exit 1
+              fi
+              APPROVED_HEAD="${{ github.event.pull_request.head.sha }}"
+              if ! printf '%s' "$APPROVED_HEAD" | grep -Eq '^[0-9a-f]{40}$'; then
+                echo "approved head SHA is missing or not 40 hex; refusing to fall back to the head" >&2
+                echo "the check is on structure and content, not on a SHA GitHub rewrites" >&2
+                exit 1
+              fi
+              if [ "$MERGE_HEAD" != "$APPROVED_HEAD" ]; then
+                echo "refs/pull/${PR_NUMBER}/merge second parent is ${MERGE_HEAD}, expected approved head ${APPROVED_HEAD}" >&2
+                echo "refusing to fall back to the head; the check is on structure and content, not on a SHA GitHub rewrites" >&2
+                exit 1
+              fi
+              if ! git merge-base --is-ancestor "$MERGE_BASE" "origin/${{ github.base_ref }}"; then
+                echo "refs/pull/${PR_NUMBER}/merge first parent ${MERGE_BASE} is not an ancestor of origin/${{ github.base_ref }}" >&2
+                echo "refusing to check out a merge whose base side is not a base-branch commit; refusing to fall back to the head" >&2
+                echo "the check is on structure and content, not on a SHA GitHub rewrites" >&2
+                exit 1
+              fi
+              echo "refs/pull/${PR_NUMBER}/merge ${FETCHED} is a 2-parent merge of base ${MERGE_BASE} and approved head ${APPROVED_HEAD}"
+              echo "event GITHUB_SHA was ${CHECKOUT_SHA}; checking out ${FETCHED} because the check is on structure and content, not on a SHA GitHub rewrites"
+              CHECKOUT_SHA="$FETCHED"
+            }
+            # END merge-ref-structure-check
+            fi
           cd "$GITHUB_WORKSPACE"
           if [ -e .git ]; then
             echo "refusing to reuse an existing git directory" >&2
@@ -654,7 +753,7 @@ jobs:
               || git -c credential.helper= fetch origin "refs/tags/${COMBINED_REF}:refs/tags/${COMBINED_REF}"
             git checkout --detach FETCH_HEAD
           else
-            # pull_request: github.sha is the merge commit. Fetch that ref.
+            # pull_request: fetch refs/pull/<n>/merge and check structure.
             # push and workflow_dispatch: github.sha is the event commit.
             if ! printf '%s' "$CHECKOUT_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
               echo "refusing non-sha checkout ref" >&2
@@ -670,12 +769,7 @@ jobs:
                 echo "refusing to fall back to the head" >&2
                 exit 1
               fi
-              FETCHED="$(git rev-parse 'FETCH_HEAD^{commit}')"
-              if [ "$FETCHED" != "$CHECKOUT_SHA" ]; then
-                echo "refs/pull/${PR_NUMBER}/merge is ${FETCHED}, expected GITHUB_SHA ${CHECKOUT_SHA}" >&2
-                echo "refusing to check out a different object" >&2
-                exit 1
-              fi
+              merge_ref_structure_check
             elif ! git cat-file -e "${CHECKOUT_SHA}^{commit}" >/dev/null 2>&1; then
               git -c credential.helper= fetch --no-tags origin "$GITHUB_REF"
             fi
