@@ -1,0 +1,77 @@
+# Noesis-owned managed model-routing policy. This file is source policy only.
+# Quota is recorded as unknown where no quota API exists for the provider.
+# A successful readiness probe proves reachability only and never proves remaining credits.
+# MiniMax quota is known_exhausted from a measured limit response, not from a quota API.
+# No credential value is stored in this file.
+# Profile or session separation does not create provider-family diversity.
+# Loading this honest blocked state is valid configuration. It does not activate any route.
+
+version: "2026-10-26.2"
+generated_at: "2026-10-26T21:04:06Z"
+default_route: "noesis_review_primary"
+routes:
+  noesis_implement_primary:
+    provider: "minimax-oauth"
+    model: "MiniMax-M3"
+    provider_family: "minimax"
+    workload_classes:
+      - "implementation"
+    risk_tier_max: "r2"
+    data_classes:
+      - "public"
+      - "internal"
+    fallback_routes: []
+    fallback_allowed: false
+    credential_scope: "oauth-device-code"
+    evidence:
+      quota: "known_exhausted"
+      readiness_ttl_seconds: 3600
+      requires_reachability_probe: true
+      readiness_state: "quota_exhausted"
+    status: "disabled"
+  noesis_review_primary:
+    provider: "xai-oauth"
+    model: "grok-4.7"
+    provider_family: "xai"
+    workload_classes:
+      - "implementation"
+      - "review"
+      - "adversarial_review"
+    risk_tier_max: "r2"
+    data_classes:
+      - "public"
+      - "internal"
+    fallback_routes: []
+    fallback_allowed: false
+    credential_scope: "oauth-device-code"
+    evidence:
+      quota: "unknown"
+      readiness_ttl_seconds: 3600
+      requires_reachability_probe: true
+      readiness_state: "reachable"
+    status: "approved"
+  noesis_cheap_fallback:
+    provider: "nous"
+    model: "upstage/solar-mini4:free"
+    provider_family: "nous"
+    workload_classes:
+      - "classification"
+    risk_tier_max: "r1"
+    data_classes:
+      - "public"
+      - "internal_redacted"
+    fallback_routes: []
+    fallback_allowed: false
+    credential_scope: "free-tier-anonymous"
+    evidence:
+      quota: "unknown"
+      readiness_ttl_seconds: 1800
+      requires_reachability_probe: true
+      readiness_state: "unverified"
+    status: "proposed"
+review_independence:
+  profile_or_session_separation_creates_diversity: false
+  implementation:
+    reviewer_family_must_differ_from_implementer: true
+    current_approved_pair_exists: false
+    statement: "implementation acceptance requires a reviewer provider family different from the implementer family; the current approved route set has no qualifying independent pair"
