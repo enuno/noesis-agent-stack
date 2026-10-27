@@ -140,7 +140,7 @@ def register(ctx):
 
             orch = _make_orchestrator(payload, ledger_path, events_path)
             try:
-                result = orch.preflight_then_route(
+                result = orch.plan_then_route(
                     title=payload["title"],
                     intent=payload["intent"],
                     acceptance_criteria=payload["acceptance_criteria"],

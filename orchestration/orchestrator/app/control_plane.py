@@ -257,7 +257,7 @@ class Orchestrator:
         .. deprecated::
             B2 (contract §3.1): ``route_and_launch`` is the legacy
             entrypoint that skips the minimum-safe preflight ordering.
-            External callers should migrate to :meth:`preflight_then_route`
+            External callers should migrate to :meth:`plan_then_route`
             (which forwards to :meth:`route_with_preflight`). The legacy
             path is preserved for the existing regression suite but the
             new ordered method is the canonical dispatch surface.
@@ -268,7 +268,7 @@ class Orchestrator:
         """
         warnings.warn(
             "Orchestrator.route_and_launch is deprecated; use "
-            "Orchestrator.preflight_then_route (or route_with_preflight) "
+            "Orchestrator.plan_then_route (or route_with_preflight) "
             "to enforce the minimum-safe preflight ordering.",
             DeprecationWarning,
             stacklevel=2,
@@ -1120,7 +1120,7 @@ class Orchestrator:
 
         return _BoundProposal(persisted, proposal)
 
-    def preflight_then_route(
+    def plan_then_route(
         self,
         *,
         title: str,
@@ -1668,7 +1668,7 @@ class Orchestrator:
     def _routing_context_for_task(self, task: TaskContract) -> RoutingContext:
         """Build the non-sensitive routing context for pre-dispatch evaluation."""
         overrides = self._inference_routing_context.get(str(task.task_id), {})
-        task_class = overrides.get("task_class") or task.labels[0] if task.labels else "general"
+        task_class = overrides.get("task_class") or (task.labels[0] if task.labels else "general")
         data_classification = (
             overrides.get("data_classification")
             or ("internal_redacted" if task.risk_tier in {"r0", "r1"} else "internal")

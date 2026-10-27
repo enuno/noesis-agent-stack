@@ -95,7 +95,7 @@ def test_cli_forwards_expected_epoch_and_does_not_spawn(
 def test_cli_uses_canonical_preflight_entrypoint(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """The live CLI must enter through preflight_then_route, not the legacy launcher."""
+    """The live CLI must enter through plan_then_route, not the legacy launcher."""
     seen: dict[str, object] = {}
 
     def _preflight(self, **kwargs):
@@ -107,7 +107,7 @@ def test_cli_uses_canonical_preflight_entrypoint(
     def _legacy(self, **kwargs):
         raise AssertionError("route_and_launch must not be the live CLI entrypoint")
 
-    monkeypatch.setattr("app.control_plane.Orchestrator.preflight_then_route", _preflight)
+    monkeypatch.setattr("app.control_plane.Orchestrator.plan_then_route", _preflight)
     monkeypatch.setattr("app.control_plane.Orchestrator.route_and_launch", _legacy)
     path = tmp_path / "task.json"
     path.write_text(
@@ -165,7 +165,7 @@ def test_plugin_forwards_timeout_and_reviewer(tmp_path: Path, monkeypatch: pytes
 
         raise RoutingBlocked("preflight_probe", "plugin canonical entrypoint")
 
-    monkeypatch.setattr("app.control_plane.Orchestrator.preflight_then_route", _preflight)
+    monkeypatch.setattr("app.control_plane.Orchestrator.plan_then_route", _preflight)
     module = _load_plugin()
     ctx = _FakeContext()
     module.register(ctx)

@@ -146,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
     payload = _load_payload(args.input)
     orch = _make_orchestrator(payload, args.ledger, args.events)
     try:
-        result = orch.preflight_then_route(
+        result = orch.plan_then_route(
             title=str(payload["title"]),
             intent=str(payload["intent"]),
             acceptance_criteria=[str(item) for item in payload.get("acceptance_criteria", [])],
