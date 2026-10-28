@@ -266,18 +266,43 @@ def test_apply_does_not_abort_on_a_missing_pin_file() -> None:
 def test_live_check_fails_when_it_cannot_run() -> None:
     with tempfile.TemporaryDirectory(dir=str(SCRATCH)) as td:
         tmp = Path(td)
+        # A hermes_cli package that raises on import makes the resolver
+        # unavailable DETERMINISTICALLY. Without it, the outcome depends on
+        # whether the machine happens to have hermes_cli importable --
+        # validate_live() adds Path.home()/.hermes/hermes-agent to sys.path,
+        # so redirecting HERMES_HOME alone does not isolate the test.
+        blocker = tmp / "blocker" / "hermes_cli"
+        blocker.mkdir(parents=True, exist_ok=True)
+        (blocker / "__init__.py").write_text("raise ImportError('resolver unavailable (test)')\n")
         env = dict(os.environ)
-        # a HERMES_HOME with no hermes-agent source: the resolver cannot be
-        # imported, so the live check cannot be satisfied
+        env["HOME"] = str(tmp)            # Path.home() must not find the real install
         env["HERMES_HOME"] = str(tmp / "no-hermes")
-        env["PYTHONPATH"] = str(tmp / "empty")
+        env["PYTHONPATH"] = str(tmp / "blocker")
+        env["PYTHONNOUSERSITE"] = "1"
         r = subprocess.run([sys.executable, str(VALIDATE), "--live"],
                            capture_output=True, text=True, env=env, cwd=str(REPO))
+        out = r.stdout + r.stderr
         check("a live check that cannot import the resolver fails",
               r.returncode != 0, f"rc={r.returncode}")
         check("the failure says the check could not be satisfied",
-              "cannot be satisfied" in (r.stdout + r.stderr),
-              (r.stdout + r.stderr)[-400:])
+              "cannot be satisfied" in out, out[-400:])
+        check("the failure names the resolver, not a catalogue",
+              "cannot import the Hermes catalog resolver" in out, out[-400:])
+
+
+def test_apply_dry_run_previews_without_plugin_metadata() -> None:
+    with tempfile.TemporaryDirectory(dir=str(SCRATCH)) as td:
+        tmp = Path(td)
+        home = tmp / "alt-home"
+        # sha=None: the profile has never had the plugin, so the catalog
+        # metadata does not exist. A dry run does not execute the install,
+        # so it must not require a post-install artifact to preview the
+        # configuration.
+        r = run_apply(tmp, home, ["--dry-run"], sha=None)
+        check("a dry run succeeds for a profile with no plugin metadata",
+              r.returncode == 0, f"rc={r.returncode} out={r.stdout[-400:]}")
+        check("a dry run still previews the configuration",
+              "would verify" in r.stdout, r.stdout[-400:])
 
 
 def main() -> int:
@@ -288,6 +313,7 @@ def main() -> int:
         test_apply_stops_after_a_pin_mismatch,
         test_apply_handles_an_empty_allow_list,
         test_apply_does_not_abort_on_a_missing_pin_file,
+        test_apply_dry_run_previews_without_plugin_metadata,
         test_live_check_fails_when_it_cannot_run,
     ):
         try:

@@ -180,25 +180,34 @@ for profile in "${WANT[@]}"; do
   #     approved one, so this profile is NOT configured any further: the
   #     settings and the allow-list must not be written for a plugin
   #     revision that was just rejected.
-  meta="$home/plugins/$PLUGIN_ID/.hermes-catalog.json"
-  pin_ok=1
-  if [[ -f "$meta" ]]; then
-    got="$(/usr/bin/python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("sha",""))' "$meta")"
-    if [[ "$got" != "$PINNED_REF" ]]; then
-      say "    FAIL installed sha $got != pinned $PINNED_REF"
-      pin_ok=0
-    else
-      say "    OK   pinned commit $got"
-    fi
+  #
+  #     A dry run does NOT execute the install, so the catalog metadata may
+  #     not exist yet for a profile that has never had the plugin. The gate
+  #     belongs to a real apply; a dry run must still preview the
+  #     configuration.
+  if [[ $DRY -eq 1 ]]; then
+    say "    [dry-run] pin check deferred — the install is not executed in a dry run"
   else
-    say "    FAIL no .hermes-catalog.json at $meta — cannot verify the pinned commit"
-    pin_ok=0
-  fi
-  if [[ $pin_ok -eq 0 ]]; then
-    say "    SKIP configuring $profile — the installed revision was not verified"
-    rc=1
-    say ""
-    continue
+    meta="$home/plugins/$PLUGIN_ID/.hermes-catalog.json"
+    pin_ok=1
+    if [[ -f "$meta" ]]; then
+      got="$(/usr/bin/python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("sha",""))' "$meta")"
+      if [[ "$got" != "$PINNED_REF" ]]; then
+        say "    FAIL installed sha $got != pinned $PINNED_REF"
+        pin_ok=0
+      else
+        say "    OK   pinned commit $got"
+      fi
+    else
+      say "    FAIL no .hermes-catalog.json at $meta — cannot verify the pinned commit"
+      pin_ok=0
+    fi
+    if [[ $pin_ok -eq 0 ]]; then
+      say "    SKIP configuring $profile — the installed revision was not verified"
+      rc=1
+      say ""
+      continue
+    fi
   fi
 
   # 2. the routing table
