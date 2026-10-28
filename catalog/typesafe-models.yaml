@@ -1,0 +1,62 @@
+# catalog/typesafe-models.yaml
+# Canonical model catalog entry for TypeSafe System One models.
+#
+# The stack routes on model *profiles* (shared/models.yaml) and *aliases*
+# (shared/model-aliases.yaml). This file is the provider-scoped catalog for
+# the one TypeSafe model the stack consumes: the classification model behind
+# the hermes-jev-routing plugin.
+#
+# This is a classification service, not a task-solving model. It answers
+# typed questions (Choice / Noul / Score) about a supplied state and is never
+# used to produce task output.
+
+version: "1.0.0"
+updated: 2026-10-28
+
+provider: typesafe
+
+models:
+  jev-latest:
+    display_name: Jev (System One)
+    kind: classification
+    endpoint: https://api.typesafe.ai/v1/systemone
+    api_mode: systemone_typed_questions
+    auth_env: TYPESAFE_API_KEY
+    secret_source: bitwarden_secrets_manager
+    pinned: false
+    pin_note: >-
+      "latest" is the alias the plugin ships with. The alias resolves to a
+      moving upstream release, so this entry records the ALIAS, not a
+      resolved build. A reproducible build requires pinning the resolved model
+      id in the plugin's config (`jevModel`) and updating this entry to match.
+    typed_questions:
+      - choice
+      - noul
+      - score
+      - box
+    task_solving: false
+    produces_task_output: false
+    classification_allowed: [public, internal]
+    cost_model: per_request
+    cost_note: >-
+      Billed per typed question, not per token. Not representable in the
+      per-Mtok rate card used by the plugin's spend ledger, so jev-routing
+      turns are unpriced in that ledger.
+    health: [latency, validation_failure, entitlement]
+    notes: >-
+      The plugin sends the current user message, a short conversation
+      excerpt, a context-size estimate, and a spend snapshot. Prompt text
+      leaves the host, which is why the classification ceiling is `internal`
+      and confidential profiles are excluded.
+
+# ---------------------------------------------------------------------------
+# Runtime eligibility
+# ---------------------------------------------------------------------------
+eligibility:
+  used_by: [hermes-jev-routing]
+  excluded_profiles: [misjustice-advocacy]
+  exclusion_reason: >-
+    Confidential civil-rights and legal material. Prompt egress to a
+    third-party classification service is not permitted at that
+    classification level.
+  activation_gate: platform/hermes-jev-routing.yaml

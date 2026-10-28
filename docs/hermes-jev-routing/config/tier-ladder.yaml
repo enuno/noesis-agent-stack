@@ -1,0 +1,150 @@
+# docs/hermes-jev-routing/config/tier-ladder.yaml
+# The tier ladder: which model to use for which tier, per provider, and in
+# what order the providers appear in a tier chain.
+#
+# This file is the INPUT to scripts/generate-jev-routing-config.py. The
+# generator walks the candidates in order and keeps the FIRST one the
+# provider actually serves today, so a retired model is dropped
+# automatically instead of failing at request time.
+#
+# The generator does NOT invent prices. Rates live in rate-card.yaml.
+
+version: "1.0.0"
+updated: 2026-10-28
+
+# ---------------------------------------------------------------------------
+# Chain order per tier
+# ---------------------------------------------------------------------------
+# The FIRST provider in a chain is the one that must match the provider the
+# session is actually bound to, or the rewrite does not apply at all (the
+# plugin reports `blocked: cross-provider` and leaves the turn alone).
+# Later entries are DOCUMENTATION, not fallback.
+#
+# The generator hoists the target's bound provider to the front of every
+# chain, so each generated config leads with the provider it serves.
+chain_order:
+  quick:    [minimax, openai-codex, anthropic, opencode-go]
+  standard: [minimax, openai-codex, anthropic, opencode-go]
+  high:     [minimax, openai-codex, anthropic, opencode-go]
+  premium:  [minimax, openai-codex, anthropic, opencode-go]
+  xpremium: [minimax, openai-codex, anthropic, opencode-go]
+
+# ---------------------------------------------------------------------------
+# Thinking level per tier (not per model)
+# ---------------------------------------------------------------------------
+thinking_levels:
+  quick: low
+  standard: medium
+  high: medium
+  premium: high
+  xpremium: high
+
+# ---------------------------------------------------------------------------
+# Candidate models per provider per tier
+# ---------------------------------------------------------------------------
+# Ordered best-first. The generator takes the first candidate the provider
+# serves today; if none is served, the tier chain for that provider is
+# dropped and the gap is reported.
+#
+# Models that consent to training on prompts are NOT listed and must never
+# be added: `iceman-contributor-free` and `muse-spark-1.3-contributor`.
+# `beam-free` is the safe free model (not used for training, unlimited quota).
+providers:
+  minimax:
+    quick:    [MiniMax-M2.5, MiniMax-M2.1, MiniMax-M2]
+    standard: [MiniMax-M2.7, MiniMax-M2.5, MiniMax-M2.1]
+    high:     [MiniMax-M3, MiniMax-M2.7]
+    premium:  [MiniMax-M3, MiniMax-M2.7]
+    xpremium: [MiniMax-M3, MiniMax-M2.7]
+
+  openai-codex:
+    quick:    [gpt-6-luna, gpt-5.6-luna]
+    standard: [gpt-5.6-luna, gpt-6-luna]
+    high:     [gpt-6-sol, gpt-6-luna, gpt-5.6-sol]
+    premium:  [gpt-6.1-sol, gpt-6-sol, gpt-5.6-sol]
+    xpremium: [gpt-6-astra, gpt-6.1-sol, gpt-6-sol]
+
+  anthropic:
+    quick:    [claude-haiku-4-5-20251001, claude-haiku-5-5]
+    standard: [claude-haiku-5-5, claude-haiku-4-5-20251001]
+    high:     [claude-sonnet-5, claude-sonnet-5-5, claude-sonnet-4-6]
+    premium:  [claude-sonnet-5-5, claude-sonnet-5]
+    xpremium: [claude-opus-5-5, claude-opus-5]
+
+  opencode-go:
+    quick:    [beam-free, glm-5.3-flash]
+    standard: [glm-5.3-flash, beam-free]
+    high:     [glm-5.3, glm-5.3-flash]
+    premium:  [kimi-k3.1-pro, glm-5.3]
+    xpremium: [kimi-k3.1-pro, gpt-6-luna, glm-5.3]
+
+# ---------------------------------------------------------------------------
+# kind floors and kind models
+# ---------------------------------------------------------------------------
+kind_minimum_tier:
+  plan: high
+  review: high
+  implement: standard
+
+# A kind model pins that kind to a specific model, overriding the tier
+# ladder. `min_tier` is the lowest tier at which the pin may fire.
+kind_models:
+  implement:
+    - provider: minimax
+      model: MiniMax-M3
+      min_tier: standard
+      priority: 20
+    - provider: openai-codex
+      model: gpt-6-sol
+      min_tier: standard
+      priority: 10
+
+# ---------------------------------------------------------------------------
+# Generated targets
+# ---------------------------------------------------------------------------
+# Each target produces one config whose every tier chain LEADS with
+# `lead_provider`, so the config matches the provider the profile's sessions
+# are actually bound to. There is no single config that routes on more than
+# one provider.
+targets:
+  - lead_provider: minimax
+    output: hermes-jev-routing.json
+  - lead_provider: openai-codex
+    output: hermes-jev-routing.codex.json
+
+# ---------------------------------------------------------------------------
+# Stable settings copied into every generated config
+# ---------------------------------------------------------------------------
+defaults:
+  enabled: true
+  confidenceThreshold: 0.34
+  minPromptChars: 12
+  confirm:
+    tiers: [premium, xpremium]
+    onTimeout: reject
+  quota:
+    openai-codex:
+      minQuota: {fiveHour: 0.05, weekly: 0.05}
+      onUnknown: use
+      cacheTtlSec: 120
+  budget:
+    dailyUsd: 30
+    monthlyUsd: 900
+    softRatio: 0.7
+    hardRatio: 0.9
+  cache:
+    aware: true
+    deadband: 0.25
+    maxPenaltyUsd: 0.05
+    bypassTierDelta: 2
+  free:
+    enabled: true
+    policy: fallback-only
+    pool:
+      - provider: opencode-go
+        model: beam-free
+        thinkingLevel: low
+  ranking:
+    scoresFile: ""
+    cutoffs: {standard: 0.5, high: 0.7, premium: 0.85}
+    spreadProviders: true

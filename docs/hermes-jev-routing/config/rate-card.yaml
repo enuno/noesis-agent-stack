@@ -1,0 +1,71 @@
+# docs/hermes-jev-routing/config/rate-card.yaml
+# Per-token rates for the plugin's spend ledger, in $/Mtok.
+#
+# The plugin's `pricing` block is an OPERATOR rate card: it is the only way
+# the plugin turns token counts into dollars, and it drives both the budget
+# pressure and the cache-hold penalty estimate. An unpriced model keeps
+# cost=None, so its rows leave budget pressure at zero rather than inventing
+# spend.
+#
+# Only per-token-billed providers are priced. Flat-subscription providers
+# (openai-codex, anthropic Claude Code OAuth, opencode-go Go tier) are
+# deliberately ABSENT: there are no per-token dollars to record, and a
+# notional rate would make the budget ledger mean something the invoice
+# does not.
+#
+# `source` records where each rate came from and when. Rates are reviewed
+# when the plugin's pricing is refreshed, not on every config regeneration.
+
+version: "1.0.0"
+updated: 2026-10-28
+
+providers:
+  # -------------------------------------------------------------------------
+  # minimax — per-token billed (api.minimax.io)
+  # -------------------------------------------------------------------------
+  # Source: OpenRouter catalogue for the equivalent model ids, read
+  # 2026-10-28. Cross-checked against the provider's own published rates.
+  minimax:
+    MiniMax-M3:
+      input: 0.30
+      output: 1.20
+      cache_read: 0.06
+      source: "openrouter minimax/minimax-m3, 2026-10-28"
+    MiniMax-M2.7:
+      input: 0.30
+      output: 1.20
+      cache_read: 0.06
+      source: "openrouter minimax/minimax-m2.7, 2026-10-28"
+    MiniMax-M2.5:
+      input: 0.30
+      output: 1.20
+      cache_read: 0.03
+      source: "openrouter minimax/minimax-m2.5, 2026-10-28"
+
+  # -------------------------------------------------------------------------
+  # opencode-go — Go subscription ($10/mo), rates are NOTIONAL
+  # -------------------------------------------------------------------------
+  # OpenCode Go is a flat subscription. The rates below are the published
+  # pay-as-you-go list prices the vendor uses to express the Go allowance in
+  # dollars; they are what the OpenCode table itself shows, and they are the
+  # basis on which the Go monthly-usage column is derived. They are NOT what
+  # the subscription invoices.
+  #
+  # Source: Z.ai published list prices, which the OpenCode Go table quotes
+  # verbatim, read 2026-10-28.
+  opencode-go:
+    glm-5.3:
+      input: 1.40
+      output: 4.40
+      cache_read: 0.26
+      source: "Z.ai list price, quoted by the OpenCode Go table, 2026-10-28"
+    glm-5.3-flash:
+      input: 0.15
+      output: 0.50
+      cache_read: 0.03
+      source: "Z.ai list price, quoted by the OpenCode Go table, 2026-10-28"
+    beam-free:
+      input: 0.00
+      output: 0.00
+      cache_read: 0.00
+      source: "OpenCode Go: unlimited requests, unlimited monthly usage, 2026-10-28"

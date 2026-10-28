@@ -185,6 +185,33 @@ providers:
       requires_human_review_for: [model_approval]
     health: [local_uptime, latency]
 
+  typesafe:
+    class: metered
+    display_name: TypeSafe System One (Jev)
+    capability: per-turn capability classification, model-tier routing decision
+    data_policy:
+      classification_allowed: [public, internal]
+      private_analysis: false
+      prompt_text_egress: true
+      redaction_required: false
+      redaction_note: >-
+        The hermes-jev-routing plugin sends the current user message and a
+        short conversation excerpt verbatim to api.typesafe.ai. No redaction
+        is performed upstream, so the classification ceiling is `internal`
+        and confidential profiles are excluded.
+    spend_policy:
+      model: per_request
+      note: >-
+        Billed per typed question, not per token. Not representable in the
+        plugin's per-Mtok rate card, so jev-routing turns stay unpriced in
+        the spend ledger.
+    eligibility:
+      default_routes: []
+      allowed_when: [explicit_capability_gap, approved_experiment, routing_decision_support]
+      requires_human_review_for: [route_addition, live_activation]
+      activation_policy: platform/hermes-jev-routing.yaml
+    health: [latency, validation_failure, entitlement]
+
 # ---------------------------------------------------------------------------
 # Routing rules
 # ---------------------------------------------------------------------------
