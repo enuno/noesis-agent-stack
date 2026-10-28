@@ -14,18 +14,18 @@
     "@supabase/supabase-js": "^2.57.4",
     "clsx": "^2.1.1",
     "lucide-react": "^0.542.0",
-    "next": "15.5.27",
+    "next": "15.5.28",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "tailwind-merge": "^3.3.1",
-    "zod": "^3.25.76"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/node": "^22.18.7",
     "@types/react": "^18.3.25",
     "@types/react-dom": "^18.3.7",
     "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.27",
+    "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.2"
   }
