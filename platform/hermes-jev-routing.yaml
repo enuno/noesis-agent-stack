@@ -1,0 +1,186 @@
+# platform/hermes-jev-routing.yaml
+# Activation policy for the hermes-jev-routing plugin (per-turn model routing
+# via TypeSafe Jev). This file governs WHICH Hermes profiles may load the
+# plugin, at what mode, and with which data classes. It does not contain the
+# tier table itself — that lives in docs/hermes-jev-routing/config/.
+#
+# Authority: platform/inference-routing.yaml global_invariants
+#   live_activation_requires_approval: true
+#   secrets_to_external_inference: denied
+# and shared/provider-policies.yaml classification_allowed.
+#
+# This plugin is an EXTERNAL inference surface: on every turn it sends the
+# current user message, a short conversation excerpt, an estimated context
+# size, and a spend snapshot to https://api.typesafe.ai/v1/systemone.
+# That egress is the reason this policy file exists.
+
+version: "1.0.0"
+updated: 2026-10-28
+policy_mode: proposed_not_live
+
+plugin:
+  id: hermes-jev-routing
+  catalog_name: hermes-jev-routing
+  source: apoapostolov/hermes-agent-awesome-plugins
+  pinned_ref: 06a53646587c33174a0fbfbb3713eca90bbb8586
+  requires_env: [TYPESAFE_API_KEY]
+  secret_source: bitwarden_secrets_manager
+  install: "hermes -p <profile> plugins install hermes-jev-routing"
+
+# ---------------------------------------------------------------------------
+# Data classification
+# ---------------------------------------------------------------------------
+# The plugin transmits PROMPT TEXT, not metadata. The provider's
+# `classification_allowed` therefore caps at `internal`: raw user turns and
+# conversation excerpts must not reach a third-party classification service
+# when the material is confidential.
+data_classification:
+  egress_payload:
+    - current_user_message          # full text of the turn being routed
+    - conversation_excerpt          # last N turns, capped at 4000 chars
+    - estimated_context_size        # integer token estimate, no content
+    - spend_snapshot                # provider/model/dollar figures, no content
+  classification_allowed: [public, internal]
+  confidential_redacted: denied
+  rationale: >-
+    Prompt text is sent verbatim to an external service. Redaction is not
+    performed by the plugin and cannot be assumed upstream, so the ceiling is
+    `internal` regardless of a profile's normal provider mix.
+
+# ---------------------------------------------------------------------------
+# Profile eligibility
+# ---------------------------------------------------------------------------
+# A profile is eligible when (a) its data classification is public/internal,
+# and (b) a routing config exists whose FIRST tier row matches the provider
+# the profile's sessions are actually bound to. The plugin cannot open a
+# second provider client, so a mismatched config yields `blocked:
+# cross-provider` and no routing at all.
+profile_eligibility:
+  default:
+    mode: shadow
+    config: docs/hermes-jev-routing/config/hermes-jev-routing.json
+    bound_provider: minimax
+  openai-codex:
+    mode: shadow
+    config: docs/hermes-jev-routing/config/hermes-jev-routing.codex.json
+    bound_provider: openai-codex
+  ineligible:
+    - profile: misjustice-advocacy
+      reason: >-
+        Confidential civil-rights and legal material. Under
+        data_classification.classification_allowed the plugin's prompt egress
+        is not permitted. The profile keeps its current model; no jev-routing
+        configuration is written to it.
+  reviewer_only:
+    profiles: [noesis-sentinel, noesis-skeptic]
+    reason: >-
+      Reviewer-only profiles carry no execution authority and no
+      conversation traffic; routing them adds egress with no benefit.
+
+# ---------------------------------------------------------------------------
+# Activation gate
+# ---------------------------------------------------------------------------
+# Every mode below `auto` is a reporting mode. `auto` is the only mode that
+# rewrites the model on the wire.
+modes:
+  off:
+    plugin_disabled: true
+    egress: none
+  shadow:
+    plugin_loaded: true
+    egress: per_turn
+    model_rewritten: false
+    note: >-
+      Computes and reports the tier, writes the spend ledger, and transmits
+      the turn to TypeSafe. It does NOT change the model. Shadow is therefore
+      NOT egress-free — it is a routing-shadow with full prompt egress.
+  notify:
+    plugin_loaded: true
+    egress: per_turn
+    model_rewritten: false
+  auto:
+    plugin_loaded: true
+    egress: per_turn
+    model_rewritten: true
+    requires:
+      - explicit_human_approval
+      - routing_eval_coverage
+      - cost_and_latency_budget
+      - security_and_secret_egress_review
+  confirm:
+    plugin_loaded: true
+    egress: per_turn
+    model_rewritten: only_after_operator_approval
+
+activation:
+  default_mode: shadow
+  auto_requires_explicit_approval: true
+  approval_record: docs/operations/jev-routing-activation-YYYY-MM-DD.md
+
+# ---------------------------------------------------------------------------
+# Preconditions (from platform/inference-routing.yaml
+# required_before_route_activation). Status is the state as of this commit.
+# ---------------------------------------------------------------------------
+required_before_route_activation:
+  canonical_provider_policy:
+    status: satisfied
+    evidence: shared/provider-policies.yaml -> providers.typesafe
+  canonical_model_catalog_entry:
+    status: satisfied
+    evidence: catalog/typesafe-models.yaml
+  immutable_or_explicitly_pinned_model_identifier:
+    status: satisfied
+    evidence: plugin.pinned_ref (40-char commit) + jevModel pin in config
+  approved_lane_definition:
+    status: satisfied
+    evidence: platform/hermes-jev-routing.yaml -> profile_eligibility
+  profile_eligibility_definition:
+    status: satisfied
+    evidence: platform/hermes-jev-routing.yaml -> profile_eligibility
+  data_classification_policy:
+    status: satisfied
+    evidence: platform/hermes-jev-routing.yaml -> data_classification
+  structured_output_requirements_if_applicable:
+    status: not_applicable
+    evidence: the plugin emits a routing decision, not task output
+  routing_eval_coverage:
+    status: partial
+    evidence: >-
+      Measured on Terminal-Bench 2.1 + SWE-bench Verified by the upstream
+      paper (arXiv:2610.34577) for the harness-level mechanism, NOT for this
+      stack's task distribution. No stack-local routing eval exists yet.
+  security_and_secret_egress_review:
+    status: satisfied
+    evidence: docs/hermes-jev-routing/policy.md -> Egress review
+  cost_and_latency_budget:
+    status: satisfied
+    evidence: >-
+      budget.dailyUsd/monthlyUsd sized from the measured host run rate
+      (~$19/day, ~$570/month on the per-token-billed provider).
+  explicit_human_approval:
+    status: pending
+    evidence: operator instruction of record
+
+# ---------------------------------------------------------------------------
+# Operational constraints inherited from the plugin's own behaviour
+# ---------------------------------------------------------------------------
+constraints:
+  cross_provider_picks_are_not_sent: true
+  cross_provider_note: >-
+    A tier row whose provider differs from the bound provider is reported as
+    `blocked: cross-provider` and the turn proceeds on the current model.
+    Only the Desktop approve row can move a session across providers, and the
+    CLI has no approve row.
+  first_row_wins: true
+  first_row_note: >-
+    The first row of the selected tier's chain decides the outcome. Later
+    rows are documentation, not fallback.
+  gateway_reload_required: true
+  gateway_reload_note: >-
+    A long-running gateway holds the plugin registry it built at startup.
+    Enabling the plugin after the gateway started leaves it loaded-but-inert
+    until the registry is rebuilt. Toggling a plugin forces that rebuild.
+  quota_reading_absent_in_catalog_edition: true
+  quota_note: >-
+    The catalog edition reads no provider quota window, so quota floors are
+    not enforced here; `quota.onUnknown: use` admits the model.
