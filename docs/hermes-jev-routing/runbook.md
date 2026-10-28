@@ -83,6 +83,33 @@ changes, or before any `auto` activation.
 - **No invented dollars.** Only the rate card is used, and only for models
   the chains reference. Subscription providers stay unpriced on purpose.
 
+## Tests
+
+```bash
+./scripts/test_jev_routing.py
+```
+
+Offline and deterministic — no provider catalogue is fetched and nothing
+outside a temporary directory is touched. The suite drives the scripts
+through a stubbed `hermes` CLI and asserts the behaviours the runbook and
+the policy promise:
+
+- the drift gate detects a changed budget, a changed **rate** on a model that
+  is still present, a changed thinking level, and a changed confidence
+  threshold — not just a changed route or a changed pricing key set;
+- `--install` gives a profile only the config that leads with its own bound
+  provider, and refuses a profile whose bound provider is not declared
+  rather than guessing;
+- a child `hermes` process sees the home selected with `--home`;
+- a plugin revision that does not match the pin is not configured or
+  enabled;
+- an empty `plugins.enabled` is replaced with a valid list instead of
+  aborting the apply;
+- a live check that could not run fails rather than passing while verifying
+  nothing.
+
+Exit 0 = all passed, 1 = at least one failed.
+
 ## Verify
 
 Three independent signals — a plugin that is loaded but inert produces none

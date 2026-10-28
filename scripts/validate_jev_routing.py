@@ -200,25 +200,37 @@ def validate_live(configs: dict[str, dict]) -> None:
         from hermes_cli.env_loader import load_hermes_dotenv
         from hermes_cli.models import provider_model_ids
     except Exception as e:
-        note(f"--live: cannot import the Hermes catalog resolver ({e}); live check skipped")
+        fail(f"--live: cannot import the Hermes catalog resolver ({e}); "
+             "the live check cannot be satisfied")
         return
     try:
         load_hermes_dotenv()
     except Exception as e:
-        note(f"--live: secret sources not applied ({e}); live check skipped")
+        fail(f"--live: secret sources not applied ({e}); "
+             "the live check cannot be satisfied")
         return
 
-    cache: dict[str, list[str]] = {}
+    cache: dict[str, list[str] | None] = {}
     for cname, cfg in configs.items():
         for label, provider, model in referenced_rows(cfg):
             if provider not in cache:
                 try:
                     cache[provider] = provider_model_ids(provider, force_refresh=True)
                 except Exception as e:
-                    note(f"--live: {provider} catalogue unavailable ({type(e).__name__}); rows for it unchecked")
-                    cache[provider] = []
+                    # A live check that could not RUN must not pass. An
+                    # explicitly requested verification that verifies
+                    # nothing is worse than one that fails loudly.
+                    fail(f"--live: {provider} catalogue unavailable ({type(e).__name__}: {e}); "
+                         "the live check cannot be satisfied")
+                    cache[provider] = None
+                else:
+                    if not cache[provider]:
+                        fail(f"--live: {provider} catalogue came back empty; "
+                             "the live check cannot be satisfied")
             ids = cache[provider]
-            if ids and model not in ids:
+            if ids is None:
+                continue
+            if model not in ids:
                 fail(f"{cname}: {label} -> {provider}/{model} is not served by {provider} today")
 
 
