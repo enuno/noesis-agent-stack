@@ -58,6 +58,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# The child `hermes` processes must see the selected home, or an alternate
+# --home would install and configure the NORMAL home instead. This mirrors
+# apply-noesis-profiles.sh, which exports it for the same reason.
+export HERMES_HOME
+
 case "$MODE" in
   shadow|notify|off) ;;
   auto) echo "refusing: mode=auto requires explicit approval (see platform/hermes-jev-routing.yaml)" >&2; exit 3 ;;
@@ -170,18 +175,30 @@ for profile in "${WANT[@]}"; do
   run $(hermes_for "$profile") plugins install "$PLUGIN_CATALOG" --yes-deps --no-enable >/dev/null 2>&1 \
     || say "    WARN plugin install reported a problem; continuing to configure"
 
-  # 1b. verify the commit that actually landed matches the pin
+  # 1b. verify the commit that actually landed matches the pin. A mismatch
+  #     (or missing metadata) means the installed revision is not the
+  #     approved one, so this profile is NOT configured any further: the
+  #     settings and the allow-list must not be written for a plugin
+  #     revision that was just rejected.
   meta="$home/plugins/$PLUGIN_ID/.hermes-catalog.json"
+  pin_ok=1
   if [[ -f "$meta" ]]; then
     got="$(/usr/bin/python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("sha",""))' "$meta")"
     if [[ "$got" != "$PINNED_REF" ]]; then
       say "    FAIL installed sha $got != pinned $PINNED_REF"
-      rc=1
+      pin_ok=0
     else
       say "    OK   pinned commit $got"
     fi
   else
-    say "    WARN no .hermes-catalog.json at $meta — cannot verify the pinned commit"
+    say "    FAIL no .hermes-catalog.json at $meta — cannot verify the pinned commit"
+    pin_ok=0
+  fi
+  if [[ $pin_ok -eq 0 ]]; then
+    say "    SKIP configuring $profile — the installed revision was not verified"
+    rc=1
+    say ""
+    continue
   fi
 
   # 2. the routing table
@@ -192,11 +209,26 @@ for profile in "${WANT[@]}"; do
   run $(hermes_for "$profile") config set plugins.entries.hermes-jev-routing.settings.config_path "$dst_cfg" >/dev/null
   run $(hermes_for "$profile") config set plugins.entries.hermes-jev-routing.settings.mode "$MODE" >/dev/null
 
-  # 4. the load-time allow-list
-  cur_enabled="$($(hermes_for "$profile") config get plugins.enabled 2>/dev/null | grep -E '^\s*- ' | sed 's/^\s*- //' | tr -d '"' | tr '\n' ',' | sed 's/,$//')"
-  if [[ ",$cur_enabled," != *",hermes-jev-routing,"* ]]; then
-    new_enabled="[$cur_enabled,hermes-jev-routing]"
-    run $(hermes_for "$profile") config set plugins.enabled "$new_enabled" >/dev/null
+  # 4. the load-time allow-list. Read it from the STORED config rather
+  #    than parsing CLI output: an empty list must produce a valid
+  #    singleton list, and a `grep` that selects no lines exits 1, which
+  #    under `set -euo pipefail` would abort the whole apply after the
+  #    settings were already written.
+  new_enabled="$(/usr/bin/python3 - "$home/config.yaml" <<'PY'
+import sys, yaml
+try:
+    cfg = yaml.safe_load(open(sys.argv[1])) or {}
+except Exception:
+    cfg = {}
+plugins = cfg.get("plugins") or {}
+enabled = list(plugins.get("enabled") or [])
+if "hermes-jev-routing" not in enabled:
+    enabled.append("hermes-jev-routing")
+print(",".join(enabled))
+PY
+)"
+  if [[ -n "$new_enabled" ]]; then
+    run $(hermes_for "$profile") config set plugins.enabled "[$new_enabled]" >/dev/null
   fi
 
   # 5. verify the stored bytes

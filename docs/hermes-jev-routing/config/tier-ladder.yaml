@@ -113,6 +113,25 @@ targets:
     output: hermes-jev-routing.codex.json
 
 # ---------------------------------------------------------------------------
+# Profile -> bound provider
+# ---------------------------------------------------------------------------
+# The provider a profile's sessions are actually bound to. The generator's
+# --install resolves the profile's config through this map, so a profile
+# never receives a config that leads with another provider: such a config
+# yields `blocked: cross-provider` and no routing at all.
+#
+# A profile that is absent here is not installable by --install. That is
+# deliberate -- the generator refuses to guess a bound provider.
+#
+# misjustice-advocacy is absent on purpose. It is ineligible under
+# platform/hermes-jev-routing.yaml, and the prompt egress the plugin
+# performs is not permitted at its data classification.
+profiles:
+  default: minimax
+  builder-ventures: openai-codex
+  terrahash-intel: openai-codex
+
+# ---------------------------------------------------------------------------
 # Stable settings copied into every generated config
 # ---------------------------------------------------------------------------
 defaults:

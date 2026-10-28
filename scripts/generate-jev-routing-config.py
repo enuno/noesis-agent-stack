@@ -263,21 +263,47 @@ def validate_with_plugin(cfg: dict, label: str) -> None:
 
 
 def diff_report(old: dict, new: dict, label: str) -> bool:
+    """Compare the COMPLETE generated config against the stored one.
+
+    Comparing only route tuples and pricing key SETS would miss a changed
+    budget, a changed thinking level, a changed kind-model pin, or a changed
+    RATE on a model that is still present -- and the gate would then report
+    stale spend settings as current.
+    """
     changed = False
-    for tier in TIERS:
-        o = [(r["provider"], r["model"]) for r in (old.get("routes") or {}).get(tier) or []]
-        n = [(r["provider"], r["model"]) for r in (new.get("routes") or {}).get(tier) or []]
-        if o != n:
-            changed = True
-            print(f"  {label} routes.{tier}:")
-            print(f"    - {o}")
-            print(f"    + {n}")
-    op = set((old.get("pricing") or {}).keys())
-    np = set((new.get("pricing") or {}).keys())
-    if op != np:
+    for key in sorted(set(old) | set(new)):
+        o = old.get(key)
+        n = new.get(key)
+        if o == n:
+            continue
         changed = True
-        print(f"  {label} pricing keys: -{sorted(op - np)} +{sorted(np - op)}")
+        print(f"  {label} {key}:")
+        if isinstance(o, dict) and isinstance(n, dict):
+            for sub in sorted(set(o) | set(n)):
+                if o.get(sub) != n.get(sub):
+                    print(f"    {key}.{sub}: {o.get(sub)!r} -> {n.get(sub)!r}")
+        else:
+            print(f"    {o!r} -> {n!r}")
     return changed
+
+
+def select_target_for_profile(ladder: dict, targets: list, profile: str) -> tuple[dict | None, str | None]:
+    """Return (target, error) for the config a profile must receive.
+
+    The plugin can only rewrite the model on the provider a turn is already
+    bound to, so a profile MUST receive the config that leads with its own
+    provider. Resolving that from the ladder's `profiles` map -- rather than
+    installing every target -- is what keeps a profile from ending up on a
+    config it cannot use (the plugin reports those as
+    `blocked: cross-provider`, which is no routing at all).
+    """
+    bound = (ladder.get("profiles") or {}).get(profile)
+    if not bound:
+        return None, f"profile {profile!r} has no bound provider in the ladder's profiles map"
+    target = next((t for t in targets if t.get("lead_provider") == bound), None)
+    if not target:
+        return None, f"no target leads with {bound!r} for profile {profile!r}"
+    return target, None
 
 
 def main() -> int:
@@ -358,17 +384,31 @@ def main() -> int:
             dest.write_text(json.dumps(cfg, indent=2) + "\n")
             print(f"  wrote {dest}")
         if args.install:
+            # Resolve the profile's bound provider EXPLICITLY. Installing
+            # every target would leave the profile holding a config that
+            # leads with a different provider, which the plugin reports as
+            # `blocked: cross-provider` -- no routing at all.
+            profile_map = ladder.get("profiles") or {}
             for profile in args.profile:
-                home = Path.home() / ".hermes" if profile == "default" else Path.home() / ".hermes" / "profiles" / profile
-                for path, cfg in generated.items():
-                    lead = next(t["lead_provider"] for t in targets if t["output"] == path.name)
-                    if profile != "default":
-                        bound = (ladder.get("profiles") or {}).get(profile)
-                        if bound and bound != lead:
-                            print(f"  SKIP {profile}: bound provider is {bound}, not {lead}")
-                            continue
-                    (home / path.name).write_text(json.dumps(cfg, indent=2) + "\n")
-                    print(f"  installed {home / path.name}")
+                target, err_msg = select_target_for_profile(ladder, targets, profile)
+                if target is None:
+                    err(f"--install: {err_msg}")
+                    continue
+                cfg = generated[CONFIG_DIR / target["output"]]
+                home = (Path.home() / ".hermes" if profile == "default"
+                        else Path.home() / ".hermes" / "profiles" / profile)
+                # The ACTIVE filename is what settings.config_path points at.
+                # Any other name would leave the profile on a config it does
+                # not read.
+                dest = home / "hermes-jev-routing.json"
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_text(json.dumps(cfg, indent=2) + "\n")
+                print(f"  installed {dest} (bound provider: {target.get('lead_provider')})")
+        if errors:
+            for e in errors:
+                print(f"  FAIL: {e}")
+            print(f"\nFAILED: {len(errors)} problem(s)")
+            return 1
         print("\nOK")
         return 0
 

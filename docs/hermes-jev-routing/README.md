@@ -22,6 +22,7 @@ artifacts live outside it:
 | `scripts/generate-jev-routing-config.py` | Regenerate the tier tables from the ladder and the LIVE provider catalogues |
 | `scripts/apply-jev-routing.sh` | Install + configure + verify, into a profile home |
 | `scripts/validate_jev_routing.py` | Validate the policy, the ladder, and the generated configs |
+| `scripts/test_jev_routing.py` | Offline regression tests for the tooling |
 | `docs/hermes-jev-routing/policy.md` | Egress review, activation preconditions |
 | `docs/hermes-jev-routing/runbook.md` | Install, regenerate, verify, roll back |
 
