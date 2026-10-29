@@ -1,0 +1,8 @@
+{
+  "name": "twilio-docs-read",
+  "description": "Search and retrieve Twilio's product documentation.",
+  "included_tools": [
+    "twilio-docs__twilio__retrieve",
+    "twilio-docs__twilio__search"
+  ]
+}

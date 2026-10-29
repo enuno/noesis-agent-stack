@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "artifact_type": "mcpjungle-gateway-state-backup",
-  "captured_at": "2026-10-26T00:00:00.000000+00:00",
+  "captured_at": "2026-10-29T22:00:04.666265+00:00",
   "target": {
     "registry_base_url": "https://mcpjungle.tailf99a0.ts.net",
     "mcp_endpoint": "https://mcpjungle.tailf99a0.ts.net/mcp",
@@ -11,49 +11,16 @@
     "server_mode_note": "The gateway runs in SERVER_MODE=development. In this mode MCPJungle performs no authentication and no ACLs: verifyUserAuthForAPIAccess and requireAdminUser both short-circuit, and checkAuthForMcpProxyAccess passes requests with no Authorization header. This was a deliberate, operator-authorised switch on 2026-10-23 to enable the Dashboard UI, recorded in noesis-ansible/inventory/mcpjungle-k8s/group_vars/all.yml. The trust boundary for the resulting open access is the tailnet itself."
   },
   "main_gateway_servers": {
-    "count": 24,
+    "count": 34,
     "source": "GET /api/v0/servers",
     "description": "The upstream MCP servers registered on the main gateway. This view carries no credentials: every entry has null env, null args and null command, and the only non-empty fields are name, transport, url, description and enabled.",
     "servers": [
       {
-        "name": "CourtListener",
+        "name": "mcpjungle-docs",
         "transport": "streamable_http",
         "enabled": true,
-        "description": "CourtListener legal database (US federal/state courts, PACER, eCFR)",
-        "url": "https://courtlistener-mcp.vaquill.ai/mcp/",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "GovInfo",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Official federal publications, including legislation, laws, regulations, and publication metadata",
-        "url": "https://api.govinfo.gov/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "OpenStates",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Search bills, legislators, committees, and events across all 50 US states, DC, and Puerto Rico",
-        "url": "https://openstates.caseyjhand.com/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "beacon-managed",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Beacon managed MCP server",
-        "url": "https://mcp.beacon.sh",
+        "description": "MCPJungle",
+        "url": "https://docs.mcpjungle.com/mcp",
         "command": "",
         "args": null,
         "env": null,
@@ -65,138 +32,6 @@
         "enabled": true,
         "description": "context7 mcp server",
         "url": "https://mcp.context7.com/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "court-listener",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Federal/state opinions, federal RECAP/PACER records, judges, oral arguments, citation extraction/verification, and alerts",
-        "url": "https://mcp.courtlistener.com/",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "deepwiki",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "DeepWiki Code Repository Documentation",
-        "url": "https://mcp.deepwiki.com/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "eCFR",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Search and retrieval of federal regulations with citations",
-        "url": "https://ecfr.io/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "exa",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Deep web search and web crawling",
-        "url": "https://mcp.exa.ai/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "federal-regulations",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Search and trace US federal rules across the Federal Register (proposed/final rules and notices), the eCFR (codified, point-in-time CFR full text, locally mirrored), and Regulations.gov (rulemaking dockets and public comments)",
-        "url": "https://federal-regulations.caseyjhand.com/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "firecrawl-search",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Web scraping of big data sets",
-        "url": "https://mcp.firecrawl.dev/v2/mcp-oauth",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "framer",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Framer MCP server",
-        "url": "https://mcp.framer.com/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "gitbook-management",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Gitbook project management",
-        "url": "https://mcp.gitbook.com/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "github",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Official GitHub MCP server",
-        "url": "https://api.githubcopilot.com/mcp/",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "hunter",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Hunter.io e-mail and company search and verification tool",
-        "url": "https://mcp.hunter.io/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "linear",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Linear.ai research tool",
-        "url": "https://platform.liner.com/api/v1/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "mcpjungle-docs",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "MCPJungle",
-        "url": "https://docs.mcpjungle.com/mcp",
         "command": "",
         "args": null,
         "env": null,
@@ -225,297 +60,643 @@
         "session_mode": "stateless"
       },
       {
-        "name": "misjusticeallinace-ywcaofmissoula-pub",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Public research and legal documentation published by MISJustice Alliance on ywcaofmissoula.com",
-        "url": "https://www.ywcaofmissoula.com/~gitbook/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "n8n",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Noesis lab N8N automation",
-        "url": "https://n8n.tailf99a0.ts.net/mcp-server/http",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "notion",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Notion personal docs and knowledge base",
-        "url": "https://mcp.notion.com/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "perplexity",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Perplexity hosted search, answers, research, and reasoning",
-        "url": "https://api.perplexity.ai/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "unifi",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "UniFi Fleet Manager",
-        "url": "http://10.43.11.10:3000/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      }
-    ]
-  },
-  "server_configs_redacted": {
-    "count": 24,
-    "source": "GET /api/v0/server_configs",
-    "description": "The richer admin view of each registered server. The upstream view includes bearer tokens, OAuth tokens and environment secrets, so every secret-bearing value is replaced by a non-reversible marker recording only its kind and length. This file cannot restore upstream credentials and is not a substitute for the Bitwarden escrow.",
-    "redactions_applied": 27,
-    "redaction_policy": "A value is replaced by <REDACTED:kind:len=N>, where kind records the shape of the secret and N its length. No secret material is recoverable from this file. redactions_applied counts the redacted leaves actually present in this file, and redaction_kinds_used enumerates the kinds those leaves carry.",
-    "redaction_kinds_used": [
-      "jwt",
-      "opaque-token",
-      "uuid"
-    ],
-    "configs": [
-      {
-        "name": "CourtListener",
-        "transport": "streamable_http",
-        "description": "CourtListener legal database (US federal/state courts, PACER, eCFR)",
-        "url": "https://courtlistener-mcp.vaquill.ai/mcp/",
-        "headers": {
-          "X-CourtListener-Token": "<REDACTED:opaque-token:len=40>"
-        },
-        "session_mode": "stateless"
-      },
-      {
-        "name": "GovInfo",
-        "transport": "streamable_http",
-        "description": "Official federal publications, including legislation, laws, regulations, and publication metadata",
-        "url": "https://api.govinfo.gov/mcp",
-        "headers": {
-          "x-api-key": "<REDACTED:opaque-token:len=40>"
-        },
-        "session_mode": "stateless"
-      },
-      {
-        "name": "OpenStates",
-        "transport": "streamable_http",
-        "description": "Search bills, legislators, committees, and events across all 50 US states, DC, and Puerto Rico",
-        "url": "https://openstates.caseyjhand.com/mcp",
-        "session_mode": "stateless"
-      },
-      {
-        "name": "beacon-managed",
-        "transport": "streamable_http",
-        "description": "Beacon managed MCP server",
-        "url": "https://mcp.beacon.sh",
-        "bearer_token": "<REDACTED:opaque-token:len=51>",
-        "session_mode": "stateless"
-      },
-      {
-        "name": "context7",
-        "transport": "streamable_http",
-        "description": "context7 mcp server",
-        "url": "https://mcp.context7.com/mcp",
-        "bearer_token": "<REDACTED:opaque-token:len=43>",
-        "session_mode": "stateless"
-      },
-      {
-        "name": "court-listener",
-        "transport": "streamable_http",
-        "description": "Federal/state opinions, federal RECAP/PACER records, judges, oral arguments, citation extraction/verification, and alerts",
-        "url": "https://mcp.courtlistener.com/",
-        "session_mode": "stateless",
-        "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
-        "oauth_client_id": "<REDACTED:uuid:len=36>"
-      },
-      {
-        "name": "deepwiki",
-        "transport": "streamable_http",
-        "description": "DeepWiki Code Repository Documentation",
-        "url": "https://mcp.deepwiki.com/mcp",
-        "session_mode": "stateless"
-      },
-      {
-        "name": "eCFR",
-        "transport": "streamable_http",
-        "description": "Search and retrieval of federal regulations with citations",
-        "url": "https://ecfr.io/mcp",
-        "session_mode": "stateless"
-      },
-      {
-        "name": "exa",
-        "transport": "streamable_http",
-        "description": "Deep web search and web crawling",
-        "url": "https://mcp.exa.ai/mcp",
-        "headers": {
-          "x-api-key": "<REDACTED:uuid:len=36>"
-        },
-        "session_mode": "stateless"
-      },
-      {
-        "name": "federal-regulations",
-        "transport": "streamable_http",
-        "description": "Search and trace US federal rules across the Federal Register (proposed/final rules and notices), the eCFR (codified, point-in-time CFR full text, locally mirrored), and Regulations.gov (rulemaking dockets and public comments)",
-        "url": "https://federal-regulations.caseyjhand.com/mcp",
-        "headers": {
-          "x-api-key": "<REDACTED:opaque-token:len=40>"
-        },
-        "session_mode": "stateless"
-      },
-      {
-        "name": "firecrawl-search",
-        "transport": "streamable_http",
-        "description": "Web scraping of big data sets",
-        "url": "https://mcp.firecrawl.dev/v2/mcp-oauth",
-        "session_mode": "stateless",
-        "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
-        "oauth_client_id": "<REDACTED:opaque-token:len=36>"
-      },
-      {
-        "name": "framer",
-        "transport": "streamable_http",
-        "description": "Framer MCP server",
-        "url": "https://mcp.framer.com/mcp",
-        "session_mode": "stateless",
-        "oauth_redirect_uri": "<REDACTED:opaque-token:len=37>",
-        "oauth_client_id": "<REDACTED:opaque-token:len=16>"
-      },
-      {
-        "name": "gitbook-management",
-        "transport": "streamable_http",
-        "description": "Gitbook project management",
-        "url": "https://mcp.gitbook.com/mcp",
-        "bearer_token": "<REDACTED:opaque-token:len=47>",
-        "session_mode": "stateless"
-      },
-      {
         "name": "github",
         "transport": "streamable_http",
+        "enabled": true,
         "description": "Official GitHub MCP server",
         "url": "https://api.githubcopilot.com/mcp/",
-        "session_mode": "stateless",
-        "oauth_redirect_uri": "<REDACTED:opaque-token:len=37>",
-        "oauth_client_id": "<REDACTED:opaque-token:len=20>",
-        "oauth_client_secret": "<REDACTED:opaque-token:len=40>"
-      },
-      {
-        "name": "hunter",
-        "transport": "streamable_http",
-        "description": "Hunter.io e-mail and company search and verification tool",
-        "url": "https://mcp.hunter.io/mcp",
-        "bearer_token": "<REDACTED:opaque-token:len=40>",
+        "command": "",
+        "args": null,
+        "env": null,
         "session_mode": "stateless"
       },
       {
         "name": "linear",
         "transport": "streamable_http",
+        "enabled": true,
         "description": "Linear.ai research tool",
         "url": "https://platform.liner.com/api/v1/mcp",
-        "bearer_token": "<REDACTED:opaque-token:len=48>",
-        "session_mode": "stateless",
-        "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
-        "oauth_client_id": "<REDACTED:opaque-token:len=27>"
-      },
-      {
-        "name": "mcpjungle-docs",
-        "transport": "streamable_http",
-        "description": "MCPJungle",
-        "url": "https://docs.mcpjungle.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
         "session_mode": "stateless"
       },
       {
-        "name": "mintlify",
+        "name": "court-listener",
         "transport": "streamable_http",
-        "description": "Mintlify Docs",
-        "url": "https://mcp.mintlify.com",
-        "session_mode": "stateless",
-        "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
-        "oauth_client_id": "<REDACTED:opaque-token:len=55>"
-      },
-      {
-        "name": "mintlify-docs",
-        "transport": "streamable_http",
-        "description": "Mintlify Docs",
-        "url": "https://www.mintlify.com/docs/mcp",
+        "enabled": true,
+        "description": "Federal/state opinions, federal RECAP/PACER records, judges, oral arguments, citation extraction/verification, and alerts",
+        "url": "https://mcp.courtlistener.com/",
+        "command": "",
+        "args": null,
+        "env": null,
         "session_mode": "stateless"
       },
       {
-        "name": "misjusticeallinace-ywcaofmissoula-pub",
+        "name": "GovInfo",
         "transport": "streamable_http",
-        "description": "Public research and legal documentation published by MISJustice Alliance on ywcaofmissoula.com",
-        "url": "https://www.ywcaofmissoula.com/~gitbook/mcp",
+        "enabled": true,
+        "description": "Official federal publications, including legislation, laws, regulations, and publication metadata",
+        "url": "https://api.govinfo.gov/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "federal-regulations",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Search and trace US federal rules across the Federal Register (proposed/final rules and notices), the eCFR (codified, point-in-time CFR full text, locally mirrored), and Regulations.gov (rulemaking dockets and public comments)",
+        "url": "https://federal-regulations.caseyjhand.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "eCFR",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Search and retrieval of federal regulations with citations",
+        "url": "https://ecfr.io/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "OpenStates",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Search bills, legislators, committees, and events across all 50 US states, DC, and Puerto Rico",
+        "url": "https://openstates.caseyjhand.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "CourtListener",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "CourtListener legal database (US federal/state courts, PACER, eCFR)",
+        "url": "https://courtlistener-mcp.vaquill.ai/mcp/",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "beacon-managed",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Beacon managed MCP server",
+        "url": "https://mcp.beacon.sh",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "exa",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Deep web search and web crawling",
+        "url": "https://mcp.exa.ai/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "firecrawl-search",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Web scraping of big data sets",
+        "url": "https://mcp.firecrawl.dev/v2/mcp-oauth",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "framer",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Framer MCP server",
+        "url": "https://mcp.framer.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "perplexity",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Perplexity hosted search, answers, research, and reasoning",
+        "url": "https://api.perplexity.ai/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "deepwiki",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "DeepWiki Code Repository Documentation",
+        "url": "https://mcp.deepwiki.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
         "session_mode": "stateless"
       },
       {
         "name": "n8n",
         "transport": "streamable_http",
+        "enabled": true,
         "description": "Noesis lab N8N automation",
         "url": "https://n8n.tailf99a0.ts.net/mcp-server/http",
-        "bearer_token": "<REDACTED:jwt:len=272>",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "misjusticeallinace-ywcaofmissoula-pub",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Public research and legal documentation published by MISJustice Alliance on ywcaofmissoula.com",
+        "url": "https://www.ywcaofmissoula.com/~gitbook/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "hunter",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Hunter.io e-mail and company search and verification tool",
+        "url": "https://mcp.hunter.io/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
         "session_mode": "stateless"
       },
       {
         "name": "notion",
         "transport": "streamable_http",
+        "enabled": true,
         "description": "Notion personal docs and knowledge base",
         "url": "https://mcp.notion.com/mcp",
-        "session_mode": "stateless",
-        "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
-        "oauth_client_id": "<REDACTED:opaque-token:len=16>"
-      },
-      {
-        "name": "perplexity",
-        "transport": "streamable_http",
-        "description": "Perplexity hosted search, answers, research, and reasoning",
-        "url": "https://api.perplexity.ai/mcp",
-        "bearer_token": "<REDACTED:opaque-token:len=53>",
+        "command": "",
+        "args": null,
+        "env": null,
         "session_mode": "stateless"
       },
       {
         "name": "unifi",
         "transport": "streamable_http",
+        "enabled": true,
         "description": "UniFi Fleet Manager",
         "url": "http://10.43.11.10:3000/mcp",
-        "bearer_token": "<REDACTED:opaque-token:len=64>",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "gitbook-management",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Gitbook project management",
+        "url": "https://mcp.gitbook.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "betterstack-ryno",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Ryno - Better Stack monitoring, incidents, logs, metrics, and dashboards",
+        "url": "https://mcp.betterstack.com",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "noesis-aeon",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "ships the work: features, vulnerability disclosures, live apps, deep research - and new skills for itself.",
+        "url": "https://www.aeon.fun/connect/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "cloudflare-docs",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Search current Cloudflare reference documentation",
+        "url": "https://docs.mcp.cloudflare.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "cloudflare-agents-sdk",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Token-efficient search of Agents SDK documentation.",
+        "url": "https://agents.cloudflare.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "cloudflare-browser",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Fetch pages, convert pages to Markdown, and take screenshots.",
+        "url": "https://browser.mcp.cloudflare.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "cloudflare-blog",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Search and read Cloudflare Blog posts.",
+        "url": "https://blog.mcp.cloudflare.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "cloudflare",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Cloudflare API access using OAuth",
+        "url": "https://mcp.cloudflare.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "wolframalpha",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Wolframalpha tools access",
+        "url": "https://agenttools.wolfram.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "twilio-docs",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Twilio service documentation",
+        "url": "https://mcp.twilio.com/docs",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "betterstack-noesis",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "BetterStack monitoring tools for noesis agent stack",
+        "url": "https://mcp.betterstack.com",
+        "command": "",
+        "args": null,
+        "env": null,
         "session_mode": "stateless"
       }
     ]
   },
+  "server_configs_redacted": [
+    {
+      "name": "mcpjungle-docs",
+      "transport": "streamable_http",
+      "description": "MCPJungle",
+      "url": "https://docs.mcpjungle.com/mcp",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "context7",
+      "transport": "streamable_http",
+      "description": "context7 mcp server",
+      "url": "https://mcp.context7.com/mcp",
+      "bearer_token": "<REDACTED:opaque-token:len=43>",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "mintlify",
+      "transport": "streamable_http",
+      "description": "Mintlify Docs",
+      "url": "https://mcp.mintlify.com",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=55>"
+    },
+    {
+      "name": "mintlify-docs",
+      "transport": "streamable_http",
+      "description": "Mintlify Docs",
+      "url": "https://www.mintlify.com/docs/mcp",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "github",
+      "transport": "streamable_http",
+      "description": "Official GitHub MCP server",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=37>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=20>",
+      "oauth_client_secret": "<REDACTED:opaque-token:len=40>"
+    },
+    {
+      "name": "linear",
+      "transport": "streamable_http",
+      "description": "Linear.ai research tool",
+      "url": "https://platform.liner.com/api/v1/mcp",
+      "bearer_token": "<REDACTED:opaque-token:len=48>",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=27>"
+    },
+    {
+      "name": "court-listener",
+      "transport": "streamable_http",
+      "description": "Federal/state opinions, federal RECAP/PACER records, judges, oral arguments, citation extraction/verification, and alerts",
+      "url": "https://mcp.courtlistener.com/",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=36>"
+    },
+    {
+      "name": "GovInfo",
+      "transport": "streamable_http",
+      "description": "Official federal publications, including legislation, laws, regulations, and publication metadata",
+      "url": "https://api.govinfo.gov/mcp",
+      "headers": {
+        "x-api-key": "<REDACTED:opaque-token:len=40>"
+      },
+      "session_mode": "stateless"
+    },
+    {
+      "name": "federal-regulations",
+      "transport": "streamable_http",
+      "description": "Search and trace US federal rules across the Federal Register (proposed/final rules and notices), the eCFR (codified, point-in-time CFR full text, locally mirrored), and Regulations.gov (rulemaking dockets and public comments)",
+      "url": "https://federal-regulations.caseyjhand.com/mcp",
+      "headers": {
+        "x-api-key": "<REDACTED:opaque-token:len=40>"
+      },
+      "session_mode": "stateless"
+    },
+    {
+      "name": "eCFR",
+      "transport": "streamable_http",
+      "description": "Search and retrieval of federal regulations with citations",
+      "url": "https://ecfr.io/mcp",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "OpenStates",
+      "transport": "streamable_http",
+      "description": "Search bills, legislators, committees, and events across all 50 US states, DC, and Puerto Rico",
+      "url": "https://openstates.caseyjhand.com/mcp",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "CourtListener",
+      "transport": "streamable_http",
+      "description": "CourtListener legal database (US federal/state courts, PACER, eCFR)",
+      "url": "https://courtlistener-mcp.vaquill.ai/mcp/",
+      "headers": {
+        "X-CourtListener-Token": "<REDACTED:opaque-token:len=40>"
+      },
+      "session_mode": "stateless"
+    },
+    {
+      "name": "beacon-managed",
+      "transport": "streamable_http",
+      "description": "Beacon managed MCP server",
+      "url": "https://mcp.beacon.sh",
+      "bearer_token": "<REDACTED:opaque-token:len=51>",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "exa",
+      "transport": "streamable_http",
+      "description": "Deep web search and web crawling",
+      "url": "https://mcp.exa.ai/mcp",
+      "headers": {
+        "x-api-key": "<REDACTED:opaque-token:len=36>"
+      },
+      "session_mode": "stateless"
+    },
+    {
+      "name": "firecrawl-search",
+      "transport": "streamable_http",
+      "description": "Web scraping of big data sets",
+      "url": "https://mcp.firecrawl.dev/v2/mcp-oauth",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=36>"
+    },
+    {
+      "name": "framer",
+      "transport": "streamable_http",
+      "description": "Framer MCP server",
+      "url": "https://mcp.framer.com/mcp",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=37>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=16>",
+      "oauth_scopes": [
+        "<REDACTED:opaque-token:len=11>"
+      ]
+    },
+    {
+      "name": "perplexity",
+      "transport": "streamable_http",
+      "description": "Perplexity hosted search, answers, research, and reasoning",
+      "url": "https://api.perplexity.ai/mcp",
+      "bearer_token": "<REDACTED:opaque-token:len=53>",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "deepwiki",
+      "transport": "streamable_http",
+      "description": "DeepWiki Code Repository Documentation",
+      "url": "https://mcp.deepwiki.com/mcp",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "n8n",
+      "transport": "streamable_http",
+      "description": "Noesis lab N8N automation",
+      "url": "https://n8n.tailf99a0.ts.net/mcp-server/http",
+      "bearer_token": "<REDACTED:jwt:len=272>",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "misjusticeallinace-ywcaofmissoula-pub",
+      "transport": "streamable_http",
+      "description": "Public research and legal documentation published by MISJustice Alliance on ywcaofmissoula.com",
+      "url": "https://www.ywcaofmissoula.com/~gitbook/mcp",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "hunter",
+      "transport": "streamable_http",
+      "description": "Hunter.io e-mail and company search and verification tool",
+      "url": "https://mcp.hunter.io/mcp",
+      "bearer_token": "<REDACTED:opaque-token:len=40>",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "notion",
+      "transport": "streamable_http",
+      "description": "Notion personal docs and knowledge base",
+      "url": "https://mcp.notion.com/mcp",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=16>"
+    },
+    {
+      "name": "unifi",
+      "transport": "streamable_http",
+      "description": "UniFi Fleet Manager",
+      "url": "http://10.43.11.10:3000/mcp",
+      "bearer_token": "<REDACTED:opaque-token:len=64>",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "gitbook-management",
+      "transport": "streamable_http",
+      "description": "Gitbook project management",
+      "url": "https://mcp.gitbook.com/mcp",
+      "bearer_token": "<REDACTED:opaque-token:len=47>",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "betterstack-ryno",
+      "transport": "streamable_http",
+      "description": "Ryno - Better Stack monitoring, incidents, logs, metrics, and dashboards",
+      "url": "https://mcp.betterstack.com",
+      "bearer_token": "<REDACTED:opaque-token:len=24>",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "noesis-aeon",
+      "transport": "streamable_http",
+      "description": "ships the work: features, vulnerability disclosures, live apps, deep research - and new skills for itself.",
+      "url": "https://www.aeon.fun/connect/mcp",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=44>"
+    },
+    {
+      "name": "cloudflare-docs",
+      "transport": "streamable_http",
+      "description": "Search current Cloudflare reference documentation",
+      "url": "https://docs.mcp.cloudflare.com/mcp",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "cloudflare-agents-sdk",
+      "transport": "streamable_http",
+      "description": "Token-efficient search of Agents SDK documentation.",
+      "url": "https://agents.cloudflare.com/mcp",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "cloudflare-browser",
+      "transport": "streamable_http",
+      "description": "Fetch pages, convert pages to Markdown, and take screenshots.",
+      "url": "https://browser.mcp.cloudflare.com/mcp",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=16>"
+    },
+    {
+      "name": "cloudflare-blog",
+      "transport": "streamable_http",
+      "description": "Search and read Cloudflare Blog posts.",
+      "url": "https://blog.mcp.cloudflare.com/mcp",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "cloudflare",
+      "transport": "streamable_http",
+      "description": "Cloudflare API access using OAuth",
+      "url": "https://mcp.cloudflare.com/mcp",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=16>"
+    },
+    {
+      "name": "wolframalpha",
+      "transport": "streamable_http",
+      "description": "Wolframalpha tools access",
+      "url": "https://agenttools.wolfram.com/mcp",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "twilio-docs",
+      "transport": "streamable_http",
+      "description": "Twilio service documentation",
+      "url": "https://mcp.twilio.com/docs",
+      "session_mode": "stateless"
+    },
+    {
+      "name": "betterstack-noesis",
+      "transport": "streamable_http",
+      "description": "BetterStack monitoring tools for noesis agent stack",
+      "url": "https://mcp.betterstack.com",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=43>"
+    }
+  ],
   "tool_groups": {
-    "count": 73,
+    "count": 86,
     "source": "config/mcpjungle/groups/*.json, cross-checked against GET /api/v0/tool-groups",
     "description": "The deployable group definitions. Each group is stored with the exact included_tools allowlist that was deployed, so a restore recreates the same tool exposure.",
     "groups": [
       {
         "name": "academic-research",
+        "description": "Search and read peer-reviewed academic literature.",
         "included_tools": [
           "firecrawl-search__firecrawl_research_inspect_paper",
           "firecrawl-search__firecrawl_research_read_paper",
           "firecrawl-search__firecrawl_research_related_papers",
           "firecrawl-search__firecrawl_research_search_papers",
           "linear__search_scholar"
-        ],
-        "description": "Search and read peer-reviewed academic literature."
+        ]
       },
       {
         "name": "agent-infrastructure",
+        "description": "Create, mutate, validate, version and retire n8n agent drafts.",
         "included_tools": [
           "n8n__create_agent",
           "n8n__delete_agent",
@@ -527,36 +708,322 @@
           "n8n__search_agents",
           "n8n__unpublish_agent",
           "n8n__validate_agent"
-        ],
-        "description": "Create, mutate, validate, version and retire n8n agent drafts."
+        ]
       },
       {
         "name": "autonomous-coding",
+        "description": "Delegate implementation to the GitHub Copilot coding agent and request automated reviews.",
         "included_tools": [
           "github__create_pull_request_with_copilot",
           "github__request_copilot_review"
-        ],
-        "description": "Delegate implementation to the GitHub Copilot coding agent and request automated reviews."
+        ]
       },
       {
         "name": "autonomous-research",
+        "description": "Multi-step autonomous research agents that keep working after the initiating call.",
         "included_tools": [
           "exa__agent_run",
           "firecrawl-search__firecrawl_agent",
           "linear__deep_research_agent"
-        ],
-        "description": "Multi-step autonomous research agents that keep working after the initiating call."
+        ]
+      },
+      {
+        "name": "betterstack-noesis-monitoring-read",
+        "description": "Read Noesis's own BetterStack monitoring: application status, incidents, dashboards, charts, monitors, heartbeats, logs and metrics queries, catalog relations, escalation policies and team membership. Read-only by construction -- every member tool is readOnlyHint=true.",
+        "included_tools": [
+          "betterstack-noesis__application",
+          "betterstack-noesis__applications",
+          "betterstack-noesis__available_incident_escalation_policies",
+          "betterstack-noesis__catalog_relation",
+          "betterstack-noesis__catalog_relations",
+          "betterstack-noesis__chart",
+          "betterstack-noesis__chart_alert",
+          "betterstack-noesis__chart_alert_help",
+          "betterstack-noesis__chart_alerts",
+          "betterstack-noesis__chart_building_help",
+          "betterstack-noesis__clusters",
+          "betterstack-noesis__dashboard",
+          "betterstack-noesis__dashboard_groups",
+          "betterstack-noesis__dashboard_query_help",
+          "betterstack-noesis__dashboard_templates",
+          "betterstack-noesis__dashboards",
+          "betterstack-noesis__data_regions",
+          "betterstack-noesis__documentation",
+          "betterstack-noesis__error",
+          "betterstack-noesis__error_comments",
+          "betterstack-noesis__errors",
+          "betterstack-noesis__errors_query_help",
+          "betterstack-noesis__escalation_policies",
+          "betterstack-noesis__escalation_policy",
+          "betterstack-noesis__exploration",
+          "betterstack-noesis__explorations",
+          "betterstack-noesis__explore_logs_query_help",
+          "betterstack-noesis__export_dashboard",
+          "betterstack-noesis__heartbeat",
+          "betterstack-noesis__heartbeat_availability",
+          "betterstack-noesis__heartbeats",
+          "betterstack-noesis__incident",
+          "betterstack-noesis__incident_comments",
+          "betterstack-noesis__incident_timeline",
+          "betterstack-noesis__incidents",
+          "betterstack-noesis__metric",
+          "betterstack-noesis__metric_expressions",
+          "betterstack-noesis__metrics_query_help",
+          "betterstack-noesis__metrics_schema",
+          "betterstack-noesis__monitor",
+          "betterstack-noesis__monitor_availability",
+          "betterstack-noesis__monitor_response_times",
+          "betterstack-noesis__monitors",
+          "betterstack-noesis__on_call",
+          "betterstack-noesis__on_call_event",
+          "betterstack-noesis__on_call_events",
+          "betterstack-noesis__on_call_rotation",
+          "betterstack-noesis__on_calls",
+          "betterstack-noesis__outgoing_webhook",
+          "betterstack-noesis__outgoing_webhooks",
+          "betterstack-noesis__query",
+          "betterstack-noesis__query_help",
+          "betterstack-noesis__query_windows",
+          "betterstack-noesis__releases",
+          "betterstack-noesis__render_chart",
+          "betterstack-noesis__replays_query_help",
+          "betterstack-noesis__severities",
+          "betterstack-noesis__severity",
+          "betterstack-noesis__slack_integration",
+          "betterstack-noesis__slack_integrations",
+          "betterstack-noesis__source",
+          "betterstack-noesis__source_fields",
+          "betterstack-noesis__sources",
+          "betterstack-noesis__status_page",
+          "betterstack-noesis__status_page_report_update",
+          "betterstack-noesis__status_page_report_updates",
+          "betterstack-noesis__status_page_reports",
+          "betterstack-noesis__status_page_resources",
+          "betterstack-noesis__status_page_sections",
+          "betterstack-noesis__status_pages",
+          "betterstack-noesis__team_members",
+          "betterstack-noesis__team_roles",
+          "betterstack-noesis__teams"
+        ]
+      },
+      {
+        "name": "betterstack-ryno-monitoring-destructive",
+        "description": "Irreversible or access-granting changes to the 'ryno' BetterStack tenant: delete monitors/dashboards/charts/webhooks/heartbeats/releases, remove catalog relations and records, change team member roles, invite or remove team members, and mint live ClickHouse data-access credentials. Several of these can silence alerting (remove_monitor, remove_heartbeat) or grant account access (change_team_member_role, create_cloud_connection).",
+        "included_tools": [
+          "betterstack-ryno__add_escalation_policy_step_member",
+          "betterstack-ryno__change_team_member_role",
+          "betterstack-ryno__create_cloud_connection",
+          "betterstack-ryno__delete_catalog_records",
+          "betterstack-ryno__delete_chart_alert",
+          "betterstack-ryno__delete_metric_expression",
+          "betterstack-ryno__invite_team_member",
+          "betterstack-ryno__remove_catalog_relation",
+          "betterstack-ryno__remove_chart",
+          "betterstack-ryno__remove_dashboard",
+          "betterstack-ryno__remove_dashboard_section",
+          "betterstack-ryno__remove_dashboard_variable",
+          "betterstack-ryno__remove_escalation_policy_step_member",
+          "betterstack-ryno__remove_exploration_variable",
+          "betterstack-ryno__remove_heartbeat",
+          "betterstack-ryno__remove_monitor",
+          "betterstack-ryno__remove_outgoing_webhook",
+          "betterstack-ryno__remove_release",
+          "betterstack-ryno__remove_status_page_section",
+          "betterstack-ryno__remove_team_member"
+        ]
+      },
+      {
+        "name": "betterstack-ryno-monitoring-operate",
+        "description": "Operational changes to the 'ryno' BetterStack tenant: acknowledge/resolve incidents, edit dashboards/charts/sections, update monitor and heartbeat configuration, post comments and status updates. Configuration-change, mutating and external-communication members; none are destructive or access-control-change (those are in the destructive group below).",
+        "included_tools": [
+          "betterstack-ryno__acknowledge_incident",
+          "betterstack-ryno__add_chart_to_dashboard",
+          "betterstack-ryno__add_dashboard_section",
+          "betterstack-ryno__create_application",
+          "betterstack-ryno__create_catalog_relation",
+          "betterstack-ryno__create_chart_alert",
+          "betterstack-ryno__create_collector",
+          "betterstack-ryno__create_dashboard",
+          "betterstack-ryno__create_error_comment",
+          "betterstack-ryno__create_error_issue",
+          "betterstack-ryno__create_heartbeat",
+          "betterstack-ryno__create_incident",
+          "betterstack-ryno__create_incident_comment",
+          "betterstack-ryno__create_metric_expression",
+          "betterstack-ryno__create_monitor",
+          "betterstack-ryno__create_outgoing_webhook",
+          "betterstack-ryno__create_release",
+          "betterstack-ryno__create_source",
+          "betterstack-ryno__create_status_page_report",
+          "betterstack-ryno__create_status_page_report_update",
+          "betterstack-ryno__create_status_page_resource",
+          "betterstack-ryno__create_status_page_section",
+          "betterstack-ryno__edit_application",
+          "betterstack-ryno__edit_chart",
+          "betterstack-ryno__edit_chart_alert",
+          "betterstack-ryno__edit_dashboard",
+          "betterstack-ryno__edit_dashboard_section",
+          "betterstack-ryno__edit_slack_integration",
+          "betterstack-ryno__escalate_incident",
+          "betterstack-ryno__import_dashboard",
+          "betterstack-ryno__link_error_issue",
+          "betterstack-ryno__move_charts",
+          "betterstack-ryno__remove_incident_comment",
+          "betterstack-ryno__remove_status_page_report",
+          "betterstack-ryno__remove_status_page_report_update",
+          "betterstack-ryno__remove_status_page_resource",
+          "betterstack-ryno__reopen_incident",
+          "betterstack-ryno__resolve_incident",
+          "betterstack-ryno__set_dashboard_variable",
+          "betterstack-ryno__set_exploration_variable",
+          "betterstack-ryno__toggle_chart_alert_pause",
+          "betterstack-ryno__unlink_error_issue",
+          "betterstack-ryno__update_catalog_relation",
+          "betterstack-ryno__update_error_state",
+          "betterstack-ryno__update_heartbeat",
+          "betterstack-ryno__update_incident_comment",
+          "betterstack-ryno__update_metric_expression",
+          "betterstack-ryno__update_monitor",
+          "betterstack-ryno__update_outgoing_webhook",
+          "betterstack-ryno__update_status_page",
+          "betterstack-ryno__update_status_page_report",
+          "betterstack-ryno__update_status_page_report_update",
+          "betterstack-ryno__update_status_page_resource",
+          "betterstack-ryno__update_status_page_section",
+          "betterstack-ryno__upsert_catalog_records"
+        ]
+      },
+      {
+        "name": "betterstack-ryno-monitoring-read",
+        "description": "Read a separate BetterStack tenant account's ('ryno') monitoring: application status, incidents, dashboards, charts, monitors, heartbeats, logs and metrics queries. Read-only by construction.",
+        "included_tools": [
+          "betterstack-ryno__application",
+          "betterstack-ryno__applications",
+          "betterstack-ryno__available_incident_escalation_policies",
+          "betterstack-ryno__catalog_relation",
+          "betterstack-ryno__catalog_relations",
+          "betterstack-ryno__chart",
+          "betterstack-ryno__chart_alert",
+          "betterstack-ryno__chart_alert_help",
+          "betterstack-ryno__chart_alerts",
+          "betterstack-ryno__chart_building_help",
+          "betterstack-ryno__clusters",
+          "betterstack-ryno__dashboard",
+          "betterstack-ryno__dashboard_groups",
+          "betterstack-ryno__dashboard_query_help",
+          "betterstack-ryno__dashboard_templates",
+          "betterstack-ryno__dashboards",
+          "betterstack-ryno__data_regions",
+          "betterstack-ryno__documentation",
+          "betterstack-ryno__error",
+          "betterstack-ryno__error_comments",
+          "betterstack-ryno__errors",
+          "betterstack-ryno__errors_query_help",
+          "betterstack-ryno__escalation_policies",
+          "betterstack-ryno__escalation_policy",
+          "betterstack-ryno__exploration",
+          "betterstack-ryno__explorations",
+          "betterstack-ryno__explore_logs_query_help",
+          "betterstack-ryno__export_dashboard",
+          "betterstack-ryno__heartbeat",
+          "betterstack-ryno__heartbeat_availability",
+          "betterstack-ryno__heartbeats",
+          "betterstack-ryno__incident",
+          "betterstack-ryno__incident_comments",
+          "betterstack-ryno__incident_timeline",
+          "betterstack-ryno__incidents",
+          "betterstack-ryno__metric",
+          "betterstack-ryno__metric_expressions",
+          "betterstack-ryno__metrics_query_help",
+          "betterstack-ryno__metrics_schema",
+          "betterstack-ryno__monitor",
+          "betterstack-ryno__monitor_availability",
+          "betterstack-ryno__monitor_response_times",
+          "betterstack-ryno__monitors",
+          "betterstack-ryno__on_call",
+          "betterstack-ryno__on_call_event",
+          "betterstack-ryno__on_call_events",
+          "betterstack-ryno__on_call_rotation",
+          "betterstack-ryno__on_calls",
+          "betterstack-ryno__outgoing_webhook",
+          "betterstack-ryno__outgoing_webhooks",
+          "betterstack-ryno__query",
+          "betterstack-ryno__query_help",
+          "betterstack-ryno__query_windows",
+          "betterstack-ryno__releases",
+          "betterstack-ryno__render_chart",
+          "betterstack-ryno__replays_query_help",
+          "betterstack-ryno__severities",
+          "betterstack-ryno__severity",
+          "betterstack-ryno__slack_integration",
+          "betterstack-ryno__slack_integrations",
+          "betterstack-ryno__source",
+          "betterstack-ryno__source_fields",
+          "betterstack-ryno__sources",
+          "betterstack-ryno__status_page",
+          "betterstack-ryno__status_page_report_update",
+          "betterstack-ryno__status_page_report_updates",
+          "betterstack-ryno__status_page_reports",
+          "betterstack-ryno__status_page_resources",
+          "betterstack-ryno__status_page_sections",
+          "betterstack-ryno__status_pages",
+          "betterstack-ryno__team_members",
+          "betterstack-ryno__team_roles",
+          "betterstack-ryno__teams"
+        ]
       },
       {
         "name": "browser-automation",
+        "description": "Drive a live browser session: navigate, click, fill forms, run browser code.",
         "included_tools": [
           "firecrawl-search__firecrawl_interact",
           "firecrawl-search__firecrawl_interact_stop"
-        ],
-        "description": "Drive a live browser session: navigate, click, fill forms, run browser code."
+        ]
+      },
+      {
+        "name": "cloudflare-browser-crawl-and-sessions",
+        "description": "Start, cancel and poll asynchronous multi-page website crawls, and list/kill active remote browser sessions on Cloudflare's Browser Rendering service.",
+        "included_tools": [
+          "cloudflare-browser__cancel_crawl",
+          "cloudflare-browser__get_crawl_result",
+          "cloudflare-browser__kill_browser_session",
+          "cloudflare-browser__list_browser_sessions",
+          "cloudflare-browser__start_crawl"
+        ]
+      },
+      {
+        "name": "cloudflare-browser-render",
+        "description": "Fetch and render a single caller-chosen URL through Cloudflare's remote Browser Rendering service: HTML, Markdown, JSON (AI-extracted), links, screenshot or PDF.",
+        "included_tools": [
+          "cloudflare-browser__get_url_html_content",
+          "cloudflare-browser__get_url_json",
+          "cloudflare-browser__get_url_links",
+          "cloudflare-browser__get_url_markdown",
+          "cloudflare-browser__get_url_pdf",
+          "cloudflare-browser__get_url_screenshot",
+          "cloudflare-browser__get_url_snapshot",
+          "cloudflare-browser__scrape_url_elements"
+        ]
+      },
+      {
+        "name": "cloudflare-docs-and-blog-read",
+        "description": "Search Cloudflare's developer docs, blog, Agents SDK reference and Pages migration guides. Read-only by construction.",
+        "included_tools": [
+          "cloudflare-agents-sdk__search-agent-docs",
+          "cloudflare-blog__get_post",
+          "cloudflare-blog__list_posts",
+          "cloudflare-blog__list_tags",
+          "cloudflare-blog__search_posts",
+          "cloudflare-docs__migrate_pages_to_workers_guide",
+          "cloudflare-docs__search_cloudflare_documentation",
+          "cloudflare__docs",
+          "cloudflare__search",
+          "cloudflare__whoami"
+        ]
       },
       {
         "name": "coding",
+        "description": "Code search, SDK and schema references, and workflow-code authoring helpers.",
         "included_tools": [
           "firecrawl-search__firecrawl_developer_search",
           "github__get_file_contents",
@@ -570,18 +1037,18 @@
           "n8n__search_nodes",
           "n8n__validate_node_config",
           "n8n__validate_workflow"
-        ],
-        "description": "Code search, SDK and schema references, and workflow-code authoring helpers."
+        ]
       },
       {
         "name": "communications-readonly",
+        "description": "Read the comment and suggestion threads on the operator's documentation site.",
         "included_tools": [
           "mintlify__read_comments"
-        ],
-        "description": "Read the comment and suggestion threads on the operator's documentation site."
+        ]
       },
       {
         "name": "communications-send",
+        "description": "Send comments, replies, reactions, feedback and shared traces to external services, including provider feedback endpoints for Hunter and GitBook.",
         "included_tools": [
           "beacon-managed__beacon_share_session",
           "firecrawl-search__firecrawl_feedback",
@@ -598,38 +1065,38 @@
           "mintlify__reply_to_comment",
           "mintlify__resolve_comment",
           "misjusticeallinace-ywcaofmissoula-pub__sendFeedback"
-        ],
-        "description": "Send comments, replies, reactions, feedback and shared traces to external services, including provider feedback endpoints for Hunter and GitBook."
+        ]
       },
       {
         "name": "credential-inventory",
+        "description": "Enumerate the credential identities the authenticated user can reference, on the n8n instance and on the Hunter account.",
         "included_tools": [
           "hunter__List-API-Keys",
           "n8n__list_credentials"
-        ],
-        "description": "Enumerate the credential identities the authenticated user can reference, on the n8n instance and on the Hunter account."
+        ]
       },
       {
         "name": "data-analytics",
+        "description": "Query the documentation site's analytics tables and read prebuilt analytics reports.",
         "included_tools": [
           "mintlify__get_analytics_report",
           "mintlify__get_analytics_schema",
           "mintlify__query_analytics"
-        ],
-        "description": "Query the documentation site's analytics tables and read prebuilt analytics reports."
+        ]
       },
       {
         "name": "database-readonly",
+        "description": "Read n8n data-table rows and the Mintlify deployment databases.",
         "included_tools": [
           "mintlify__list_databases",
           "mintlify__read_database",
           "n8n__get_data_table_rows",
           "n8n__search_data_tables"
-        ],
-        "description": "Read n8n data-table rows and the Mintlify deployment databases."
+        ]
       },
       {
         "name": "database-write",
+        "description": "Create, extend, rename and delete n8n data tables and columns, and edit Mintlify database rows and columns.",
         "included_tools": [
           "mintlify__edit_database_columns",
           "mintlify__edit_database_rows",
@@ -639,11 +1106,11 @@
           "n8n__delete_data_table_column",
           "n8n__rename_data_table",
           "n8n__rename_data_table_column"
-        ],
-        "description": "Create, extend, rename and delete n8n data tables and columns, and edit Mintlify database rows and columns."
+        ]
       },
       {
         "name": "docs-site-authoring",
+        "description": "Edit documentation content, navigation and images on the operator's Mintlify site without publishing.",
         "included_tools": [
           "mintlify__create_branch",
           "mintlify__create_node",
@@ -657,20 +1124,20 @@
           "mintlify__update_node",
           "mintlify__upload_image",
           "mintlify__write_page"
-        ],
-        "description": "Edit documentation content, navigation and images on the operator's Mintlify site without publishing."
+        ]
       },
       {
         "name": "docs-site-publish",
+        "description": "Publish staged documentation changes, and manage Mintlify workflow runs and the pull requests they open.",
         "included_tools": [
           "mintlify__manage_workflow",
           "mintlify__manage_workflow_prs",
           "mintlify__publish"
-        ],
-        "description": "Publish staged documentation changes, and manage Mintlify workflow runs and the pull requests they open."
+        ]
       },
       {
         "name": "docs-site-read",
+        "description": "Read pages, navigation, branches and status of the operator's Mintlify documentation site.",
         "included_tools": [
           "mintlify__diff",
           "mintlify__list_branches",
@@ -679,11 +1146,11 @@
           "mintlify__read",
           "mintlify__search",
           "mintlify__status"
-        ],
-        "description": "Read pages, navigation, branches and status of the operator's Mintlify documentation site."
+        ]
       },
       {
         "name": "external-publication",
+        "description": "Publish Beacon lenses to the shared marketplace so other agents can install them.",
         "included_tools": [
           "beacon-managed__beacon_lenses_complete_upload",
           "beacon-managed__beacon_lenses_create",
@@ -691,18 +1158,18 @@
           "beacon-managed__beacon_lenses_prepare_upload",
           "beacon-managed__beacon_lenses_release_version",
           "beacon-managed__beacon_lenses_update"
-        ],
-        "description": "Publish Beacon lenses to the shared marketplace so other agents can install them."
+        ]
       },
       {
         "name": "gitbook-change-request",
+        "description": "Open a change request on a GitBook space without publishing anything.",
         "included_tools": [
           "gitbook-management__create_change_request"
-        ],
-        "description": "Open a change request on a GitBook space without publishing anything."
+        ]
       },
       {
         "name": "gitbook-org-read",
+        "description": "Read the operator's GitBook organization: sites, navigation, pages, topics, plan state and the operation catalogue.",
         "included_tools": [
           "gitbook-management__describe_operation",
           "gitbook-management__get_page",
@@ -712,25 +1179,25 @@
           "gitbook-management__list_site_topics",
           "gitbook-management__list_sites",
           "gitbook-management__search"
-        ],
-        "description": "Read the operator's GitBook organization: sites, navigation, pages, topics, plan state and the operation catalogue."
+        ]
       },
       {
         "name": "gitbook-proxy",
+        "description": "Held review-required: caller-selected GitBook API operations.",
         "included_tools": [
           "gitbook-management__invoke_operation"
-        ],
-        "description": "Held review-required: caller-selected GitBook API operations."
+        ]
       },
       {
         "name": "gitbook-publish",
+        "description": "Merge a GitBook change request and publish its edits to the space.",
         "included_tools": [
           "gitbook-management__submit_or_merge_change_request"
-        ],
-        "description": "Merge a GitBook change request and publish its edits to the space."
+        ]
       },
       {
         "name": "hunter-account-read",
+        "description": "Read the operator's Hunter account: lists, folders, tags, templates, saved searches, sequences, connected apps, webhooks and company search results.",
         "included_tools": [
           "hunter__Get-Account-Details",
           "hunter__Get-Company-List",
@@ -757,11 +1224,11 @@
           "hunter__List-Sequence-Follow-Ups",
           "hunter__List-Sequences",
           "hunter__List-Webhooks"
-        ],
-        "description": "Read the operator's Hunter account: lists, folders, tags, templates, saved searches, sequences, connected apps, webhooks and company search results."
+        ]
       },
       {
         "name": "hunter-contact-records",
+        "description": "Look up real contact records and company facts: published addresses for a domain, a person's address at a company, verification, natural-language company and people discovery, and the operator's stored leads.",
         "included_tools": [
           "hunter__Combined-Enrichment",
           "hunter__Company-Enrichment",
@@ -779,36 +1246,36 @@
           "hunter__List-Leads",
           "hunter__List-Sequence-Recipients",
           "hunter__Person-Enrichment"
-        ],
-        "description": "Look up real contact records and company facts: published addresses for a domain, a person's address at a company, verification, natural-language company and people discovery, and the operator's stored leads."
+        ]
       },
       {
         "name": "hunter-crm-integration",
+        "description": "Control how the operator's Hunter data leaves the account: push leads to a CRM, repoint a webhook, and mint API keys.",
         "included_tools": [
           "hunter__Create-API-Key",
           "hunter__Push-Leads-To-CRM",
           "hunter__Update-Webhook"
-        ],
-        "description": "Control how the operator's Hunter data leaves the account: push leads to a CRM, repoint a webhook, and mint API keys."
+        ]
       },
       {
         "name": "hunter-outbound-email",
+        "description": "Send the operator's Hunter sequences: start, resume, and add recipients to a started sequence.",
         "included_tools": [
           "hunter__Add-Sequence-Recipients",
           "hunter__Resume-Sequence",
           "hunter__Start-Sequence"
-        ],
-        "description": "Send the operator's Hunter sequences: start, resume, and add recipients to a started sequence."
+        ]
       },
       {
         "name": "hunter-prospecting-flow",
+        "description": "Plan and begin an end-to-end prospecting run across Hunter: turn a natural-language brief into a step plan and execute its first action.",
         "included_tools": [
           "hunter__Plan-Prospecting-Flow"
-        ],
-        "description": "Plan and begin an end-to-end prospecting run across Hunter: turn a natural-language brief into a step plan and execute its first action."
+        ]
       },
       {
         "name": "hunter-record-authoring",
+        "description": "Create and edit the operator's Hunter CRM records: leads, company and leads lists, list folders, tags, custom attributes and saved searches.",
         "included_tools": [
           "hunter__Add-Company-To-List",
           "hunter__Add-Tag-To-Lead",
@@ -839,11 +1306,11 @@
           "hunter__Update-Lead-Tag",
           "hunter__Update-Leads-List",
           "hunter__Update-Leads-List-Folder"
-        ],
-        "description": "Create and edit the operator's Hunter CRM records: leads, company and leads lists, list folders, tags, custom attributes and saved searches."
+        ]
       },
       {
         "name": "hunter-record-destructive",
+        "description": "Delete the operator's Hunter records: leads, lists, tags, templates, searches, sequence steps and API keys.",
         "included_tools": [
           "hunter__Bulk-Delete-Companies",
           "hunter__Bulk-Delete-Leads",
@@ -860,11 +1327,11 @@
           "hunter__Delete-Sequence",
           "hunter__Delete-Sequence-Follow-Up",
           "hunter__Merge-Leads-Lists"
-        ],
-        "description": "Delete the operator's Hunter records: leads, lists, tags, templates, searches, sequence steps and API keys."
+        ]
       },
       {
         "name": "hunter-sequence-authoring",
+        "description": "Author the operator's outbound sequences and message templates: the steps, the subject, the body, the schedule and the sending account.",
         "included_tools": [
           "hunter__Archive-Sequence",
           "hunter__Create-Message-Template",
@@ -875,11 +1342,11 @@
           "hunter__Update-Message-Template",
           "hunter__Update-Sequence",
           "hunter__Update-Sequence-Follow-Up"
-        ],
-        "description": "Author the operator's outbound sequences and message templates: the steps, the subject, the body, the schedule and the sending account."
+        ]
       },
       {
         "name": "legal-alerts",
+        "description": "Create, cancel and withdraw CourtListener search and docket subscriptions, and request documents CourtListener does not yet hold.",
         "included_tools": [
           "court-listener__create_search_alert",
           "court-listener__delete_search_alert",
@@ -887,11 +1354,11 @@
           "court-listener__subscribe_to_docket_alert",
           "court-listener__unsubscribe_from_docket_alert",
           "court-listener__withdraw_prayer"
-        ],
-        "description": "Create, cancel and withdraw CourtListener search and docket subscriptions, and request documents CourtListener does not yet hold."
+        ]
       },
       {
         "name": "legal-citation-analysis",
+        "description": "Extract, parse, verify and batch-resolve legal citations.",
         "included_tools": [
           "CourtListener__citation_batch_lookup_citations",
           "CourtListener__citation_enhanced_citation_lookup",
@@ -902,11 +1369,11 @@
           "court-listener__analyze_citations",
           "court-listener__extract_citations",
           "court-listener__resume_citation_analysis"
-        ],
-        "description": "Extract, parse, verify and batch-resolve legal citations."
+        ]
       },
       {
         "name": "legal-regulations-research",
+        "description": "Authoritative retrieval of codified federal regulations, Federal Register documents and live rulemaking dockets and public comments.",
         "included_tools": [
           "CourtListener__ecfr_get_ancestry",
           "CourtListener__ecfr_get_daily_search_counts",
@@ -935,11 +1402,11 @@
           "federal-regulations__regulations_get_document",
           "federal-regulations__regulations_list_open_comments",
           "federal-regulations__regulations_search_rules"
-        ],
-        "description": "Authoritative retrieval of codified federal regulations, Federal Register documents and live rulemaking dockets and public comments."
+        ]
       },
       {
         "name": "legal-research",
+        "description": "Authoritative retrieval of US case law: opinions, opinion clusters, dockets, courts, judges, oral argument, filed documents, and the published MISJustice Alliance / YWCA Missoula documentation corpus.",
         "included_tools": [
           "CourtListener__get_audio",
           "CourtListener__get_cluster",
@@ -965,11 +1432,11 @@
           "court-listener__search_document",
           "misjusticeallinace-ywcaofmissoula-pub__getPage",
           "misjusticeallinace-ywcaofmissoula-pub__searchDocumentation"
-        ],
-        "description": "Authoritative retrieval of US case law: opinions, opinion clusters, dockets, courts, judges, oral argument, filed documents, and the published MISJustice Alliance / YWCA Missoula documentation corpus."
+        ]
       },
       {
         "name": "legislative-research",
+        "description": "Retrieval of state legislative bills, committees, legislators and events across all 50 states, DC and Puerto Rico.",
         "included_tools": [
           "OpenStates__openstates_get_bill",
           "OpenStates__openstates_get_committee",
@@ -981,39 +1448,39 @@
           "OpenStates__openstates_search_committees",
           "OpenStates__openstates_search_events",
           "OpenStates__openstates_search_people"
-        ],
-        "description": "Retrieval of state legislative bills, committees, legislators and events across all 50 states, DC and Puerto Rico."
+        ]
       },
       {
         "name": "library-docs",
+        "description": "Resolve library identifiers and query current library and framework documentation.",
         "included_tools": [
           "context7__query-docs",
           "context7__resolve-library-id"
-        ],
-        "description": "Resolve library identifiers and query current library and framework documentation."
+        ]
       },
       {
         "name": "market-research",
+        "description": "Read-only company, market and filings research, plus the data-provider catalogue those workflows depend on.",
         "included_tools": [
           "firecrawl-search__firecrawl_find_tools",
           "firecrawl-search__firecrawl_recommended_providers",
           "linear__search_business",
           "linear__search_finance"
-        ],
-        "description": "Read-only company, market and filings research, plus the data-provider catalogue those workflows depend on."
+        ]
       },
       {
         "name": "memory-management",
+        "description": "File memory candidates, record review decisions and adjust shared-trace visibility.",
         "included_tools": [
           "beacon-managed__beacon_finding_feedback",
           "beacon-managed__beacon_memory_candidate_create",
           "beacon-managed__beacon_memory_candidate_review",
           "beacon-managed__beacon_shared_trace_update"
-        ],
-        "description": "File memory candidates, record review decisions and adjust shared-trace visibility."
+        ]
       },
       {
         "name": "memory-retrieval",
+        "description": "Recall approved lessons, search prior sessions, and read findings and shared trace metadata without changing them.",
         "included_tools": [
           "beacon-managed__beacon_findings_list",
           "beacon-managed__beacon_get_event",
@@ -1028,11 +1495,11 @@
           "beacon-managed__beacon_read_session",
           "beacon-managed__beacon_search_sessions",
           "beacon-managed__beacon_shared_traces_list"
-        ],
-        "description": "Recall approved lessons, search prior sessions, and read findings and shared trace metadata without changing them."
+        ]
       },
       {
         "name": "network-addressing",
+        "description": "Read the operator's own address assignment: DHCP reservations, MAC tags, dynamic DNS, WAN DNS, VLANs, subnets and port mappings.",
         "included_tools": [
           "unifi__get_dhcp_reservation",
           "unifi__get_dynamic_dns",
@@ -1044,11 +1511,11 @@
           "unifi__list_mac_tags",
           "unifi__list_vlans",
           "unifi__list_wan_dns"
-        ],
-        "description": "Read the operator's own address assignment: DHCP reservations, MAC tags, dynamic DNS, WAN DNS, VLANs, subnets and port mappings."
+        ]
       },
       {
         "name": "network-backup",
+        "description": "Read the operator's controller backup and restore state, and export the network topology.",
         "included_tools": [
           "unifi__download_backup",
           "unifi__export_topology",
@@ -1058,20 +1525,20 @@
           "unifi__get_restore_status",
           "unifi__list_backups",
           "unifi__validate_backup"
-        ],
-        "description": "Read the operator's controller backup and restore state, and export the network topology."
+        ]
       },
       {
         "name": "network-controller",
+        "description": "Inspect and select which controller subsequent UniFi calls target.",
         "included_tools": [
           "unifi__get_active_controller",
           "unifi__list_controllers",
           "unifi__select_controller"
-        ],
-        "description": "Inspect and select which controller subsequent UniFi calls target."
+        ]
       },
       {
         "name": "network-diagnostics",
+        "description": "Read the operator's own network health: link and speed diagnostics, spectrum and RF conditions, AP neighbourhood, and the controller's event and alarm history.",
         "included_tools": [
           "unifi__get_historical_stats",
           "unifi__get_network_references",
@@ -1085,11 +1552,11 @@
           "unifi__list_site_internal_ap_neighbors_v2",
           "unifi__list_spectrum_interference",
           "unifi__stream_traffic_flows"
-        ],
-        "description": "Read the operator's own network health: link and speed diagnostics, spectrum and RF conditions, AP neighbourhood, and the controller's event and alarm history."
+        ]
       },
       {
         "name": "network-fleet",
+        "description": "Read the multi-controller, multi-site and Cloud Site Manager view of the operator's own estate.",
         "included_tools": [
           "unifi__download_innerspace_asset",
           "unifi__fleet_health",
@@ -1102,11 +1569,11 @@
           "unifi__get_sdwan_config",
           "unifi__get_sdwan_config_status",
           "unifi__list_sdwan_configs"
-        ],
-        "description": "Read the multi-controller, multi-site and Cloud Site Manager view of the operator's own estate."
+        ]
       },
       {
         "name": "network-integration",
+        "description": "Read the operator's own estate through the UniFi Site Manager and integration API: sites, hosts, clients, devices, DNS and WiFi broadcast policies, VPN servers, WANs and version control.",
         "included_tools": [
           "unifi__compare_site_performance",
           "unifi__get_cross_site_statistics",
@@ -1130,11 +1597,11 @@
           "unifi__list_vantage_points",
           "unifi__query_isp_metrics",
           "unifi__search_across_sites"
-        ],
-        "description": "Read the operator's own estate through the UniFi Site Manager and integration API: sites, hosts, clients, devices, DNS and WiFi broadcast policies, VPN servers, WANs and version control."
+        ]
       },
       {
         "name": "network-inventory",
+        "description": "Read the device, site, controller, wireless, routing and health configuration of the operator's own UniFi estate.",
         "included_tools": [
           "unifi__get_ap_radio_config",
           "unifi__get_application_info",
@@ -1172,11 +1639,11 @@
           "unifi__list_wan_connections",
           "unifi__list_wlans",
           "unifi__search_devices"
-        ],
-        "description": "Read the device, site, controller, wireless, routing and health configuration of the operator's own UniFi estate."
+        ]
       },
       {
         "name": "network-protect",
+        "description": "Read the UniFi Protect camera, alarm and premises-security surface of the operator's own site.",
         "included_tools": [
           "unifi__get_protect_alarm_hub",
           "unifi__get_protect_arm_profile",
@@ -1221,20 +1688,20 @@
           "unifi__list_protect_ulp_users",
           "unifi__list_protect_users",
           "unifi__list_protect_viewers"
-        ],
-        "description": "Read the UniFi Protect camera, alarm and premises-security surface of the operator's own site."
+        ]
       },
       {
         "name": "network-proxy",
+        "description": "Held review-required: caller-selected UniFi proxy paths and fleet-wide tool fan-out.",
         "included_tools": [
           "unifi__connector_network_get",
           "unifi__connector_protect_get",
           "unifi__fleet_fanout"
-        ],
-        "description": "Held review-required: caller-selected UniFi proxy paths and fleet-wide tool fan-out."
+        ]
       },
       {
         "name": "network-security-policy",
+        "description": "Read the firewall, zone, ACL, RADIUS, content-filter, DNS-filter and traffic-matching policy of the operator's own network.",
         "included_tools": [
           "unifi__get_acl_rule",
           "unifi__get_dns_filter_settings",
@@ -1263,11 +1730,11 @@
           "unifi__list_traffic_matching_lists",
           "unifi__list_traffic_routes",
           "unifi__list_vouchers"
-        ],
-        "description": "Read the firewall, zone, ACL, RADIUS, content-filter, DNS-filter and traffic-matching policy of the operator's own network."
+        ]
       },
       {
         "name": "network-switching",
+        "description": "Read the operator's own layer-2 switching configuration: switch stacks, link aggregation groups, MLAG domains, port profiles and device tags.",
         "included_tools": [
           "unifi__get_lag_details",
           "unifi__get_mclag_domain",
@@ -1278,11 +1745,11 @@
           "unifi__list_mclag_domains",
           "unifi__list_port_profiles",
           "unifi__list_switch_stacks"
-        ],
-        "description": "Read the operator's own layer-2 switching configuration: switch stacks, link aggregation groups, MLAG domains, port profiles and device tags."
+        ]
       },
       {
         "name": "network-telemetry",
+        "description": "Read per-client identity and per-client network activity on the operator's network.",
         "included_tools": [
           "unifi__export_traffic_flows",
           "unifi__filter_traffic_flows",
@@ -1312,11 +1779,63 @@
           "unifi__list_dpi_categories",
           "unifi__list_top_applications",
           "unifi__search_clients"
-        ],
-        "description": "Read per-client identity and per-client network activity on the operator's network."
+        ]
+      },
+      {
+        "name": "noesis-aeon-configure",
+        "description": "Change which of the Aeon instance's skills are enabled and their schedule, switch the active harness/model, or switch which GitHub repo is the active Aeon instance. All commit aeon.yml to the user's repo and are reversible via git history.",
+        "included_tools": [
+          "noesis-aeon__settings.update",
+          "noesis-aeon__switch_instance",
+          "noesis-aeon__update_instance_settings",
+          "noesis-aeon__update_skill"
+        ]
+      },
+      {
+        "name": "noesis-aeon-execute",
+        "description": "Dispatch execution of any skill registered on the Aeon instance, or install a third-party community skill pack via a security-scanned pull request.",
+        "included_tools": [
+          "noesis-aeon__install_pack",
+          "noesis-aeon__run_skill"
+        ]
+      },
+      {
+        "name": "noesis-aeon-identity-write",
+        "description": "Write or replace the Aeon agent's SOUL.md, STYLE.md and STRATEGY.md -- its identity, voice and operating directive.",
+        "included_tools": [
+          "noesis-aeon__build_soul",
+          "noesis-aeon__build_strategy",
+          "noesis-aeon__update_soul",
+          "noesis-aeon__update_strategy"
+        ]
+      },
+      {
+        "name": "noesis-aeon-read",
+        "description": "Read the Aeon agent instance's state: runs, skills, packs, memory, settings, strategy/soul content, setup status, and submit one-way feedback to the Aeon vendor team.",
+        "included_tools": [
+          "noesis-aeon__get_run",
+          "noesis-aeon__list_instances",
+          "noesis-aeon__list_keys",
+          "noesis-aeon__list_packs",
+          "noesis-aeon__list_runs",
+          "noesis-aeon__list_skills",
+          "noesis-aeon__open_runs",
+          "noesis-aeon__read_editable",
+          "noesis-aeon__read_instance_settings",
+          "noesis-aeon__read_memory",
+          "noesis-aeon__read_output",
+          "noesis-aeon__read_soul",
+          "noesis-aeon__read_strategy",
+          "noesis-aeon__search_memory",
+          "noesis-aeon__search_mentions",
+          "noesis-aeon__send_feedback",
+          "noesis-aeon__settings.read",
+          "noesis-aeon__setup_status"
+        ]
       },
       {
         "name": "notion-agent-session-read",
+        "description": "Read the agent sessions, session events and saved memories of the operator's Notion workspace.",
         "included_tools": [
           "notion__notion-get-async-task",
           "notion__notion-get-session-status",
@@ -1327,51 +1846,51 @@
           "notion__notion-search-agents",
           "notion__notion-search-sessions",
           "notion__notion-wait-session"
-        ],
-        "description": "Read the agent sessions, session events and saved memories of the operator's Notion workspace."
+        ]
       },
       {
         "name": "notion-agent-sessions",
+        "description": "Start, feed and stop Notion Custom Agents, and change which skills they may load.",
         "included_tools": [
           "notion__notion-convert-page-to-skill",
           "notion__notion-send-message-to-session",
           "notion__notion-spawn-session",
           "notion__notion-stop-session",
           "notion__notion-update-enabled-skills"
-        ],
-        "description": "Start, feed and stop Notion Custom Agents, and change which skills they may load."
+        ]
       },
       {
         "name": "notion-calendar-read",
+        "description": "Read the operator's calendars, events, contacts and room resources.",
         "included_tools": [
           "notion__notion-calendar-list-calendar-resources",
           "notion__notion-calendar-list-calendars",
           "notion__notion-calendar-list-contacts",
           "notion__notion-calendar-list-coworkers-events",
           "notion__notion-calendar-list-events"
-        ],
-        "description": "Read the operator's calendars, events, contacts and room resources."
+        ]
       },
       {
         "name": "notion-calendar-write",
+        "description": "Create, change and cancel events on the operator's connected calendars.",
         "included_tools": [
           "notion__notion-calendar-cancel-events",
           "notion__notion-calendar-create-events",
           "notion__notion-calendar-update-events"
-        ],
-        "description": "Create, change and cancel events on the operator's connected calendars."
+        ]
       },
       {
         "name": "notion-data-query",
+        "description": "Query the operator's Notion data sources, meeting notes and multi-source records with read-only SQL.",
         "included_tools": [
           "notion__notion-query-data-sources",
           "notion__notion-query-meeting-notes",
           "notion__notion-query-multiple-data-sources"
-        ],
-        "description": "Query the operator's Notion data sources, meeting notes and multi-source records with read-only SQL."
+        ]
       },
       {
         "name": "notion-workspace-authoring",
+        "description": "Create and edit pages, databases, views, comments, folders, attachments and uploads in the operator's own Notion workspace.",
         "included_tools": [
           "notion__notion-create-attachment",
           "notion__notion-create-comment",
@@ -1389,22 +1908,22 @@
           "notion__notion-update-folder",
           "notion__notion-update-page",
           "notion__notion-update-view"
-        ],
-        "description": "Create and edit pages, databases, views, comments, folders, attachments and uploads in the operator's own Notion workspace."
+        ]
       },
       {
         "name": "notion-workspace-destructive",
+        "description": "Remove content from the operator's Notion workspace and rewrite data-source schemas.",
         "included_tools": [
           "notion__notion-delete-comment",
           "notion__notion-delete-databases",
           "notion__notion-delete-pages",
           "notion__notion-update-data-source",
           "notion__notion-upload-skill"
-        ],
-        "description": "Remove content from the operator's Notion workspace and rewrite data-source schemas."
+        ]
       },
       {
         "name": "notion-workspace-read",
+        "description": "Read the operator's own Notion workspace: pages, databases, comments, members, skills and file references.",
         "included_tools": [
           "notion__notion-check-mcp-next-steps",
           "notion__notion-download-attachment",
@@ -1425,11 +1944,11 @@
           "notion__notion-list-shared-pages",
           "notion__notion-search",
           "notion__notion-show-advanced-analysis-next-steps"
-        ],
-        "description": "Read the operator's own Notion workspace: pages, databases, comments, members, skills and file references."
+        ]
       },
       {
         "name": "observability",
+        "description": "Read deployment status and settings, workflow run history, reachable deployments and provider usage and cost, including the Hunter account's credit and quota consumption.",
         "included_tools": [
           "beacon-managed__beacon_usage",
           "firecrawl-search__firecrawl_credit_usage",
@@ -1439,50 +1958,50 @@
           "mintlify__get_deployment_settings",
           "mintlify__get_workflows",
           "mintlify__list_deployments"
-        ],
-        "description": "Read deployment status and settings, workflow run history, reachable deployments and provider usage and cost, including the Hunter account's credit and quota consumption."
+        ]
       },
       {
         "name": "platform-administration",
+        "description": "Change who can read a deployment, its custom domains, git sources, org members and dashboard settings.",
         "included_tools": [
           "mintlify__manage_access_auth",
           "mintlify__manage_custom_domain",
           "mintlify__manage_git_source",
           "mintlify__manage_members_sharing",
           "mintlify__update_deployment_settings"
-        ],
-        "description": "Change who can read a deployment, its custom domains, git sources, org members and dashboard settings."
+        ]
       },
       {
         "name": "platform-docs",
+        "description": "Search the MCPJungle and Mintlify documentation sets, including the virtual documentation filesystem.",
         "included_tools": [
           "mcpjungle-docs__query_docs_filesystem_mcpjungle",
           "mcpjungle-docs__search_mcpjungle",
           "mintlify-docs__query_docs_filesystem_mintlify",
           "mintlify-docs__search_mintlify"
-        ],
-        "description": "Search the MCPJungle and Mintlify documentation sets, including the virtual documentation filesystem."
+        ]
       },
       {
         "name": "repository-docs",
+        "description": "Read AI-generated wiki documentation and structure for a source repository.",
         "included_tools": [
           "deepwiki__ask_wiki_question",
           "deepwiki__read_wiki_contents",
           "deepwiki__read_wiki_structure"
-        ],
-        "description": "Read AI-generated wiki documentation and structure for a source repository."
+        ]
       },
       {
         "name": "security-audit",
+        "description": "Scan for leaked secrets and review the security findings Beacon raised about agent activity.",
         "included_tools": [
           "beacon-managed__beacon_findings_list",
           "beacon-managed__beacon_get_finding",
           "github__run_secret_scanning"
-        ],
-        "description": "Scan for leaked secrets and review the security findings Beacon raised about agent activity."
+        ]
       },
       {
         "name": "source-control-issues-readonly",
+        "description": "Read issues, pull requests, issue metadata and review state.",
         "included_tools": [
           "github__get_copilot_job_status",
           "github__issue_read",
@@ -1494,11 +2013,11 @@
           "github__search_issues",
           "github__search_pull_requests",
           "github__ui_get"
-        ],
-        "description": "Read issues, pull requests, issue metadata and review state."
+        ]
       },
       {
         "name": "source-control-readonly",
+        "description": "Read repository content, history, branches, tags, releases, collaborators and organisation and user directory data.",
         "included_tools": [
           "github__get_commit",
           "github__get_file_contents",
@@ -1518,11 +2037,11 @@
           "github__search_commits",
           "github__search_repositories",
           "github__search_users"
-        ],
-        "description": "Read repository content, history, branches, tags, releases, collaborators and organisation and user directory data."
+        ]
       },
       {
         "name": "source-control-write",
+        "description": "Change repository content and metadata: branches, files, pull requests, issues and reviews.",
         "included_tools": [
           "github__assign_copilot_to_issue",
           "github__create_branch",
@@ -1538,42 +2057,50 @@
           "github__sub_issue_write",
           "github__update_pull_request",
           "github__update_pull_request_branch"
-        ],
-        "description": "Change repository content and metadata: branches, files, pull requests, issues and reviews."
+        ]
+      },
+      {
+        "name": "twilio-docs-read",
+        "description": "Search and retrieve Twilio's product documentation.",
+        "included_tools": [
+          "twilio-docs__twilio__retrieve",
+          "twilio-docs__twilio__search"
+        ]
       },
       {
         "name": "web-design",
+        "description": "Inspect Framer workspaces, projects, project documentation and assets.",
         "included_tools": [
           "framer__list_projects",
           "framer__list_workspaces",
           "framer__open_project",
           "framer__read_docs",
           "framer__view_image"
-        ],
-        "description": "Inspect Framer workspaces, projects, project documentation and assets."
-      },
-      {
-        "name": "web-monitoring-config",
-        "included_tools": [
-          "firecrawl-search__firecrawl_monitor_create",
-          "firecrawl-search__firecrawl_monitor_delete",
-          "firecrawl-search__firecrawl_monitor_run",
-          "firecrawl-search__firecrawl_monitor_update"
-        ],
-        "description": "Create, edit, trigger and delete recurring web monitors."
+        ]
       },
       {
         "name": "web-monitoring",
+        "description": "Read-only inspection of existing web monitors and their check history.",
         "included_tools": [
           "firecrawl-search__firecrawl_monitor_check",
           "firecrawl-search__firecrawl_monitor_checks",
           "firecrawl-search__firecrawl_monitor_get",
           "firecrawl-search__firecrawl_monitor_list"
-        ],
-        "description": "Read-only inspection of existing web monitors and their check history."
+        ]
+      },
+      {
+        "name": "web-monitoring-config",
+        "description": "Create, edit, trigger and delete recurring web monitors.",
+        "included_tools": [
+          "firecrawl-search__firecrawl_monitor_create",
+          "firecrawl-search__firecrawl_monitor_delete",
+          "firecrawl-search__firecrawl_monitor_run",
+          "firecrawl-search__firecrawl_monitor_update"
+        ]
       },
       {
         "name": "web-research",
+        "description": "General-purpose web search, page fetch and question answering.",
         "included_tools": [
           "exa__web_fetch_exa",
           "exa__web_search_exa",
@@ -1589,33 +2116,42 @@
           "perplexity__perplexity_reason",
           "perplexity__perplexity_research",
           "perplexity__perplexity_search"
-        ],
-        "description": "General-purpose web search, page fetch and question answering."
+        ]
       },
       {
         "name": "web-retrieval",
+        "description": "Fetch, parse and crawl specific documents and sites on demand.",
         "included_tools": [
           "firecrawl-search__firecrawl_agent_status",
           "firecrawl-search__firecrawl_check_crawl_status",
           "firecrawl-search__firecrawl_crawl",
           "firecrawl-search__firecrawl_parse",
           "firecrawl-search__firecrawl_scrape"
-        ],
-        "description": "Fetch, parse and crawl specific documents and sites on demand."
+        ]
+      },
+      {
+        "name": "wolframalpha-knowledge-query",
+        "description": "Query Wolfram|Alpha's computational knowledge engine and evaluate Wolfram Language expressions in a stateless, sandboxed kernel with no external side effects (natural-language queries, units, dates, entities, computation).",
+        "included_tools": [
+          "wolframalpha__WolframAlpha",
+          "wolframalpha__WolframContext",
+          "wolframalpha__WolframLanguageEvaluator"
+        ]
       },
       {
         "name": "workflow-authoring",
+        "description": "Create, update, archive, restore and unpublish n8n workflows.",
         "included_tools": [
           "n8n__archive_workflow",
           "n8n__create_workflow_from_code",
           "n8n__restore_workflow_version",
           "n8n__unpublish_workflow",
           "n8n__update_workflow"
-        ],
-        "description": "Create, update, archive, restore and unpublish n8n workflows."
+        ]
       },
       {
         "name": "workflow-execution",
+        "description": "Execute, test and publish n8n workflows and agents, and manage their external integrations.",
         "included_tools": [
           "n8n__call_agent",
           "n8n__execute_workflow",
@@ -1624,11 +2160,11 @@
           "n8n__test_workflow",
           "n8n__update_agent_integration",
           "n8n__verify_agent_mcp_server"
-        ],
-        "description": "Execute, test and publish n8n workflows and agents, and manage their external integrations."
+        ]
       },
       {
         "name": "workflow-inspection",
+        "description": "Read n8n workflows, versions, executions, tags, projects and gateway coverage.",
         "included_tools": [
           "n8n__discover_agent_assets",
           "n8n__get_workflow_details",
@@ -1641,15 +2177,14 @@
           "n8n__search_projects",
           "n8n__search_workflow_executions",
           "n8n__search_workflows"
-        ],
-        "description": "Read n8n workflows, versions, executions, tags, projects and gateway coverage."
+        ]
       }
     ]
   },
   "main_endpoint_tool_inventory": {
-    "count": 700,
+    "count": 978,
     "source": "MCP initialize + tools/list against https://mcpjungle.tailf99a0.ts.net/mcp",
-    "description": "The main /mcp endpoint still serves all 700 tools. Creating tool groups does not narrow the main gateway; narrowing requires pointing a client at a group endpoint. The full per-tool metadata for this surface is maintained in config/mcpjungle/tool-inventory.json and is not duplicated here.",
+    "description": "The main /mcp endpoint still serves all 978 tools. Creating tool groups does not narrow the main gateway; narrowing requires pointing a client at a group endpoint. The full per-tool metadata for this surface is maintained in config/mcpjungle/tool-inventory.json and is not duplicated here.",
     "inventory_file": "../tool-inventory.json"
   },
   "restore_procedure": {

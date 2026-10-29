@@ -1,0 +1,1575 @@
+{
+  "tools": [
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Start the soul-builder skill from an X handle, a full name and links. It writes the agent's SOUL.md and STYLE.md.",
+      "inferred_capability_category": "persistent-or-autonomous",
+      "input_schema": {
+        "properties": {
+          "handle": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "links": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "name": "noesis-aeon__build_soul",
+      "output_schema": null,
+      "risk_classification": "high",
+      "risk_rationale": "readOnlyHint=false, openWorldHint=true; dispatches the soul-builder skill run which writes the agent's SOUL.md and STYLE.md -- the agent's own identity and voice -- from caller-supplied inputs (handle, name, links). The write happens asynchronously in a dispatched run, not in this call, so the caller cannot inspect the result before it lands.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "build_soul"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Start the strategy-builder skill from a goal, a GitHub repo and links. It writes STRATEGY.md.",
+      "inferred_capability_category": "persistent-or-autonomous",
+      "input_schema": {
+        "properties": {
+          "goal": {
+            "maxLength": 600,
+            "type": "string"
+          },
+          "links": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "repo": {
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "name": "noesis-aeon__build_strategy",
+      "output_schema": null,
+      "risk_classification": "high",
+      "risk_rationale": "readOnlyHint=false, openWorldHint=true; dispatches the strategy-builder skill run which writes STRATEGY.md -- the agent's operating directive -- from caller-supplied inputs. Same asynchronous-write risk shape as build_soul.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "build_strategy"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "One run's status and output: the skill's summary and the end of its log. For a failed run, also the likely reason. For a finished skill's full result, call read_output.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "run_id": {
+            "description": "Run id from run_skill or list_runs",
+            "pattern": "^\\d+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id"
+        ],
+        "type": "object"
+      },
+      "name": "noesis-aeon__get_run",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; returns a run's status/summary/log tail, no mutation.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "get_run"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Install a community skill pack from list_packs. Starts the install-skill run, which security-scans the pack and opens a pull request adding its skills (they land turned off). Confirm with the user first.",
+      "inferred_capability_category": "broad-capability",
+      "input_schema": {
+        "properties": {
+          "repo": {
+            "description": "The pack repo as owner/repo, from list_packs",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "skills": {
+            "description": "Only these skills from the pack (default: all)",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "type": "array"
+          }
+        },
+        "required": [
+          "repo"
+        ],
+        "type": "object"
+      },
+      "name": "noesis-aeon__install_pack",
+      "output_schema": null,
+      "risk_classification": "review-required",
+      "risk_rationale": "readOnlyHint=false, openWorldHint=true; installs third-party community skill code into the repo via a security-scanned PR (skills land turned off by default). Despite the PR gate and off-by-default landing, this is third-party code supply-chain exposure -- the description itself says 'Confirm with the user first', which is the caller's own admission that this needs a human in the loop before use.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "install_pack"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "The Aeon instances (GitHub repos) this connection may use, and which one is active now.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "noesis-aeon__list_instances",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; lists which GitHub repos this connection may use.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "list_instances"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Every key the instance knows about, grouped, with whether it is set. Names only, never values.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "noesis-aeon__list_keys",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; returns key NAMES only, description explicitly states values are never returned.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "list_keys"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Skill packs: the built-in packs (with which of their skills are on) and the community packs that install_pack can add to the instance.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "noesis-aeon__list_packs",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; lists available/installed skill packs, no mutation.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "list_packs"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Recent Aeon skill runs on the instance, newest first: id, title, status, conclusion, start time, link.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "limit": {
+            "description": "How many runs (default 15)",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "name": "noesis-aeon__list_runs",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; lists recent run metadata, no mutation.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "list_runs"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Read-only list of the skills of the Aeon instance enuno/noesis-aeon: name, description, category, whether it is on, its schedule and default input. A skill is a Markdown prompt file in the user's repo; listing runs nothing.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "noesis-aeon__list_skills",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; description states explicitly 'listing runs nothing'.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "list_skills"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Open the Aeon dashboard (runs, skills, packs, strategy, soul, keys, settings) for the user to work in. Use when the user asks to see or open their Aeon dashboard.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "view": {
+            "description": "Which tab to open (default runs)",
+            "enum": [
+              "runs",
+              "skills"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "name": "noesis-aeon__open_runs",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; returns a dashboard URL for the human to open, no server-side effect.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "open_runs"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "The full STRATEGY.md, SOUL.md or STYLE.md, for the editor.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "file": {
+            "enum": [
+              "strategy",
+              "soul",
+              "style"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "type": "object"
+      },
+      "name": "noesis-aeon__read_editable",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; reads STRATEGY.md/SOUL.md/STYLE.md content, no write.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "read_editable"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "The instance-wide settings: which agent harness runs the skills, the default model, the model gateway, and the harnesses and models that can be picked.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "noesis-aeon__read_instance_settings",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; reads harness/model configuration.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "read_instance_settings"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "The agent's memory. With no arguments: MEMORY.md plus the lists of topics, daily logs and tracked issues. With topic, date or issue: that one file.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "date": {
+            "description": "A daily log date, YYYY-MM-DD (memory/logs/<date>.md)",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          },
+          "issue": {
+            "description": "A tracked issue id, e.g. ISS-001",
+            "pattern": "^ISS-\\d{3,}$",
+            "type": "string"
+          },
+          "topic": {
+            "description": "A topic slug from the list (memory/topics/<slug>.md)",
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "name": "noesis-aeon__read_memory",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; reads MEMORY.md and related files.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "read_memory"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "The full result of a skill's latest successful run (the message it produced, saved to output/.chains/<skill>.md). Use after get_run reports completed.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "skill": {
+            "description": "Skill name, as listed by list_skills",
+            "enum": [
+              "action-converter",
+              "aeon-doctor",
+              "aeon-update",
+              "anatomy",
+              "arc-studio",
+              "article",
+              "auto-merge",
+              "auto-workflow",
+              "autoresearch",
+              "base-mcp",
+              "bd-radar",
+              "changelog",
+              "competitor-monitor",
+              "compute-resell",
+              "cortx-reliability",
+              "create-prove",
+              "create-skill",
+              "defi-overview",
+              "deploy-prototype",
+              "deploy-uni-hook",
+              "digest",
+              "distribute-tokens",
+              "executor-mcp",
+              "feature",
+              "feedback-builder",
+              "fetch-tweets",
+              "finance-district-mcp",
+              "fleet-control",
+              "fork-fleet",
+              "github-monitor",
+              "github-trending",
+              "glim-mcp",
+              "heartbeat",
+              "higgsfield",
+              "hunter-22",
+              "idea-forge",
+              "idea-pipeline",
+              "inbox-triage",
+              "install-skill",
+              "investigation-report",
+              "last30",
+              "memory-flush",
+              "mention-radar",
+              "miroshark-matchday",
+              "monitor-polymarket",
+              "narrative-convergence",
+              "narrative-tracker",
+              "onchain-monitor",
+              "operator-scorecard",
+              "pack-submit",
+              "picks-tracker",
+              "pm-manipulation",
+              "posthog-errors",
+              "pr-review",
+              "pr-triage",
+              "price-alert",
+              "remotion",
+              "reply-maker",
+              "rightstack",
+              "robinhood-mcp",
+              "sc-audit",
+              "schedule-ads",
+              "search-skill",
+              "self-improve",
+              "send-email",
+              "seo-audit",
+              "shiplog",
+              "skill-article",
+              "skill-health",
+              "skill-repair",
+              "soul-builder",
+              "spawn-instance",
+              "spend-watch",
+              "strategy-builder",
+              "submit-hook",
+              "taskmarket-delegate",
+              "token-movers",
+              "token-pick",
+              "tx-explain",
+              "unlock-monitor",
+              "video-script",
+              "vuln-scanner",
+              "vuln-tracker",
+              "weekly-aeoncard",
+              "write-tweet",
+              "you-web-search"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "skill"
+        ],
+        "type": "object"
+      },
+      "name": "noesis-aeon__read_output",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; reads a completed run's saved output file.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "read_output"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "The agent's voice: soul/SOUL.md (who it is) and soul/STYLE.md (how it writes).",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "noesis-aeon__read_soul",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; reads SOUL.md/STYLE.md content.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "read_soul"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "STRATEGY.md: the agent's north star, what it works toward and how skills should prioritize.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "noesis-aeon__read_strategy",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; reads STRATEGY.md content.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "read_strategy"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Start one skill of the instance now. It does one thing: it dispatches the repo's own aeon.yml GitHub Actions workflow with the skill name and optional input (var); the skill then runs in the user's repo, not in this server. Returns the run id; follow it with get_run.",
+      "inferred_capability_category": "broad-capability",
+      "input_schema": {
+        "properties": {
+          "skill": {
+            "description": "Skill to run, one of the instance's skills (see list_skills for what each does)",
+            "enum": [
+              "action-converter",
+              "aeon-doctor",
+              "aeon-update",
+              "anatomy",
+              "arc-studio",
+              "article",
+              "auto-merge",
+              "auto-workflow",
+              "autoresearch",
+              "base-mcp",
+              "bd-radar",
+              "changelog",
+              "competitor-monitor",
+              "compute-resell",
+              "cortx-reliability",
+              "create-prove",
+              "create-skill",
+              "defi-overview",
+              "deploy-prototype",
+              "deploy-uni-hook",
+              "digest",
+              "distribute-tokens",
+              "executor-mcp",
+              "feature",
+              "feedback-builder",
+              "fetch-tweets",
+              "finance-district-mcp",
+              "fleet-control",
+              "fork-fleet",
+              "github-monitor",
+              "github-trending",
+              "glim-mcp",
+              "heartbeat",
+              "higgsfield",
+              "hunter-22",
+              "idea-forge",
+              "idea-pipeline",
+              "inbox-triage",
+              "install-skill",
+              "investigation-report",
+              "last30",
+              "memory-flush",
+              "mention-radar",
+              "miroshark-matchday",
+              "monitor-polymarket",
+              "narrative-convergence",
+              "narrative-tracker",
+              "onchain-monitor",
+              "operator-scorecard",
+              "pack-submit",
+              "picks-tracker",
+              "pm-manipulation",
+              "posthog-errors",
+              "pr-review",
+              "pr-triage",
+              "price-alert",
+              "remotion",
+              "reply-maker",
+              "rightstack",
+              "robinhood-mcp",
+              "sc-audit",
+              "schedule-ads",
+              "search-skill",
+              "self-improve",
+              "send-email",
+              "seo-audit",
+              "shiplog",
+              "skill-article",
+              "skill-health",
+              "skill-repair",
+              "soul-builder",
+              "spawn-instance",
+              "spend-watch",
+              "strategy-builder",
+              "submit-hook",
+              "taskmarket-delegate",
+              "token-movers",
+              "token-pick",
+              "tx-explain",
+              "unlock-monitor",
+              "video-script",
+              "vuln-scanner",
+              "vuln-tracker",
+              "weekly-aeoncard",
+              "write-tweet",
+              "you-web-search"
+            ],
+            "type": "string"
+          },
+          "var": {
+            "description": "Optional input for the skill (a topic, owner/repo, token symbol...). Empty uses the skill's default.",
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "skill"
+        ],
+        "type": "object"
+      },
+      "name": "noesis-aeon__run_skill",
+      "output_schema": null,
+      "risk_classification": "review-required",
+      "risk_rationale": "Upstream itself sets destructiveHint=true. Dispatches ANY of the instance's skills (enuno/noesis-aeon currently lists dozens, including ones that spend money, publish externally, or deploy infrastructure per this repo's own skill catalog) with an arbitrary var input -- a generic 'run anything registered' dispatcher that bypasses any tool-level allowlist by construction, matching the house rule to treat broad-capability dispatchers as review-required regardless of name.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "run_skill"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Full-text search across the agent's memory: MEMORY.md, topics, daily logs and issues. Returns matching snippets with where they are.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "limit": {
+            "description": "How many hits (default 20)",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "query": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sources": {
+            "description": "Limit to some sources (default all)",
+            "items": {
+              "enum": [
+                "memory",
+                "topic",
+                "log",
+                "issue"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "noesis-aeon__search_memory",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; full-text search over memory files, no mutation.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "search_memory"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Find skills by name or description for an @-mention in the composer.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "noesis-aeon__search_mentions",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; searches skill names/descriptions for an @-mention UI, no mutation.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "search_mentions"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Report to the Aeon team that a tool, skill or run is broken or answers wrong, or that something is missing or could be better. Give run_id for a failed run (its likely reason is attached) and skill when it is about one. A close open report counts as a vote.",
+      "inferred_capability_category": "external-communication",
+      "input_schema": {
+        "properties": {
+          "details": {
+            "description": "What you did, what happened, what you expected. Never paste keys or tokens.",
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "kind": {
+            "description": "bug: works but wrong; error: a tool, run or page failed; missing: a tool, option or doc that should exist; idea: could be better",
+            "enum": [
+              "bug",
+              "error",
+              "missing",
+              "idea"
+            ],
+            "type": "string"
+          },
+          "run_id": {
+            "description": "The run it is about, from run_skill or list_runs",
+            "pattern": "^\\d+$",
+            "type": "string"
+          },
+          "skill": {
+            "description": "The skill it is about, as listed by list_skills",
+            "maxLength": 40,
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "type": "string"
+          },
+          "title": {
+            "description": "One line: what broke or what is missing",
+            "maxLength": 200,
+            "minLength": 5,
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "title"
+        ],
+        "type": "object"
+      },
+      "name": "noesis-aeon__send_feedback",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=false; sends a one-way feedback/bug report to the Aeon vendor team. No sensitive data exposure, no spend, no reply channel the caller controls; grouped with the read tools below for convenience but classified as external-communication because it does send a message outside the system.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "send_feedback"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "The instance's agent harness and every skill's on/off switch, as a settings form.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "noesis-aeon__settings.read",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; reads the settings form, no mutation.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "settings.read"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Change the agent harness or turn skills on and off. Commits aeon.yml to the user's repo.",
+      "inferred_capability_category": "configuration-change",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "set": {
+            "additionalProperties": false,
+            "minProperties": 1,
+            "properties": {
+              "harness": {
+                "description": "The coding agent that runs every skill",
+                "enum": [
+                  "claude",
+                  "grok",
+                  "codex",
+                  "fx",
+                  "pi",
+                  "vibe",
+                  "kimi",
+                  "cursor",
+                  "hermes"
+                ],
+                "title": "Agent harness",
+                "type": "string"
+              },
+              "skill:action-converter": {
+                "description": "5 concrete real-life actions, leverage-scored against open loops with specificity and anti-fluff gates",
+                "title": "action-converter",
+                "type": "boolean"
+              },
+              "skill:aeon-doctor": {
+                "description": "Static config-correctness linter for this instance - catches the silent-failure class (unquoted schedules, duplicate keys, unconfigured skills, mode typos, broken requires/MCP refs) that no run-based ",
+                "title": "aeon-doctor",
+                "type": "boolean"
+              },
+              "skill:aeon-update": {
+                "description": "Pull framework updates from the upstream Aeon repo into this instance - 3-way merges canon's new commits into a PR, never clobbering operator config.",
+                "title": "aeon-update",
+                "type": "boolean"
+              },
+              "skill:anatomy": {
+                "description": "Build crafted, highly detailed, interactive isometric SVG figures that explain a technical idea as a real physical object (a test rig, a dial gauge, a cabinet of drawers, a plotter, a lock), with many",
+                "title": "anatomy",
+                "type": "boolean"
+              },
+              "skill:arc-studio": {
+                "description": "Drive Circle Arc Studio from a headless runner. Start one Arc testnet turn, poll it on a later run, and notify when it finishes or needs an answer.",
+                "title": "arc-studio",
+                "type": "boolean"
+              },
+              "skill:article": {
+                "description": "Write a publication-ready article in one of three angles - a trending long-form piece, a watched-repo thesis, or a project-through-a-lens essay. Optional Replicate hero image with --visual.",
+                "title": "article",
+                "type": "boolean"
+              },
+              "skill:auto-merge": {
+                "description": "Automatically merge open PRs that have passing CI, no blocking reviews, and no conflicts",
+                "title": "auto-merge",
+                "type": "boolean"
+              },
+              "skill:auto-workflow": {
+                "description": "Two-mode aeon.yml workflow builder - analyze inspects URLs and emits a tiered, signal-verified skill-enablement plan plus an aeon.yml diff; enable flips slugs to enabled:true and opens a PR.",
+                "title": "auto-workflow",
+                "type": "boolean"
+              },
+              "skill:autoresearch": {
+                "description": "Evolve a skill by generating variations, evaluating them, and updating the best version",
+                "title": "autoresearch",
+                "type": "boolean"
+              },
+              "skill:base-mcp": {
+                "description": "Access a Base Account via the Base MCP server (mcp.base.org) - wallet, portfolio, sending, swapping, signing, x402 payments, batched calls, and transaction history.",
+                "title": "base-mcp",
+                "type": "boolean"
+              },
+              "skill:bd-radar": {
+                "description": "Business-development radar across your product family - find who's building, forking, integrating, and mentioning your products, ranked into a who-to-talk-to-this-week lead list.",
+                "title": "bd-radar",
+                "type": "boolean"
+              },
+              "skill:changelog": {
+                "description": "Generate a user-facing changelog from recent commits/PRs across watched repos - write it in-repo (Keep a Changelog format) or open a cross-repo changelog PR on a docs/marketing repo.",
+                "title": "changelog",
+                "type": "boolean"
+              },
+              "skill:competitor-monitor": {
+                "description": "Watch a list of competitor web pages on a cadence - snapshots each page's real signals (pricing, headings, CTAs, new/removed pages, title/description), diffs against the last run, and reports only wha",
+                "title": "competitor-monitor",
+                "type": "boolean"
+              },
+              "skill:compute-resell": {
+                "description": "Autonomous compute-reselling agent on Surplus Intelligence - resells free or low-cost provider compute across Bankr, AWS Bedrock, and Google Vertex (GCP) as one skill. Reads the live market + your cos",
+                "title": "compute-resell",
+                "type": "boolean"
+              },
+              "skill:cortx-reliability": {
+                "description": "Check whether an x402 payment endpoint is reliably delivering value before spending USDC on it. Returns paid delivery rate, active incidents, latency, and a clear proceed/warn/block recommendation.",
+                "title": "cortx-reliability",
+                "type": "boolean"
+              },
+              "skill:create-prove": {
+                "description": "Run a changed Aeon skill for real and attach SHA-bound behavioral evidence to its PR",
+                "title": "create-prove",
+                "type": "boolean"
+              },
+              "skill:create-skill": {
+                "description": "Generate a complete new skill from a one-line prompt and ship it as a PR",
+                "title": "create-skill",
+                "type": "boolean"
+              },
+              "skill:defi-overview": {
+                "description": "One-pass crypto read - tracked-protocol positions and health plus macro context, with regime take, DeFi verdict, biggest movers, yields, fees, breadth, Fear & Greed, and prediction markets.",
+                "title": "defi-overview",
+                "type": "boolean"
+              },
+              "skill:deploy-prototype": {
+                "description": "Generate a small app or tool and deploy it live to Vercel via API",
+                "title": "deploy-prototype",
+                "type": "boolean"
+              },
+              "skill:deploy-uni-hook": {
+                "description": "Generate, simulate, audit, and deploy a Uniswap v4 hook + test pool from a brief, on any Uniswap v4 chain (every testnet and mainnet) - pre-audited templates or a from-scratch freeform hook (flags aut",
+                "title": "deploy-uni-hook",
+                "type": "boolean"
+              },
+              "skill:digest": {
+                "description": "Generate and send a digest on a configurable topic, optionally pulling RSS/Atom feeds as an input source alongside web + X signal",
+                "title": "digest",
+                "type": "boolean"
+              },
+              "skill:distribute-tokens": {
+                "description": "Two-phase contributor rewards - plan builds a tier-priced payout from the repo's merged-PR ranking; send executes it on-chain via Bankr Wallet API with per-recipient idempotency and dry-run.",
+                "title": "distribute-tokens",
+                "type": "boolean"
+              },
+              "skill:executor-mcp": {
+                "description": "Run a task through your Executor Cloud tool catalog - one MCP endpoint proxying every integration you connected (MCP servers, OpenAPI specs, GraphQL APIs), with per-tool allow/approve/block policies. ",
+                "title": "executor-mcp",
+                "type": "boolean"
+              },
+              "skill:feature": {
+                "description": "Build, enhance, or revive GitHub repos - ship one feature PR per watched repo (watched), make the best single enhancement on one external repo (external), or revive the top dormant repo (dormant).",
+                "title": "feature",
+                "type": "boolean"
+              },
+              "skill:feedback-builder": {
+                "description": "Point Aeon at a service's /feedback endpoint - pull what agents reported (bugs, missing features), triage and cluster it, then build the best accepted request as a PR for a human to approve.",
+                "title": "feedback-builder",
+                "type": "boolean"
+              },
+              "skill:fetch-tweets": {
+                "description": "Search and curate X/Twitter behind one selector - keyword, topic roundup, a single or tracked-account digest, an X list, or the AI-agent buzz preset - clustered into signal-scored sub-narratives.",
+                "title": "fetch-tweets",
+                "type": "boolean"
+              },
+              "skill:finance-district-mcp": {
+                "description": "Multichain non-custodial agent wallet via Finance District - check balances, prices, and best DeFi yields, move funds, swap, and make x402 paid API calls across EVM, Solana, Bitcoin, and Sui. Keys nev",
+                "title": "finance-district-mcp",
+                "type": "boolean"
+              },
+              "skill:fleet-control": {
+                "description": "Operate managed Aeon instances from memory/instances.json - health-check, dispatch, and status snapshots (control), plus a fleet scorecard of runs, tokens, cost, and reliability (scorecard).",
+                "title": "fleet-control",
+                "type": "boolean"
+              },
+              "skill:fork-fleet": {
+                "description": "Fork divergence monitor - tracks where the fleet's active forks diverge in CODE (unique commits, new/modified skills) and CONFIG (enable/var/model/schedule vs upstream), gated on real change.",
+                "title": "fork-fleet",
+                "type": "boolean"
+              },
+              "skill:github-monitor": {
+                "description": "Watch your GitHub repos across four views - a combined urgency monitor (stale PRs, new issues, releases), a new-issue triage queue, a release upgrade digest, or your own opened-PR tracker.",
+                "title": "github-monitor",
+                "type": "boolean"
+              },
+              "skill:github-trending": {
+                "description": "Curated trending across GitHub repos and the Hugging Face Hub (models, datasets, spaces) - filtered, clustered, and labeled by momentum with a one-line why-notable per pick.",
+                "title": "github-trending",
+                "type": "boolean"
+              },
+              "skill:glim-mcp": {
+                "description": "Live-data research via the glim.sh MCP - web search, full page extraction, X/Twitter, Reddit, GitHub, Amazon, and YouTube transcripts - synthesized into a cited digest. Pay-per-call from the connected",
+                "title": "glim-mcp",
+                "type": "boolean"
+              },
+              "skill:heartbeat": {
+                "description": "Ambient fleet-health check that surfaces anything worth attention (default), or an on-demand priority brief - the 3 things to focus on, why now, and what moved (var=brief)",
+                "title": "heartbeat",
+                "type": "boolean"
+              },
+              "skill:higgsfield": {
+                "description": "Generate images and video through the Higgsfield MCP - text-to-image, text-to-video, and image-to-video with motion control across 100+ models. Generation draws real credits from the connected Higgsfi",
+                "title": "higgsfield",
+                "type": "boolean"
+              },
+              "skill:hunter-22": {
+                "description": "Scan the ClawHunter agent bounty marketplace for opportunities that genuinely match this agent's real capabilities (code, security research, writing) and surface only real matches \u2014 never a raw unfilt",
+                "title": "hunter-22",
+                "type": "boolean"
+              },
+              "skill:idea-forge": {
+                "description": "Three-mode idea engine - generate collides the week's zeitgeist with what you can ship into scored wedges; validate viability-screens the idea backlog; memo writes evidence-backed startup memos.",
+                "title": "idea-forge",
+                "type": "boolean"
+              },
+              "skill:idea-pipeline": {
+                "description": "Execution-gap audit - cross-references the startup idea backlog against shipped skills, prototypes, and cross-repo PRs, surfacing the top 3 ideas to build next by narrative and operator fit.",
+                "title": "idea-pipeline",
+                "type": "boolean"
+              },
+              "skill:inbox-triage": {
+                "description": "Daily GitHub notification inbox triage - surfaces aging vuln PR replies, security advisories, review requests, and mentions that need action",
+                "title": "inbox-triage",
+                "type": "boolean"
+              },
+              "skill:install-skill": {
+                "description": "Install a community skill pack into this fork from a GitHub repo and ship it as an auto-merged PR",
+                "title": "install-skill",
+                "type": "boolean"
+              },
+              "skill:investigation-report": {
+                "description": "One-shot Base-token investigation - runs any subset of six onchain-security checks (rug-scan, contract-audit, deployer-trace, holder-concentration, honeypot, lp-lock) into one verdict. Keyless core.",
+                "title": "investigation-report",
+                "type": "boolean"
+              },
+              "skill:last30": {
+                "description": "Cross-platform social research - narrative-first intelligence on what people are saying about a topic across Reddit, X, HN, Polymarket, and the web over the last 30 days",
+                "title": "last30",
+                "type": "boolean"
+              },
+              "skill:memory-flush": {
+                "description": "Promote important recent log entries into MEMORY.md and prune stale ones",
+                "title": "memory-flush",
+                "type": "boolean"
+              },
+              "skill:mention-radar": {
+                "description": "Monitor external web and social mentions of the operator's active projects - surface what people are discovering, where they're confused, and where to engage",
+                "title": "mention-radar",
+                "type": "boolean"
+              },
+              "skill:miroshark-matchday": {
+                "description": "Friday bulk football matchday simulations on MiroShark - pay $1 USDC per sim via x402 (Finance District agent wallet), launch Premier League, Serie A, and La Liga matchday sims in parallel, collect sh",
+                "title": "miroshark-matchday",
+                "type": "boolean"
+              },
+              "skill:monitor-polymarket": {
+                "description": "Monitor Polymarket and/or Kalshi prediction markets for 24h price moves, volume changes, fresh comments, and high-conviction alerts",
+                "title": "monitor-polymarket",
+                "type": "boolean"
+              },
+              "skill:narrative-convergence": {
+                "description": "Cross-skill signal detector - finds entities or themes surfaced independently by 3+ different skill categories within 48h and surfaces them as high-confidence write opportunities",
+                "title": "narrative-convergence",
+                "type": "boolean"
+              },
+              "skill:narrative-tracker": {
+                "description": "Track rising, peaking, and fading crypto/tech narratives with quantitative mindshare + velocity signals and explicit positioning calls",
+                "title": "narrative-tracker",
+                "type": "boolean"
+              },
+              "skill:onchain-monitor": {
+                "description": "Monitor blockchain addresses and contracts for notable activity",
+                "title": "onchain-monitor",
+                "type": "boolean"
+              },
+              "skill:operator-scorecard": {
+                "description": "Three recap modes - default synthesizes agent health, community growth, and economic activity into a was-it-worth-it verdict; ops recaps what shipped and failed; push ranks push impact.",
+                "title": "operator-scorecard",
+                "type": "boolean"
+              },
+              "skill:pack-submit": {
+                "description": "Package one of this agent's own skills as a standalone community pack and submit it to the aeon registry as a PR",
+                "title": "pack-submit",
+                "type": "boolean"
+              },
+              "skill:picks-tracker": {
+                "description": "Retrospective on past token and prediction market picks - what hit, what flopped, what the score is",
+                "title": "picks-tracker",
+                "type": "boolean"
+              },
+              "skill:pm-manipulation": {
+                "description": "Detect suspected manipulation on prediction markets over the past 3 days by cross-referencing price/volume/comment anomalies with multilingual local-press coverage",
+                "title": "pm-manipulation",
+                "type": "boolean"
+              },
+              "skill:posthog-errors": {
+                "description": "Weekly cross-project error overview from PostHog - enumerates every project the OAuth grant covers, pulls the last 7 days of error-tracking issues per project, ranks them by impact, flags what's new v",
+                "title": "posthog-errors",
+                "type": "boolean"
+              },
+              "skill:pr-review": {
+                "description": "Review open PRs two ways - default is a per-PR deep review with severity-tagged findings, inline comments, and a verdict; --survey runs a risk-tiered triage digest of what's safe to merge first",
+                "title": "pr-review",
+                "type": "boolean"
+              },
+              "skill:pr-triage": {
+                "description": "First-touch triage for external pull requests - verdict, label, and a welcoming comment within minutes of open",
+                "title": "pr-triage",
+                "type": "boolean"
+              },
+              "skill:price-alert": {
+                "description": "Fire when the tracked token does something - new ATH, sharp 1h move, or operator-set target crossed. Silent on normal days.",
+                "title": "price-alert",
+                "type": "boolean"
+              },
+              "skill:remotion": {
+                "description": "Render a short (~10s) video on any topic with Remotion - the agent writes a storyboard JSON, a bundled React/Remotion project renders it to an MP4, and the clip is committed to the repo and delivered ",
+                "title": "remotion",
+                "type": "boolean"
+              },
+              "skill:reply-maker": {
+                "description": "Draft copy-paste-ready X replies - two options per reply-worthy tweet from tracked accounts, topics, or lists (default), or ready-to-post responses to engagement opps in recent logs (from-logs)",
+                "title": "reply-maker",
+                "type": "boolean"
+              },
+              "skill:rightstack": {
+                "description": "Use RightStack as a read-only Web3 stack advisor for architecture recommendations, workflow inspection, tool comparisons, and package-migration checks. Use for planning; do not treat corpus output as ",
+                "title": "rightstack",
+                "type": "boolean"
+              },
+              "skill:robinhood-mcp": {
+                "description": "Read your Robinhood Agentic brokerage account via the Robinhood Trading MCP - portfolio, buying power, positions, and order history - and place a single operator-instructed trade. OAuth Connect via th",
+                "title": "robinhood-mcp",
+                "type": "boolean"
+              },
+              "skill:sc-audit": {
+                "description": "Deep security audit of a smart-contract repo OR a live on-chain contract by address - detect Solidity, model the protocol invariants and trust boundaries first, run Slither (best-effort) plus a bounde",
+                "title": "sc-audit",
+                "type": "boolean"
+              },
+              "skill:schedule-ads": {
+                "description": "Manage paid ads on AdManage.ai from declarative config - default schedules launches across Meta/TikTok/Snapchat/Pinterest/LinkedIn (always PAUSED); create provisions Meta campaigns and ad sets.",
+                "title": "schedule-ads",
+                "type": "boolean"
+              },
+              "skill:search-skill": {
+                "description": "Search the open agent skills ecosystem for skills that fill a real gap and install them via the native add-skill path",
+                "title": "search-skill",
+                "type": "boolean"
+              },
+              "skill:self-improve": {
+                "description": "Improve the agent itself, or audit its recent performance - better skills, prompts, workflows, and config, plus a quality/reliability/memory-hygiene review of what it did and what failed",
+                "title": "self-improve",
+                "type": "boolean"
+              },
+              "skill:send-email": {
+                "description": "Compose and send a one-off email to a named recipient via Resend - written in the operator's voice, then sent in-run through the shared send caps with an operator audit copy",
+                "title": "send-email",
+                "type": "boolean"
+              },
+              "skill:seo-audit": {
+                "description": "Daily on-page and technical SEO audit of every page on a site - discovers URLs from the sitemap, scores each page, adds cross-page checks (duplicate titles, canonicals, sitemap gaps), diffs against ye",
+                "title": "seo-audit",
+                "type": "boolean"
+              },
+              "skill:shiplog": {
+                "description": "Recap of everything shipped since the last run - cross-repo PRs, security fixes, star deltas, and X traction, synthesized into a digest article and a ready-to-post shiplog in your voice.",
+                "title": "shiplog",
+                "type": "boolean"
+              },
+              "skill:skill-article": {
+                "description": "Turn any skill in this instance into a publish-ready launch article - proof-stat headline, one contrarian thesis, mechanics, war stories from real run history, a mental-model reframe, and the full SKI",
+                "title": "skill-article",
+                "type": "boolean"
+              },
+              "skill:skill-health": {
+                "description": "Fleet skill observability with two views - health audits per-skill metrics and files/resolves issues in memory/issues/; analytics ranks the fleet by 7d runs, success rates, and anomaly flags.",
+                "title": "skill-health",
+                "type": "boolean"
+              },
+              "skill:skill-repair": {
+                "description": "Diagnose and fix failing or degraded skills automatically - systemic-first triage, per-category playbooks, and a verification plan",
+                "title": "skill-repair",
+                "type": "boolean"
+              },
+              "skill:soul-builder": {
+                "description": "Build a SOUL from an X handle - read a wide sample of a public X account, then draft SOUL.md (identity, worldview, opinions), STYLE.md (voice), and examples so every skill speaks in that voice.",
+                "title": "soul-builder",
+                "type": "boolean"
+              },
+              "skill:spawn-instance": {
+                "description": "Clone this Aeon agent into a new GitHub repo - fork, configure skills, validate, and register in the fleet",
+                "title": "spawn-instance",
+                "type": "boolean"
+              },
+              "skill:spend-watch": {
+                "description": "Autonomous cloud-cost analyst across Neon, Vercel, Railway and GitHub Actions - pulls per-object usage, attributes it to the biggest drivers, root-causes each, and emits recommendations ranked by real",
+                "title": "spend-watch",
+                "type": "boolean"
+              },
+              "skill:strategy-builder": {
+                "description": "Draft STRATEGY.md from a goal - read the operator's brief (goal, repo, links) plus the repo README and memory, then write a tight north-star/priorities/audience/constraints strategy.",
+                "title": "strategy-builder",
+                "type": "boolean"
+              },
+              "skill:submit-hook": {
+                "description": "Submit a deployed Uniswap v4 hook to the public univ4-hooks registry - format the listing, open a PR (issue fallback) so it lists on the hook marketplace.",
+                "title": "submit-hook",
+                "type": "boolean"
+              },
+              "skill:taskmarket-delegate": {
+                "description": "Delegate work to the TaskMarket agent-worker market - browse open tasks, create tasks with explicit authorization, and track/submit work, so an agent can outsource instead of burning inference on unre",
+                "title": "taskmarket-delegate",
+                "type": "boolean"
+              },
+              "skill:token-movers": {
+                "description": "Crypto market scanner and single-token analyst - movers scans top winners/losers/trending or on-chain runners with pump-risk flags; single-token produces a verdict-first deep report for one token.",
+                "title": "token-movers",
+                "type": "boolean"
+              },
+              "skill:token-pick": {
+                "description": "One token recommendation and one prediction market pick - scored, quantified, with a skip branch when signals are weak",
+                "title": "token-pick",
+                "type": "boolean"
+              },
+              "skill:tx-explain": {
+                "description": "Decode any Base transaction into a plain-English story - method, token movements, swaps/approvals, counterparties, and suspicious-approval flags. Keyless via Base RPC + Etherscan v2.",
+                "title": "tx-explain",
+                "type": "boolean"
+              },
+              "skill:unlock-monitor": {
+                "description": "Token unlock and vesting tracker - quantify supply pressure via absorption ratio, classify cliff vs linear, and deliver one-line market reads",
+                "title": "unlock-monitor",
+                "type": "boolean"
+              },
+              "skill:video-script": {
+                "description": "Turn a repo, product page, or update into a recording-ready video script in a receipts-first format - verifies every claim against live sources, then writes timestamped VO + on-screen direction with a",
+                "title": "video-script",
+                "type": "boolean"
+              },
+              "skill:vuln-scanner": {
+                "description": "Audit trending repos for real security vulnerabilities and disclose responsibly - scan and route findings (PVR / dependency PR), re-submit queued advisories, and send armed email disclosures",
+                "title": "vuln-scanner",
+                "type": "boolean"
+              },
+              "skill:vuln-tracker": {
+                "description": "One lifecycle poll over everything vuln-scanner produces - PR and advisory status, PVR triage transitions, and pending-disclosure aging, with a stars-secured impact headline and one action queue.",
+                "title": "vuln-tracker",
+                "type": "boolean"
+              },
+              "skill:weekly-aeoncard": {
+                "description": "Build a weekly token-consumption recap image from memory/token-usage.csv - this week + all-time totals, top skills, rendered as a shareable SVG card.",
+                "title": "weekly-aeoncard",
+                "type": "boolean"
+              },
+              "skill:write-tweet": {
+                "description": "Multi-format tweet studio - standalone drafts (10 across 5 size tiers), a 5-10 tweet thread, or 10 remixes of past tweets, selected via ${var}",
+                "title": "write-tweet",
+                "type": "boolean"
+              },
+              "skill:you-web-search": {
+                "description": "Web search using You.com Search API with high-quality, cited results \u2014 runs keyless out of the box; YDC_API_KEY unlocks higher limits and real-time web crawling",
+                "title": "you-web-search",
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "set"
+        ],
+        "type": "object"
+      },
+      "name": "noesis-aeon__settings.update",
+      "output_schema": null,
+      "risk_classification": "medium",
+      "risk_rationale": "readOnlyHint=false; commits aeon.yml to change the harness or enable/disable skills -- same commit surface as update_skill/update_instance_settings, offered as one settings-form call.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "settings.update"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "description": "What the instance still needs: whether a model is connected for each harness in use, and which API keys each enabled skill is missing. Key names only, never values.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "noesis-aeon__setup_status",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "readOnlyHint=true; reports which key NAMES are missing per skill, values never returned.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "setup_status"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Make another Aeon instance the active one for this connection. Every other tool then acts on it.",
+      "inferred_capability_category": "configuration-change",
+      "input_schema": {
+        "properties": {
+          "instance": {
+            "description": "The instance as owner/repo, from list_instances",
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": [
+          "instance"
+        ],
+        "type": "object"
+      },
+      "name": "noesis-aeon__switch_instance",
+      "output_schema": null,
+      "risk_classification": "medium",
+      "risk_rationale": "readOnlyHint=false, idempotentHint=true; description states explicitly that every OTHER tool on this connection then acts on the newly selected instance -- a scope-redirect that can silently misdirect subsequent read and write calls to a different GitHub repo if the caller is not tracking which instance is active.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "switch_instance"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Change the agent harness and/or the default model for every skill. A harness switch also moves the model to that harness's default when the current one does not fit. Commits aeon.yml.",
+      "inferred_capability_category": "configuration-change",
+      "input_schema": {
+        "properties": {
+          "harness": {
+            "description": "Harness id from read_instance_settings",
+            "maxLength": 40,
+            "type": "string"
+          },
+          "model": {
+            "description": "Model id from read_instance_settings, for the (new) harness",
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "name": "noesis-aeon__update_instance_settings",
+      "output_schema": null,
+      "risk_classification": "medium",
+      "risk_rationale": "readOnlyHint=false, idempotentHint=true; commits aeon.yml to change the agent harness and/or default model for every skill on the instance. A harness switch changes which runtime executes every future skill run.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "update_instance_settings"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Turn a skill on or off, change its schedule (5-field cron in UTC, or workflow_dispatch for manual only) or its default input. Commits aeon.yml to the user's repo.",
+      "inferred_capability_category": "configuration-change",
+      "input_schema": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "model": {
+            "description": "Model for this skill only, from read_instance_settings; empty uses the instance default",
+            "maxLength": 100,
+            "type": "string"
+          },
+          "schedule": {
+            "description": "e.g. \"0 8 * * *\" (08:00 UTC daily) or \"workflow_dispatch\"",
+            "maxLength": 100,
+            "type": "string"
+          },
+          "skill": {
+            "description": "Skill name, as listed by list_skills",
+            "enum": [
+              "action-converter",
+              "aeon-doctor",
+              "aeon-update",
+              "anatomy",
+              "arc-studio",
+              "article",
+              "auto-merge",
+              "auto-workflow",
+              "autoresearch",
+              "base-mcp",
+              "bd-radar",
+              "changelog",
+              "competitor-monitor",
+              "compute-resell",
+              "cortx-reliability",
+              "create-prove",
+              "create-skill",
+              "defi-overview",
+              "deploy-prototype",
+              "deploy-uni-hook",
+              "digest",
+              "distribute-tokens",
+              "executor-mcp",
+              "feature",
+              "feedback-builder",
+              "fetch-tweets",
+              "finance-district-mcp",
+              "fleet-control",
+              "fork-fleet",
+              "github-monitor",
+              "github-trending",
+              "glim-mcp",
+              "heartbeat",
+              "higgsfield",
+              "hunter-22",
+              "idea-forge",
+              "idea-pipeline",
+              "inbox-triage",
+              "install-skill",
+              "investigation-report",
+              "last30",
+              "memory-flush",
+              "mention-radar",
+              "miroshark-matchday",
+              "monitor-polymarket",
+              "narrative-convergence",
+              "narrative-tracker",
+              "onchain-monitor",
+              "operator-scorecard",
+              "pack-submit",
+              "picks-tracker",
+              "pm-manipulation",
+              "posthog-errors",
+              "pr-review",
+              "pr-triage",
+              "price-alert",
+              "remotion",
+              "reply-maker",
+              "rightstack",
+              "robinhood-mcp",
+              "sc-audit",
+              "schedule-ads",
+              "search-skill",
+              "self-improve",
+              "send-email",
+              "seo-audit",
+              "shiplog",
+              "skill-article",
+              "skill-health",
+              "skill-repair",
+              "soul-builder",
+              "spawn-instance",
+              "spend-watch",
+              "strategy-builder",
+              "submit-hook",
+              "taskmarket-delegate",
+              "token-movers",
+              "token-pick",
+              "tx-explain",
+              "unlock-monitor",
+              "video-script",
+              "vuln-scanner",
+              "vuln-tracker",
+              "weekly-aeoncard",
+              "write-tweet",
+              "you-web-search"
+            ],
+            "type": "string"
+          },
+          "var": {
+            "description": "Default input for scheduled runs",
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "skill"
+        ],
+        "type": "object"
+      },
+      "name": "noesis-aeon__update_skill",
+      "output_schema": null,
+      "risk_classification": "medium",
+      "risk_rationale": "readOnlyHint=false, idempotentHint=true; commits aeon.yml to the user's GitHub repo to toggle a skill on/off, change its cron schedule, or its default input. Reversible via git history, but a mis-scheduled skill could run unattended with destructive downstream effects depending on which skill.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "update_skill"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Replace soul/SOUL.md (file: soul) or soul/STYLE.md (file: style) with new content (the whole file; read_soul first). Commits to the user's repo.",
+      "inferred_capability_category": "destructive",
+      "input_schema": {
+        "properties": {
+          "content": {
+            "description": "The full new file",
+            "maxLength": 60000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "file": {
+            "enum": [
+              "soul",
+              "style"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "file",
+          "content"
+        ],
+        "type": "object"
+      },
+      "name": "noesis-aeon__update_soul",
+      "output_schema": null,
+      "risk_classification": "high",
+      "risk_rationale": "Upstream itself sets destructiveHint=true. Description confirms a full-file REPLACE of SOUL.md or STYLE.md (the agent's identity/voice), not a merge -- the caller's own admission of a destructive, whole-file overwrite is the strongest classification evidence available.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "update_soul"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "description": "Replace STRATEGY.md with new content (the whole file; read_strategy first to keep what should stay). Commits to the user's repo.",
+      "inferred_capability_category": "destructive",
+      "input_schema": {
+        "properties": {
+          "content": {
+            "description": "The full new STRATEGY.md",
+            "maxLength": 60000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "type": "object"
+      },
+      "name": "noesis-aeon__update_strategy",
+      "output_schema": null,
+      "risk_classification": "high",
+      "risk_rationale": "Upstream itself sets destructiveHint=true. Description confirms a full-file REPLACE of STRATEGY.md (the agent's operating directive), not a merge.",
+      "source_server": "noesis-aeon",
+      "upstream_tool_name": "update_strategy"
+    }
+  ]
+}

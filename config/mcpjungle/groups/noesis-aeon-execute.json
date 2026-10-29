@@ -1,0 +1,8 @@
+{
+  "name": "noesis-aeon-execute",
+  "description": "Dispatch execution of any skill registered on the Aeon instance, or install a third-party community skill pack via a security-scanned pull request.",
+  "included_tools": [
+    "noesis-aeon__install_pack",
+    "noesis-aeon__run_skill"
+  ]
+}

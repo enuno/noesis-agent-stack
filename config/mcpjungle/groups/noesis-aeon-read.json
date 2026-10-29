@@ -1,0 +1,24 @@
+{
+  "name": "noesis-aeon-read",
+  "description": "Read the Aeon agent instance's state: runs, skills, packs, memory, settings, strategy/soul content, setup status, and submit one-way feedback to the Aeon vendor team.",
+  "included_tools": [
+    "noesis-aeon__get_run",
+    "noesis-aeon__list_instances",
+    "noesis-aeon__list_keys",
+    "noesis-aeon__list_packs",
+    "noesis-aeon__list_runs",
+    "noesis-aeon__list_skills",
+    "noesis-aeon__open_runs",
+    "noesis-aeon__read_editable",
+    "noesis-aeon__read_instance_settings",
+    "noesis-aeon__read_memory",
+    "noesis-aeon__read_output",
+    "noesis-aeon__read_soul",
+    "noesis-aeon__read_strategy",
+    "noesis-aeon__search_memory",
+    "noesis-aeon__search_mentions",
+    "noesis-aeon__send_feedback",
+    "noesis-aeon__settings.read",
+    "noesis-aeon__setup_status"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "cloudflare-browser-render",
+  "description": "Fetch and render a single caller-chosen URL through Cloudflare's remote Browser Rendering service: HTML, Markdown, JSON (AI-extracted), links, screenshot or PDF.",
+  "included_tools": [
+    "cloudflare-browser__get_url_html_content",
+    "cloudflare-browser__get_url_json",
+    "cloudflare-browser__get_url_links",
+    "cloudflare-browser__get_url_markdown",
+    "cloudflare-browser__get_url_pdf",
+    "cloudflare-browser__get_url_screenshot",
+    "cloudflare-browser__get_url_snapshot",
+    "cloudflare-browser__scrape_url_elements"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "cloudflare-browser-crawl-and-sessions",
+  "description": "Start, cancel and poll asynchronous multi-page website crawls, and list/kill active remote browser sessions on Cloudflare's Browser Rendering service.",
+  "included_tools": [
+    "cloudflare-browser__cancel_crawl",
+    "cloudflare-browser__get_crawl_result",
+    "cloudflare-browser__kill_browser_session",
+    "cloudflare-browser__list_browser_sessions",
+    "cloudflare-browser__start_crawl"
+  ]
+}

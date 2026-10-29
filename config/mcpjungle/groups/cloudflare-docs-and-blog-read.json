@@ -1,0 +1,16 @@
+{
+  "name": "cloudflare-docs-and-blog-read",
+  "description": "Search Cloudflare's developer docs, blog, Agents SDK reference and Pages migration guides. Read-only by construction.",
+  "included_tools": [
+    "cloudflare-agents-sdk__search-agent-docs",
+    "cloudflare-blog__get_post",
+    "cloudflare-blog__list_posts",
+    "cloudflare-blog__list_tags",
+    "cloudflare-blog__search_posts",
+    "cloudflare-docs__migrate_pages_to_workers_guide",
+    "cloudflare-docs__search_cloudflare_documentation",
+    "cloudflare__docs",
+    "cloudflare__search",
+    "cloudflare__whoami"
+  ]
+}

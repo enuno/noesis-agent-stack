@@ -1,0 +1,288 @@
+{
+  "group_recommendations": [
+    {
+      "capability_cluster": "twilio-documentation-and-api-reference",
+      "member_tool_names": [
+        "twilio-docs__twilio__search",
+        "twilio-docs__twilio__retrieve"
+      ],
+      "rationale": "Both tools form a read-only search-then-retrieve pair over Twilio/SendGrid/Segment documentation and public API operation metadata; neither tool calls a live Twilio API or sends any message, so they share identical low-risk, read-only characteristics and are always used together (retrieve consumes ids returned by search).",
+      "suggested_risk_level": "low"
+    },
+    {
+      "capability_cluster": "wolframalpha-knowledge-query",
+      "member_tool_names": [
+        "wolframalpha__WolframAlpha",
+        "wolframalpha__WolframContext"
+      ],
+      "rationale": "Both tools are simple single-field, read-only natural-language queries into Wolfram's computational knowledge base (one direct query, one semantic-search context lookup), with no code execution and openWorldHint=false, making them low-risk, search/calculator-shaped tools.",
+      "suggested_risk_level": "low"
+    },
+    {
+      "capability_cluster": "wolfram-code-execution",
+      "member_tool_names": [
+        "wolframalpha__WolframLanguageEvaluator"
+      ],
+      "rationale": "Isolated into its own cluster because it is the only tool among the five that evaluates arbitrary code in a live kernel and is flagged openWorldHint=true, giving it a broader and qualitatively different capability surface than the fixed-field query tools even though it remains read-only and non-destructive per upstream annotations.",
+      "suggested_risk_level": "medium"
+    }
+  ],
+  "tools": [
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Search Twilio documentation and API operations by natural language query. Use source=\"docs\" for conceptual guides and setup questions, source=\"api\" for finding specific API endpoints and operations, or source=\"all\" (default) when unsure. Returns ranked documentation snippets and/or API operation summaries. Use twilio__retrieve with an id from API results to get full parameter schemas.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "limit": {
+            "default": 5,
+            "description": "Maximum number of results to return. Default 5, max 10. Increase only when you need broader coverage.",
+            "maximum": 10,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "product": {
+            "description": "Optional. Restrict API results to a specific Twilio product. Only applies when source=\"api\" or source=\"all\". Use \"api_v2010\" for the core Twilio communications REST API (calls, SMS/MMS, phone numbers, conferences, recordings).",
+            "enum": [
+              "accounts",
+              "api_v2010",
+              "bulkexports",
+              "chat",
+              "content",
+              "conversations",
+              "events",
+              "flex",
+              "flex-api",
+              "frontline",
+              "iam",
+              "iam_organizations",
+              "iam_scim",
+              "insights",
+              "intelligence",
+              "ip_messaging",
+              "knowledge",
+              "lookups",
+              "marketplace",
+              "memory",
+              "messaging",
+              "monitor",
+              "notify",
+              "numbers",
+              "oauth",
+              "preview",
+              "pricing",
+              "proxy",
+              "routes",
+              "sendgrid",
+              "serverless",
+              "studio",
+              "supersim",
+              "sync",
+              "taskrouter",
+              "trunking",
+              "trusthub",
+              "tsg",
+              "verify",
+              "video",
+              "voice",
+              "wireless"
+            ],
+            "type": "string"
+          },
+          "query": {
+            "description": "Natural language question or description of what you want to do. Be specific \u2014 'how to set up ConversationRelay' or 'send an SMS message' work better than 'relay' or 'messaging'.",
+            "maxLength": 200,
+            "minLength": 3,
+            "type": "string"
+          },
+          "source": {
+            "default": "all",
+            "description": "Use \"docs\" for conceptual guides, tutorials, and setup questions. Use \"api\" for finding specific API endpoints, operations, and parameters \u2014 preferred for coding tasks. Use \"all\" when unsure (default). \"all\" fires both searches in parallel and interleaves results by rank.",
+            "enum": [
+              "docs",
+              "api",
+              "all"
+            ],
+            "type": "string"
+          },
+          "topics": {
+            "description": "Optional. Restrict doc search to specific sources. Omit to search twilio_docs (default) when you don't know. Only applies when source=\"docs\" or source=\"all\".\n- twilio_docs: API references, error codes, TwiML, SDK docs, tutorials (twilio.com/docs)\n- support_docs: troubleshooting and account support (help.twilio.com)\n- twilio_com: Twilio marketing and product pages\n- twilio_customers: customer stories and case studies\n- twilio_org: Twilio.org social impact content\n- sendgrid: SendGrid product documentation\n- sendgrid_support: SendGrid support articles\n- segment: Segment CDP documentation",
+            "items": {
+              "enum": [
+                "twilio_docs",
+                "support_docs",
+                "twilio_com",
+                "twilio_customers",
+                "twilio_org",
+                "sendgrid",
+                "sendgrid_support",
+                "segment"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "type": "array"
+          },
+          "version": {
+            "description": "Optional. Omit for latest version only, \"any\" for any version, or a specific version e.g. \"v2\". Requires product to also be set when pinning to a specific version.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "twilio-docs__twilio__search",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Upstream advertises readOnlyHint=true and destructiveHint=false. The tool only performs a natural-language search over Twilio/SendGrid/Segment documentation and public API operation metadata and returns ranked snippets; its input schema contains only query, filter and pagination-style fields (query, source, product, topics, version, limit), with no parameters that write, send, or otherwise mutate any resource.",
+      "source_server": "twilio-docs",
+      "upstream_tool_name": "twilio__search"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "readOnlyHint": true
+      },
+      "description": "Fetch full parameter schemas and response details for one or more Twilio API operations or documentation articles. Use this after twilio__search to get the complete request body fields, path/query parameters, response schema, and curator guidance needed to actually call the API. Pass the id values exactly as returned by twilio__search.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "fields": {
+            "description": "Optional. Limit which top-level fields are returned for each result to reduce payload size. Omit to receive the full spec. For API operations, 'request_body' returns request parameters and body schema; 'response_fields' returns the response schema. Identity fields (api, method, path, operation_id) are always included. All other fields \u2014 including intent, summary, description, product, version, and response_schema \u2014 are excluded when fields is set. Use twilio__search first to get intent and summary; only use fields here when you need the raw parameter or response schema.",
+            "items": {
+              "enum": [
+                "request_body",
+                "response_fields"
+              ],
+              "type": "string"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "type": "array"
+          },
+          "ids": {
+            "description": "One or more id values (format: 'op::{api}::{operation_id}') copied verbatim from twilio__search results \u2014 do not construct or guess IDs. Only call this tool after calling twilio__search and receiving results. Pass multiple ids to batch-fetch related operations in one call.",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "type": "object"
+      },
+      "name": "twilio-docs__twilio__retrieve",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Upstream advertises readOnlyHint=true and destructiveHint=false. The tool only fetches static documentation/schema detail for ids already returned by twilio__search (e.g. 'op::{api}::{operation_id}'); it does not itself call any Twilio API operation, send any message, or alter any resource, so it carries no external-communication or mutating effect of its own.",
+      "source_server": "twilio-docs",
+      "upstream_tool_name": "twilio__retrieve"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": "Wolfram|Alpha"
+      },
+      "description": "Use natural language queries with Wolfram|Alpha to get up-to-date computational results about entities in chemistry, physics, geography, history, art, astronomy, and more.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "query": {
+            "description": "Wolfram Alpha query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "wolframalpha__WolframAlpha",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Upstream advertises readOnlyHint=true, destructiveHint=false and openWorldHint=false. This is a single-field natural-language query into Wolfram|Alpha's computational knowledge engine, functionally equivalent to a search/calculator lookup; the description and schema expose no write, send, or external-account effect.",
+      "source_server": "wolframalpha",
+      "upstream_tool_name": "WolframAlpha"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": "Wolfram Context"
+      },
+      "description": "Uses semantic search to retrieve any relevant information from Wolfram.\nAlways use this tool at the start of new conversations or if the topic changes to ensure you have up-to-date relevant information.\nThis uses semantic search, so the context argument should be written in natural language (not a search query) and contain as much detail as possible (up to 250 words).",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "context": {
+            "description": "A detailed summary of what the user is trying to achieve or learn about.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "context"
+        ],
+        "type": "object"
+      },
+      "name": "wolframalpha__WolframContext",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Upstream advertises readOnlyHint=true, destructiveHint=false and openWorldHint=false. The tool performs a semantic-search retrieval over Wolfram's own information store given a free-text context description; it has a single input field and no parameters capable of writing, sending, or altering any resource.",
+      "source_server": "wolframalpha",
+      "upstream_tool_name": "WolframContext"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": true,
+        "title": "Wolfram Language Evaluator"
+      },
+      "description": "Evaluates Wolfram Language code for the user in a Wolfram Language kernel.\nIf a formatted result is provided as a markdown link, use that in your response instead of typing out the output.\nParse natural language input with `\\[FreeformPrompt][\"query\"]`, which is analogous to ctrl+= input in notebooks.\nNatural language input is parsed before evaluation, so it works like macro expansion.\nYou should ALWAYS use this natural language input to obtain things like `Quantity`, `DateObject`, `Entity`, etc.\nThis is a stateless kernel, so you cannot reuse definitions from previous evaluations.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "code": {
+            "description": "The Wolfram Language code to evaluate.",
+            "type": "string"
+          },
+          "timeConstraint": {
+            "description": "The time constraint for the evaluation (default is 60 seconds).",
+            "type": "number"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "name": "wolframalpha__WolframLanguageEvaluator",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Upstream sets readOnlyHint=true, and the description confirms a stateless Wolfram Language kernel with no file, network or account access across calls -- a compute sandbox, not an infrastructure executor. Unlike cloudflare__execute (full CRUD against a real cloud API) or framer__exec (mutates a real SaaS project), nothing this tool runs can reach outside its own ephemeral evaluation.",
+      "source_server": "wolframalpha",
+      "upstream_tool_name": "WolframLanguageEvaluator"
+    }
+  ]
+}

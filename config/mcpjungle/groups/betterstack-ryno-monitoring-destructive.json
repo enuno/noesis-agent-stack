@@ -1,0 +1,26 @@
+{
+  "name": "betterstack-ryno-monitoring-destructive",
+  "description": "Irreversible or access-granting changes to the 'ryno' BetterStack tenant: delete monitors/dashboards/charts/webhooks/heartbeats/releases, remove catalog relations and records, change team member roles, invite or remove team members, and mint live ClickHouse data-access credentials. Several of these can silence alerting (remove_monitor, remove_heartbeat) or grant account access (change_team_member_role, create_cloud_connection).",
+  "included_tools": [
+    "betterstack-ryno__add_escalation_policy_step_member",
+    "betterstack-ryno__change_team_member_role",
+    "betterstack-ryno__create_cloud_connection",
+    "betterstack-ryno__delete_catalog_records",
+    "betterstack-ryno__delete_chart_alert",
+    "betterstack-ryno__delete_metric_expression",
+    "betterstack-ryno__invite_team_member",
+    "betterstack-ryno__remove_catalog_relation",
+    "betterstack-ryno__remove_chart",
+    "betterstack-ryno__remove_dashboard",
+    "betterstack-ryno__remove_dashboard_section",
+    "betterstack-ryno__remove_dashboard_variable",
+    "betterstack-ryno__remove_escalation_policy_step_member",
+    "betterstack-ryno__remove_exploration_variable",
+    "betterstack-ryno__remove_heartbeat",
+    "betterstack-ryno__remove_monitor",
+    "betterstack-ryno__remove_outgoing_webhook",
+    "betterstack-ryno__remove_release",
+    "betterstack-ryno__remove_status_page_section",
+    "betterstack-ryno__remove_team_member"
+  ]
+}

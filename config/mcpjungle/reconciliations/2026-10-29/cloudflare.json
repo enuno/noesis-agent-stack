@@ -1,0 +1,811 @@
+{
+  "group_recommendations": [
+    {
+      "capability_cluster": "cloudflare-docs-and-blog-search-read",
+      "member_tool_names": [
+        "cloudflare__docs",
+        "cloudflare__search",
+        "cloudflare-agents-sdk__search-agent-docs",
+        "cloudflare-blog__get_post",
+        "cloudflare-blog__list_posts",
+        "cloudflare-blog__list_tags",
+        "cloudflare-blog__search_posts",
+        "cloudflare-docs__migrate_pages_to_workers_guide",
+        "cloudflare-docs__search_cloudflare_documentation"
+      ],
+      "rationale": "All of these tools, across the main cloudflare server, the agents-sdk server, the blog server, and the docs server, do nothing more than search or fetch static, public documentation or blog content by query/slug/tag. None reaches a live account resource or a caller-chosen live web target, so they share a single low-risk read-only profile despite living on different servers.",
+      "suggested_risk_level": "low"
+    },
+    {
+      "capability_cluster": "cloudflare-account-and-job-status-read",
+      "member_tool_names": [
+        "cloudflare__whoami",
+        "cloudflare-browser__get_crawl_result",
+        "cloudflare-browser__list_browser_sessions"
+      ],
+      "rationale": "These are pure status/identity lookups -- who the session is authenticated as, the result of an already-started crawl job, and the list of active sessions -- with no navigation, mutation, or external side effect, matching the pure read/inspect exception called out for browser-surface tools.",
+      "suggested_risk_level": "low"
+    },
+    {
+      "capability_cluster": "cloudflare-browser-navigate-and-render",
+      "member_tool_names": [
+        "cloudflare-browser__get_url_html_content",
+        "cloudflare-browser__get_url_json",
+        "cloudflare-browser__get_url_links",
+        "cloudflare-browser__get_url_markdown",
+        "cloudflare-browser__get_url_pdf",
+        "cloudflare-browser__get_url_screenshot",
+        "cloudflare-browser__get_url_snapshot",
+        "cloudflare-browser__scrape_url_elements"
+      ],
+      "rationale": "Each tool drives a live remote browser to navigate to and render a caller-supplied arbitrary URL before extracting content (HTML, JSON, links, Markdown, PDF, screenshot, snapshot, or CSS-selector scrape). The caller chooses the target, which bypasses any allowlist by construction, so this cluster must not be merged into a read-only documentation group even though the data returned is non-mutating.",
+      "suggested_risk_level": "medium"
+    },
+    {
+      "capability_cluster": "cloudflare-browser-autonomous-crawl",
+      "member_tool_names": [
+        "cloudflare-browser__start_crawl"
+      ],
+      "rationale": "This tool combines the caller-chosen-target navigation risk of the browser surface with persistent, autonomous multi-page execution (depth/limit up to Number.MAX_SAFE_INTEGER, runs asynchronously after the call returns), warranting a higher risk tier than the single-page render tools.",
+      "suggested_risk_level": "high"
+    },
+    {
+      "capability_cluster": "cloudflare-browser-session-and-job-control",
+      "member_tool_names": [
+        "cloudflare-browser__cancel_crawl",
+        "cloudflare-browser__kill_browser_session"
+      ],
+      "rationale": "Both tools mutate the state of existing browser-surface infrastructure (stopping a crawl job, terminating a session) by ID rather than navigating to new caller-chosen content; they are account-mutating but bounded to a targeted resource, distinct from both the pure-read status tools and the navigate-to-arbitrary-URL tools.",
+      "suggested_risk_level": "medium"
+    },
+    {
+      "capability_cluster": "cloudflare-api-arbitrary-code-execution",
+      "member_tool_names": [
+        "cloudflare__execute"
+      ],
+      "rationale": "This tool runs arbitrary caller-authored JavaScript with unconstrained GET/POST/PUT/PATCH/DELETE access to the entire Cloudflare REST API for the account, explicitly flagged destructive and open-world by upstream. It is the single highest-risk tool among all five servers and must stand in its own group, never merged with any read-only or bounded-mutation cluster.",
+      "suggested_risk_level": "high"
+    }
+  ],
+  "tools": [
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false,
+        "title": "Cloudflare Docs Search"
+      },
+      "description": "Search the Cloudflare documentation.\n\n\t\tThis tool should be used to answer any question about Cloudflare products or features, including:\n\t\t- Workers, Pages, R2, Images, Stream, D1, Durable Objects, KV, Workflows, Hyperdrive, Queues\n\t\t- AI Search, Workers AI, Vectorize, AI Gateway, Browser Rendering\n\t\t- Zero Trust, Access, Tunnel, Gateway, Browser Isolation, WARP, DDOS, Magic Transit, Magic WAN\n\t\t- CDN, Cache, DNS, Zaraz, Argo, Rulesets, Terraform, Account and Billing\n\n\t\tResults are returned as semantically similar chunks to the query.\n\t\t",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "query": {
+            "description": "Cloudflare documentation search query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare__docs",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Upstream sets readOnlyHint to false, but the description and input schema describe a pure semantic-search query against static Cloudflare documentation with no path to create, update, or delete any resource, so the asserted hint appears to be an unset default rather than an accurate capability signal. The tool only accepts a free-text query and returns matching documentation chunks.",
+      "source_server": "cloudflare",
+      "upstream_tool_name": "docs"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false,
+        "title": "Cloudflare API Code Executor"
+      },
+      "description": "Execute JavaScript code that can read, create, update, or delete resources through the Cloudflare API. First use the 'search' tool to find the right endpoints, then write code using the cloudflare.request() function.\n\nAvailable in your code:\n\ninterface CloudflareRequestOptions {\n  method: \"GET\" | \"POST\" | \"PUT\" | \"PATCH\" | \"DELETE\";\n  path: string;\n  query?: Record<string, string | number | boolean | undefined>;\n  // Objects and arrays are sent as JSON. Bytes (Uint8Array, ArrayBuffer), Blob, FormData,\n  // URLSearchParams, streams, and strings with a non-JSON contentType are sent as they are. A string\n  // with a JSON contentType, or none, is sent as it is when it is already JSON, else as a JSON string.\n  body?: unknown;\n  // Content-Type header. Defaults to application/json for JSON bodies. Leave it unset for FormData,\n  // whose multipart boundary fetch adds.\n  contentType?: string;\n}\n\ninterface CloudflareResponse<T = unknown> {\n  success: boolean;\n  status: number;\n  // A JSON response's result. For any other response, its text, or a Uint8Array for binary content\n  // (images, PDFs, archives, and anything else that isn't valid UTF-8). Bytes in the value your code\n  // returns appear as { base64, byteLength }.\n  result: T;\n  errors: Array<{ code: number; message: string }>;\n  messages: Array<{ code: number; message: string }>;\n  result_info?: {\n    page: number;\n    per_page: number;\n    total_pages: number;\n    count: number;\n    total_count: number;\n  };\n}\n\ndeclare const cloudflare: {\n  request<T = unknown>(options: CloudflareRequestOptions): Promise<CloudflareResponse<T>>;\n};\n\ndeclare const accountId: string;\n\n// accountId is the account_id tool argument when passed; otherwise the session's account when it is authorized for exactly one. Reading it when neither applies throws an error.\n\nWhen the session has access to multiple accounts, pass account_id. Call GET /accounts to discover availab... [truncated]",
+      "inferred_capability_category": "broad-capability",
+      "input_schema": {
+        "properties": {
+          "account_id": {
+            "description": "Cloudflare account ID to run against. Optional when the session is authorized for exactly one account, and for account-independent calls such as GET /accounts.",
+            "type": "string"
+          },
+          "code": {
+            "description": "JavaScript async arrow function to execute",
+            "type": "string"
+          },
+          "truncate": {
+            "description": "Cap the result at ~6,000 tokens. Set to false only when the result goes straight to a file or pipe, not into the conversation: without the cap, a broad query can return megabytes.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare__execute",
+      "output_schema": null,
+      "risk_classification": "review-required",
+      "risk_rationale": "Upstream explicitly sets destructiveHint and openWorldHint to true, and the description confirms the tool runs arbitrary caller-authored JavaScript against the full Cloudflare REST API with GET/POST/PUT/PATCH/DELETE access scoped to any discoverable endpoint for the account. There is no allowlist on which endpoints or HTTP methods the code may call, making this an unconstrained, account-wide read/write/delete surface. Classified review-required (not merely high) to match the house convention for generic code-execution dispatchers against a real external account (same disposition as framer__exec).",
+      "source_server": "cloudflare",
+      "upstream_tool_name": "execute"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false,
+        "title": "Cloudflare API Spec Search"
+      },
+      "description": "Search the Cloudflare OpenAPI spec. All $refs are pre-resolved inline. A 2xx response schema describes `result` of what cloudflare.request() returns; a paginated list's `result_info` schema is in the response's `x-result-info`.\n\nProducts: cloudforce-one, access, workers, magic, dlp, email-security, realtime, email, devices, ai-gateway, intel, data-security, gateway, stream, settings, brand-protection, ai-search, builds, security-center, browser-rendering, addressing, dex, images, logpush, api_gateway, cws, load_balancers, firewall, rulesets, vectorize... (172 total)\n\nTypes:\n\ninterface OperationInfo {\n  summary?: string;\n  \"x-api-token-group\"?: string[]; // API token permissions the endpoint accepts (any one); OAuth scopes have the same names\n  description?: string;\n  tags?: string[];\n  parameters?: Array<{ name: string; in: string; required?: boolean; schema?: unknown; description?: string }>;\n  requestBody?: { required?: boolean; content?: Record<string, { schema?: unknown }> };\n  // A 2xx schema describes `result` of what cloudflare.request() returns; a paginated list's result_info schema is in x-result-info\n  responses?: Record<string, { description?: string; content?: Record<string, { schema?: unknown }>; \"x-result-info\"?: unknown }>;\n}\n\ninterface PathItem {\n  get?: OperationInfo;\n  post?: OperationInfo;\n  put?: OperationInfo;\n  patch?: OperationInfo;\n  delete?: OperationInfo;\n}\n\ndeclare const spec: {\n  paths: Record<string, PathItem>;\n};\n\n\nExamples:\n\n// Find endpoints by product\nasync () => {\n  const results = [];\n  for (const [path, methods] of Object.entries(spec.paths)) {\n    for (const [method, op] of Object.entries(methods)) {\n      if (op.tags?.some(t => t.toLowerCase() === 'workers')) {\n        results.push({ method: method.toUpperCase(), path, summary: op.summary });\n      }\n    }\n  }\n  return results;\n}\n\n// Get endpoint with requestBody schema (refs are resolved)\nasync () => {\n  con... [truncated]",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "code": {
+            "description": "JavaScript async arrow function to search the OpenAPI spec",
+            "type": "string"
+          },
+          "truncate": {
+            "description": "Cap the result at ~6,000 tokens. Set to false only when the result goes straight to a file or pipe, not into the conversation: without the cap, a broad query can return megabytes.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare__search",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Although readOnlyHint is false, the description and examples show the tool only runs sandboxed JavaScript over a static, pre-resolved OpenAPI specification object (`spec.paths`) to locate endpoint documentation -- it never calls cloudflare.request() or reaches a live account resource, so its effective capability is a documentation search.",
+      "source_server": "cloudflare",
+      "upstream_tool_name": "search"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "destructiveHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": "Current Cloudflare Identity"
+      },
+      "description": "Return the Cloudflare user or account that this connection is authenticated as. Takes no arguments. The id is stable across token refresh, reconnection and permission changes.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "cloudflare__whoami",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Upstream advertises readOnlyHint=true and destructiveHint=false; the tool takes no arguments and only returns the identity of the already-authenticated connection (id, name, email), exposing no mutation or external side effect.",
+      "source_server": "cloudflare",
+      "upstream_tool_name": "whoami"
+    },
+    {
+      "_meta": null,
+      "annotations": {},
+      "description": "Token efficient search of the Cloudflare Agents SDK documentation",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "k": {
+            "default": 5,
+            "description": "number of results to return",
+            "type": "number"
+          },
+          "query": {
+            "description": "query string to search for eg. 'agent hibernate', 'schedule tasks'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare-agents-sdk__search-agent-docs",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Upstream publishes no annotation hints (empty object), but the description and schema show a bounded documentation search over the static Cloudflare Agents SDK docs, taking only a query string and a result-count limit, with no account or resource access of any kind.",
+      "source_server": "cloudflare-agents-sdk",
+      "upstream_tool_name": "search-agent-docs"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "readOnlyHint": true,
+        "title": "Get blog post"
+      },
+      "description": "Get a single Cloudflare Blog post by slug, including its full HTML content.\n\nUse the slug from a list_posts or search_posts result.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "slug": {
+            "description": "The post slug, e.g. \"workers-python-support\"",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare-blog__get_post",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Upstream advertises readOnlyHint=true, and the description and schema confirm a lookup of a single public blog post by slug, returning static published content with no mutation path.",
+      "source_server": "cloudflare-blog",
+      "upstream_tool_name": "get_post"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "readOnlyHint": true,
+        "title": "List blog posts"
+      },
+      "description": "List Cloudflare Blog posts in reverse chronological order.\n\nOptionally filter by tag. Use the returned nextCursor to paginate through results.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "cursor": {
+            "description": "Pagination cursor from a previous list_posts response",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Number of posts to return (1\u201350, default 20)",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "tag": {
+            "description": "Filter by tag slug, e.g. \"workers\" or \"zero-trust\"",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "name": "cloudflare-blog__list_posts",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Upstream advertises readOnlyHint=true, and the description and schema confirm a paginated listing of public blog posts with only cursor/limit/tag filters, exposing no write capability.",
+      "source_server": "cloudflare-blog",
+      "upstream_tool_name": "list_posts"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "readOnlyHint": true,
+        "title": "List blog tags"
+      },
+      "description": "List all tags used on the Cloudflare Blog.\n\nUse the returned slugs to filter list_posts by topic, e.g. \"workers\", \"zero-trust\", \"radar\".",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "cloudflare-blog__list_tags",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Upstream advertises readOnlyHint=true; the tool takes no arguments and only enumerates static taxonomy labels used on the public blog, with no mutation path.",
+      "source_server": "cloudflare-blog",
+      "upstream_tool_name": "list_tags"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "readOnlyHint": true,
+        "title": "Search Cloudflare Blog"
+      },
+      "description": "Search the Cloudflare Blog using semantic search.\n\nUse this tool to find blog posts about any Cloudflare topic, product, or technology.\nReturns the most relevant posts with excerpts and URLs.\n\nExamples of good queries:\n- \"Workers KV storage limits\"\n- \"DDoS protection announcements 2024\"\n- \"how Cloudflare uses Rust\"",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "query": {
+            "description": "The search query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare-blog__search_posts",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Upstream advertises readOnlyHint=true, and the description and schema confirm a semantic-search query over public blog content returning excerpts and URLs, with no write capability.",
+      "source_server": "cloudflare-blog",
+      "upstream_tool_name": "search_posts"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "readOnlyHint": true,
+        "title": "Get Pages migration guide"
+      },
+      "description": "ALWAYS read this guide before migrating Pages projects to Workers.",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "cloudflare-docs__migrate_pages_to_workers_guide",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Upstream advertises readOnlyHint=true; the tool takes no arguments and only returns a static migration guide document, with no account or resource access.",
+      "source_server": "cloudflare-docs",
+      "upstream_tool_name": "migrate_pages_to_workers_guide"
+    },
+    {
+      "_meta": null,
+      "annotations": {
+        "readOnlyHint": true,
+        "title": "Search Cloudflare docs"
+      },
+      "description": "Search the Cloudflare documentation.\n\n\t\tThis tool should be used to answer any question about Cloudflare products or features, including:\n\t\t- Workers, Pages, R2, Images, Stream, D1, Durable Objects, KV, Workflows, Hyperdrive, Queues\n\t\t- AI Search, Workers AI, Vectorize, AI Gateway, Browser Run\n\t\t- Zero Trust, Access, Tunnel, Gateway, Browser Isolation, WARP, DDOS, Magic Transit, Magic WAN\n\t\t- CDN, Cache, DNS, Zaraz, Argo, Rulesets, Terraform, Account and Billing\n\n\t\tResults are returned as semantically similar chunks to the query.\n\t\t",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare-docs__search_cloudflare_documentation",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Upstream advertises readOnlyHint=true, and the description and schema confirm a pure semantic-search query over static documentation chunks, with no mutation path.",
+      "source_server": "cloudflare-docs",
+      "upstream_tool_name": "search_cloudflare_documentation"
+    },
+    {
+      "_meta": null,
+      "annotations": {},
+      "description": "Cancel a running crawl job",
+      "inferred_capability_category": "mutating",
+      "input_schema": {
+        "properties": {
+          "job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare-browser__cancel_crawl",
+      "output_schema": null,
+      "risk_classification": "medium",
+      "risk_rationale": "Upstream publishes no annotation hints, but the description shows this tool stops an in-flight asynchronous crawl job identified only by job_id, which changes the state of a running background operation; it does not navigate to caller-chosen content itself, so it is scoped as a job-control mutation rather than browser-automation broad-capability.",
+      "source_server": "cloudflare-browser",
+      "upstream_tool_name": "cancel_crawl"
+    },
+    {
+      "_meta": null,
+      "annotations": {},
+      "description": "Get the status and records of a crawl job started with start_crawl",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {
+          "job_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare-browser__get_crawl_result",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Upstream publishes no annotation hints, but the description and schema show this is a pure status/result lookup for an already-started job by job_id -- it does not initiate any new navigation, render, or fetch, so it qualifies as the pure read/inspect exception called out for browser-surface tools.",
+      "source_server": "cloudflare-browser",
+      "upstream_tool_name": "get_crawl_result"
+    },
+    {
+      "_meta": null,
+      "annotations": {},
+      "description": "Get page HTML content",
+      "inferred_capability_category": "broad-capability",
+      "input_schema": {
+        "properties": {
+          "browser": {
+            "description": "Browser that renders the page. Omit to use the default Chrome browser. Set to \"kitesurf\" to use the Kitesurf browser engine.",
+            "enum": [
+              "kitesurf"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare-browser__get_url_html_content",
+      "output_schema": null,
+      "risk_classification": "medium",
+      "risk_rationale": "Upstream publishes no annotation hints, but the description and schema show the caller supplies an arbitrary target URL and the tool drives a live remote browser to navigate to and render it, which bypasses any allowlist by construction even though the returned output (raw HTML) is itself read-only.",
+      "source_server": "cloudflare-browser",
+      "upstream_tool_name": "get_url_html_content"
+    },
+    {
+      "_meta": null,
+      "annotations": {},
+      "description": "Extract structured JSON from a page using AI. Provide a prompt and/or a response_format JSON schema to guide extraction.",
+      "inferred_capability_category": "broad-capability",
+      "input_schema": {
+        "properties": {
+          "browser": {
+            "description": "Browser that renders the page. Omit to use the default Chrome browser. Set to \"kitesurf\" to use the Kitesurf browser engine.",
+            "enum": [
+              "kitesurf"
+            ],
+            "type": "string"
+          },
+          "prompt": {
+            "description": "Natural-language instruction for what to extract",
+            "type": "string"
+          },
+          "response_format": {
+            "description": "Optional JSON-schema response format to constrain the output",
+            "properties": {
+              "json_schema": {},
+              "type": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare-browser__get_url_json",
+      "output_schema": null,
+      "risk_classification": "medium",
+      "risk_rationale": "Upstream publishes no annotation hints, but the description and schema show the caller supplies an arbitrary target URL that a live remote browser navigates to and renders before AI-driven extraction, bypassing any allowlist by construction.",
+      "source_server": "cloudflare-browser",
+      "upstream_tool_name": "get_url_json"
+    },
+    {
+      "_meta": null,
+      "annotations": {},
+      "description": "Get the list of links on a page",
+      "inferred_capability_category": "broad-capability",
+      "input_schema": {
+        "properties": {
+          "browser": {
+            "description": "Browser that renders the page. Omit to use the default Chrome browser. Set to \"kitesurf\" to use the Kitesurf browser engine.",
+            "enum": [
+              "kitesurf"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string"
+          },
+          "visibleLinksOnly": {
+            "description": "Only return links that are visible in the rendered page",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare-browser__get_url_links",
+      "output_schema": null,
+      "risk_classification": "medium",
+      "risk_rationale": "Upstream publishes no annotation hints, but the description and schema show the caller supplies an arbitrary target URL that a live remote browser navigates to and renders before link extraction, bypassing any allowlist by construction.",
+      "source_server": "cloudflare-browser",
+      "upstream_tool_name": "get_url_links"
+    },
+    {
+      "_meta": null,
+      "annotations": {},
+      "description": "Get page converted into Markdown",
+      "inferred_capability_category": "broad-capability",
+      "input_schema": {
+        "properties": {
+          "browser": {
+            "description": "Browser that renders the page. Omit to use the default Chrome browser. Set to \"kitesurf\" to use the Kitesurf browser engine.",
+            "enum": [
+              "kitesurf"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare-browser__get_url_markdown",
+      "output_schema": null,
+      "risk_classification": "medium",
+      "risk_rationale": "Upstream publishes no annotation hints, but the description and schema show the caller supplies an arbitrary target URL that a live remote browser navigates to and renders before Markdown conversion, bypassing any allowlist by construction.",
+      "source_server": "cloudflare-browser",
+      "upstream_tool_name": "get_url_markdown"
+    },
+    {
+      "_meta": null,
+      "annotations": {},
+      "description": "Render a page to PDF",
+      "inferred_capability_category": "broad-capability",
+      "input_schema": {
+        "properties": {
+          "browser": {
+            "description": "Browser that renders the page. Omit to use the default Chrome browser. Set to \"kitesurf\" to use the Kitesurf browser engine.",
+            "enum": [
+              "kitesurf"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare-browser__get_url_pdf",
+      "output_schema": null,
+      "risk_classification": "medium",
+      "risk_rationale": "Upstream publishes no annotation hints, but the description and schema show the caller supplies an arbitrary target URL that a live remote browser navigates to and renders to produce a PDF, bypassing any allowlist by construction.",
+      "source_server": "cloudflare-browser",
+      "upstream_tool_name": "get_url_pdf"
+    },
+    {
+      "_meta": null,
+      "annotations": {},
+      "description": "Get page screenshot",
+      "inferred_capability_category": "broad-capability",
+      "input_schema": {
+        "properties": {
+          "browser": {
+            "description": "Browser that renders the page. Omit to use the default Chrome browser. Set to \"kitesurf\" to use the Kitesurf browser engine.",
+            "enum": [
+              "kitesurf"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string"
+          },
+          "viewport": {
+            "properties": {
+              "height": {
+                "default": 600,
+                "type": "number"
+              },
+              "width": {
+                "default": 800,
+                "type": "number"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare-browser__get_url_screenshot",
+      "output_schema": null,
+      "risk_classification": "medium",
+      "risk_rationale": "Upstream publishes no annotation hints, but the description and schema show the caller supplies an arbitrary target URL and viewport that a live remote browser navigates to and screenshots, bypassing any allowlist by construction -- the house rule explicitly flags screenshot-capable navigation tools.",
+      "source_server": "cloudflare-browser",
+      "upstream_tool_name": "get_url_screenshot"
+    },
+    {
+      "_meta": null,
+      "annotations": {},
+      "description": "Get page HTML content and a screenshot in a single call",
+      "inferred_capability_category": "broad-capability",
+      "input_schema": {
+        "properties": {
+          "browser": {
+            "description": "Browser that renders the page. Omit to use the default Chrome browser. Set to \"kitesurf\" to use the Kitesurf browser engine.",
+            "enum": [
+              "kitesurf"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare-browser__get_url_snapshot",
+      "output_schema": null,
+      "risk_classification": "medium",
+      "risk_rationale": "Upstream publishes no annotation hints, but the description and schema show the caller supplies an arbitrary target URL that a live remote browser navigates to, renders, and screenshots in one call, bypassing any allowlist by construction.",
+      "source_server": "cloudflare-browser",
+      "upstream_tool_name": "get_url_snapshot"
+    },
+    {
+      "_meta": null,
+      "annotations": {},
+      "description": "Close (kill) a Browser Run session by its session ID",
+      "inferred_capability_category": "mutating",
+      "input_schema": {
+        "properties": {
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare-browser__kill_browser_session",
+      "output_schema": null,
+      "risk_classification": "medium",
+      "risk_rationale": "Upstream publishes no annotation hints, but the description and schema show the tool forcibly terminates an identified Browser Run session, a destructive-to-state action against account infrastructure rather than a navigation or read operation; impact is bounded to the targeted session.",
+      "source_server": "cloudflare-browser",
+      "upstream_tool_name": "kill_browser_session"
+    },
+    {
+      "_meta": null,
+      "annotations": {},
+      "description": "List active Browser Run sessions for the account",
+      "inferred_capability_category": "read-only",
+      "input_schema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "cloudflare-browser__list_browser_sessions",
+      "output_schema": null,
+      "risk_classification": "low",
+      "risk_rationale": "Upstream publishes no annotation hints, but the tool takes no arguments and the description confirms it is a pure status listing of existing sessions, matching the pure read/inspect exception called out for browser-surface tools.",
+      "source_server": "cloudflare-browser",
+      "upstream_tool_name": "list_browser_sessions"
+    },
+    {
+      "_meta": null,
+      "annotations": {},
+      "description": "Scrape elements from a page by CSS selector",
+      "inferred_capability_category": "broad-capability",
+      "input_schema": {
+        "properties": {
+          "browser": {
+            "description": "Browser that renders the page. Omit to use the default Chrome browser. Set to \"kitesurf\" to use the Kitesurf browser engine.",
+            "enum": [
+              "kitesurf"
+            ],
+            "type": "string"
+          },
+          "elements": {
+            "description": "CSS selectors of the elements to scrape",
+            "items": {
+              "properties": {
+                "selector": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "selector"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "elements"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare-browser__scrape_url_elements",
+      "output_schema": null,
+      "risk_classification": "medium",
+      "risk_rationale": "Upstream publishes no annotation hints, but the description and schema show the caller supplies an arbitrary target URL and CSS selectors that a live remote browser navigates to and scrapes, bypassing any allowlist by construction.",
+      "source_server": "cloudflare-browser",
+      "upstream_tool_name": "scrape_url_elements"
+    },
+    {
+      "_meta": null,
+      "annotations": {},
+      "description": "Start an asynchronous crawl of a website. Returns a job_id \u2014 poll get_crawl_result to retrieve records.",
+      "inferred_capability_category": "broad-capability",
+      "input_schema": {
+        "properties": {
+          "browser": {
+            "description": "Browser that renders the crawled pages. Omit to use the default Chrome browser. Set to \"kitesurf\" to use the Kitesurf browser engine. Requires render to be true.",
+            "enum": [
+              "kitesurf"
+            ],
+            "type": "string"
+          },
+          "depth": {
+            "description": "How many links deep to crawl",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "limit": {
+            "description": "Maximum number of pages to crawl",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "render": {
+            "default": true,
+            "description": "Whether to render pages with a browser (vs. fetching raw HTML)",
+            "type": "boolean"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "name": "cloudflare-browser__start_crawl",
+      "output_schema": null,
+      "risk_classification": "high",
+      "risk_rationale": "Upstream publishes no annotation hints, but the description and schema show this tool launches an unbounded, asynchronous, multi-page crawl of a caller-chosen website that continues running after the call returns (depth/limit are caller-controlled up to Number.MAX_SAFE_INTEGER), combining the navigate-to-arbitrary-target broad-capability risk with persistent, autonomous execution beyond this single call.",
+      "source_server": "cloudflare-browser",
+      "upstream_tool_name": "start_crawl"
+    }
+  ]
+}

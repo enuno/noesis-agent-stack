@@ -1,0 +1,10 @@
+{
+  "name": "noesis-aeon-identity-write",
+  "description": "Write or replace the Aeon agent's SOUL.md, STYLE.md and STRATEGY.md -- its identity, voice and operating directive.",
+  "included_tools": [
+    "noesis-aeon__build_soul",
+    "noesis-aeon__build_strategy",
+    "noesis-aeon__update_soul",
+    "noesis-aeon__update_strategy"
+  ]
+}

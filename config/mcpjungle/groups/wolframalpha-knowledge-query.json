@@ -1,0 +1,9 @@
+{
+  "name": "wolframalpha-knowledge-query",
+  "description": "Query Wolfram|Alpha's computational knowledge engine and evaluate Wolfram Language expressions in a stateless, sandboxed kernel with no external side effects (natural-language queries, units, dates, entities, computation).",
+  "included_tools": [
+    "wolframalpha__WolframAlpha",
+    "wolframalpha__WolframContext",
+    "wolframalpha__WolframLanguageEvaluator"
+  ]
+}

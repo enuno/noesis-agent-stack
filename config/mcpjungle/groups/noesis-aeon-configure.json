@@ -1,0 +1,10 @@
+{
+  "name": "noesis-aeon-configure",
+  "description": "Change which of the Aeon instance's skills are enabled and their schedule, switch the active harness/model, or switch which GitHub repo is the active Aeon instance. All commit aeon.yml to the user's repo and are reversible via git history.",
+  "included_tools": [
+    "noesis-aeon__settings.update",
+    "noesis-aeon__switch_instance",
+    "noesis-aeon__update_instance_settings",
+    "noesis-aeon__update_skill"
+  ]
+}

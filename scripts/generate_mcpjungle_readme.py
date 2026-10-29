@@ -69,7 +69,8 @@ SECTIONS = [
                                                        "platform-administration", "memory-retrieval",
                                                        "memory-management", "database-readonly",
                                                        "database-write", "data-analytics",
-                                                       "observability", "security-audit"]),
+                                                       "observability", "security-audit",
+                                                       "twilio-docs-read", "wolframalpha-knowledge-query"]),
     ("Communications and external effects", ["communications-readonly", "communications-send",
                                              "external-publication"]),
     ("Network operations — the operator's own UniFi estate",
@@ -87,6 +88,15 @@ SECTIONS = [
       "hunter-sequence-authoring", "hunter-record-destructive", "hunter-outbound-email",
       "hunter-prospecting-flow", "hunter-crm-integration"]),
     ("Design", ["web-design"]),
+    ("Monitoring — two separate BetterStack tenant accounts",
+     ["betterstack-noesis-monitoring-read", "betterstack-ryno-monitoring-read",
+      "betterstack-ryno-monitoring-operate", "betterstack-ryno-monitoring-destructive"]),
+    ("Cloud platform — the operator's own Cloudflare account",
+     ["cloudflare-docs-and-blog-read", "cloudflare-browser-render",
+      "cloudflare-browser-crawl-and-sessions"]),
+    ("Agent automation — the operator's own Aeon instance",
+     ["noesis-aeon-read", "noesis-aeon-configure", "noesis-aeon-identity-write",
+      "noesis-aeon-execute"]),
 ]
 
 SHORT_PURPOSE = {
@@ -164,6 +174,19 @@ SHORT_PURPOSE = {
     "hunter-outbound-email": "Start, resume and add recipients to sending sequences",
     "hunter-crm-integration": "Push leads to a CRM; repoint a webhook; mint API keys",
     "web-design": "Inspect Framer workspaces, projects, docs, assets",
+    "betterstack-noesis-monitoring-read": "Read the operator's own BetterStack monitoring (incidents, dashboards, monitors, logs)",
+    "betterstack-ryno-monitoring-read": "Read a third-party ('ryno') BetterStack tenant's monitoring, read-only",
+    "betterstack-ryno-monitoring-operate": "Ack incidents, edit dashboards, update monitors/heartbeats on the 'ryno' tenant",
+    "betterstack-ryno-monitoring-destructive": "Delete monitors/dashboards, change team roles, mint credentials on the 'ryno' tenant",
+    "cloudflare-docs-and-blog-read": "Search Cloudflare developer docs, blog, Agents SDK and Pages migration guides",
+    "cloudflare-browser-render": "Fetch/render a single caller-chosen URL via Cloudflare's remote browser",
+    "cloudflare-browser-crawl-and-sessions": "Start/cancel async multi-page crawls; manage browser sessions",
+    "twilio-docs-read": "Search Twilio product documentation",
+    "wolframalpha-knowledge-query": "Query Wolfram|Alpha and evaluate Wolfram Language in a stateless sandbox",
+    "noesis-aeon-read": "Read the Aeon instance's runs, skills, packs, memory, settings, strategy/soul",
+    "noesis-aeon-configure": "Toggle/schedule skills, switch harness/model, switch active instance",
+    "noesis-aeon-identity-write": "Write/replace the Aeon agent's SOUL.md, STYLE.md, STRATEGY.md",
+    "noesis-aeon-execute": "Held review-required: dispatch any registered skill; install third-party skill packs",
 }
 
 
@@ -247,7 +270,7 @@ README = f"""# MCPJungle tool inventory and least-privilege groups — Noesis
 Catalog of the tools exposed by the Noesis MCPJungle gateway and the tool groups
 that narrow that surface for individual Noesis profiles.
 
-**Status: all {len(groups)} groups are deployed and verified live** (2026-10-26).
+**Status: all {len(groups)} groups are deployed and verified live** (last reconciled 2026-10-29; first deployed 2026-10-26).
 
 ```
 config/mcpjungle/
@@ -317,6 +340,21 @@ Four upstream servers were registered on this gateway, adding **392 tools**:
 
 All {NT - 308} new tools are **additive**: the previous 308 are still present, and
 no canonical name was reused or removed.
+
+### What changed on 2026-10-29
+
+Ten more upstream servers were discovered live and reconciled into this catalog,
+adding **278 tools** (700 -> 978): `betterstack-noesis` and `betterstack-ryno`
+(two separate BetterStack tenant accounts -- `ryno` has no matching profile in
+`profiles/noesis-roster.yaml` and is granted no default consumer in any of its
+three groups), the Cloudflare family (`cloudflare`, `cloudflare-agents-sdk`,
+`cloudflare-blog`, `cloudflare-browser`, `cloudflare-docs`), `noesis-aeon` (the
+operator's own Aeon agent-automation instance), `twilio-docs` and
+`wolframalpha`. 13 new groups were created and deployed; one tool
+(`cloudflare__execute`, a generic code-execution dispatcher against the full
+Cloudflare REST API) was classified `review-required` and held out of every
+group, matching the existing `framer__exec` precedent. All {NT - 700} new
+tools are additive: the previous 700 are still present unchanged.
 
 ### Hermes reports 312 — why the numbers differ
 
