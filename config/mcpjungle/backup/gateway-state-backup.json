@@ -1,14 +1,14 @@
 {
   "schema_version": "1.0.0",
   "artifact_type": "mcpjungle-gateway-state-backup",
-  "captured_at": "2026-10-29T22:00:04.666265+00:00",
+  "captured_at": "2026-10-29T22:15:41.213877+00:00",
   "target": {
     "registry_base_url": "https://mcpjungle.tailf99a0.ts.net",
     "mcp_endpoint": "https://mcpjungle.tailf99a0.ts.net/mcp",
     "mcpjungle_cli_version": "v0.4.6",
     "mcpjungle_server_version": "v0.4.6",
     "server_mode": "development",
-    "server_mode_note": "The gateway runs in SERVER_MODE=development. In this mode MCPJungle performs no authentication and no ACLs: verifyUserAuthForAPIAccess and requireAdminUser both short-circuit, and checkAuthForMcpProxyAccess passes requests with no Authorization header. This was a deliberate, operator-authorised switch on 2026-10-23 to enable the Dashboard UI, recorded in noesis-ansible/inventory/mcpjungle-k8s/group_vars/all.yml. The trust boundary for the resulting open access is the tailnet itself."
+    "server_mode_note": "The gateway runs in SERVER_MODE=development. In this mode MCPJungle performs no authentication and no ACLs. The trust boundary for the resulting open access is the tailnet itself."
   },
   "main_gateway_servers": {
     "count": 34,
@@ -2188,12 +2188,12 @@
     "inventory_file": "../tool-inventory.json"
   },
   "restore_procedure": {
-    "servers": "mcpjungle register -c <file> for each entry in main_gateway_servers. Note that upstream credentials are NOT recoverable from this backup: re-apply them from the Bitwarden escrow.",
-    "groups": "mcpjungle create group --conf config/mcpjungle/groups/<group-name>.json for any group absent from tool_groups. To update an existing group to its backed-up definition, use mcpjungle update group --conf <file>.",
+    "servers": "mcpjungle register -c <file> for each entry in main_gateway_servers. Upstream credentials are NOT recoverable from this backup: re-apply them from the Bitwarden escrow.",
+    "groups": "mcpjungle create group --conf config/mcpjungle/groups/<group-name>.json for any group absent from tool_groups. To update an existing group, use mcpjungle update group --conf <file>.",
     "ordering": "Restore servers before groups: group creation validates every listed tool against the registry and fails if a tool does not exist or is disabled."
   },
   "integrity": {
     "leak_check": "Every non-trivial string value in the live server_configs was treated as a secret and checked against the emitted file by value. The emitted file contains none of them. Only field NAMES and the redacted shape markers survive.",
-    "note": "This backup is a point-in-time snapshot. It records what the gateway looked like at captured_at and does not detect later drift. Re-capture and diff against main_gateway_servers and tool_groups to review drift."
+    "note": "This backup is a point-in-time snapshot. Re-capture and diff against main_gateway_servers and tool_groups to review drift."
   }
 }
