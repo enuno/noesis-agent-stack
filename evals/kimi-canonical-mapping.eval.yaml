@@ -1,0 +1,105 @@
+# evals/kimi-canonical-mapping.eval.yaml
+# Testable assertions for the KIMI canonicalization candidate.
+# Suite: kimi-canonical-mapping
+# Every fixture maps 1:1 to a validator rule in
+# scripts/validate_kimi_canonical_mapping.py (KCM001..KCM012).
+version: "2026-10-04.1"
+policy_mode: proposed_not_live
+suite: kimi-canonical-mapping
+
+tests:
+  - id: KCM-001
+    name: candidate_file_shape_and_single_record
+    setup: Load shared/models.kimi-proposed.yaml
+    expected_result: parses; policy_mode proposed_not_live; exactly one candidate record
+    expected_error_class_or_assertion: KCM001
+    linked_validator_rule: KCM001
+    risk_level: low
+
+  - id: KCM-002
+    name: canonical_model_id_must_stay_null_until_verified
+    setup: Candidate record declares canonical_model_id
+    expected_result: canonical_model_id is null
+    expected_error_class_or_assertion: KCM002
+    linked_validator_rule: KCM002
+    risk_level: critical
+
+  - id: KCM-003
+    name: pin_status_must_not_claim_approval
+    setup: Candidate record declares pin_status
+    expected_result: pin_status is observed_not_verified
+    expected_error_class_or_assertion: KCM003
+    linked_validator_rule: KCM003
+    risk_level: critical
+
+  - id: KCM-004
+    name: candidate_cannot_carry_r2_or_r3
+    setup: Candidate record declares max_risk_tier
+    expected_result: max_risk_tier is r0 or r1
+    expected_error_class_or_assertion: KCM004
+    linked_validator_rule: KCM004
+    risk_level: critical
+
+  - id: KCM-005
+    name: no_confidential_restricted_secret_data
+    setup: Candidate record declares data-class envelopes
+    expected_result: no confidential/restricted/secret allowed; all three prohibited
+    expected_error_class_or_assertion: KCM005
+    linked_validator_rule: KCM005
+    risk_level: critical
+
+  - id: KCM-006
+    name: candidate_is_not_an_approved_or_active_route
+    setup: Scan candidate for any approved/active/enforced/production claim
+    expected_result: none present; candidate_status is proposed_not_live family
+    expected_error_class_or_assertion: KCM006
+    linked_validator_rule: KCM006
+    risk_level: critical
+
+  - id: KCM-007
+    name: no_profile_may_be_assigned_the_unverified_candidate
+    setup: Candidate record declares eligible_profiles
+    expected_result: eligible_profiles is empty
+    expected_error_class_or_assertion: KCM007
+    linked_validator_rule: KCM007
+    risk_level: high
+
+  - id: KCM-008
+    name: candidate_cannot_be_automatic_fallback
+    setup: Candidate record declares fallback_eligible
+    expected_result: fallback_eligible is false
+    expected_error_class_or_assertion: KCM008
+    linked_validator_rule: KCM008
+    risk_level: high
+
+  - id: KCM-009
+    name: candidate_cannot_be_provider_selection_default
+    setup: Candidate record declares default_route
+    expected_result: default_route is false
+    expected_error_class_or_assertion: KCM009
+    linked_validator_rule: KCM009
+    risk_level: high
+
+  - id: KCM-010
+    name: all_activation_requirements_present
+    setup: Candidate record declares activation_requirements
+    expected_result: contains every published gate including verify_upstream_immutable_model_identifier and explicit_human_approval
+    expected_error_class_or_assertion: KCM010
+    linked_validator_rule: KCM010
+    risk_level: high
+
+  - id: KCM-011
+    name: observed_reference_matches_reconciliation_evidence
+    setup: Compare observed_model_reference against platform/runtime-reconciliation.yaml observed_runtime entries
+    expected_result: string appears as an observed runtime model reference (18 profiles)
+    expected_error_class_or_assertion: KCM011
+    linked_validator_rule: KCM011
+    risk_level: medium
+
+  - id: KCM-012
+    name: no_literal_secrets_in_kimi_artifacts
+    setup: Scan the five kimi-canonicalization artifacts
+    expected_result: zero secret-like matches
+    expected_error_class_or_assertion: KCM012
+    linked_validator_rule: KCM012
+    risk_level: critical
