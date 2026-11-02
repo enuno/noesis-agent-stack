@@ -310,7 +310,7 @@ approved_lanes:
     - security_review
     - explicit_human_approval
   XAI_GROK:
-    status: blocked_missing_configuration
+    status: proposed
     provider_family: xai
     permitted_profile_types:
     - supervisor
@@ -343,11 +343,21 @@ approved_lanes:
     - eval_record_required
     - not_sole_r2_r3_validator
     max_risk_tier: r1
+    execution_authority: denied
+    primary_eligible: false
     fallback_eligible: false
-    notes: xAI Grok pool entry declared in shared/models.yaml. XAI_API_KEY exists in
-      Bitwarden but is not yet injected into fleet .env/auth pools, so the lane is
-      blocked_missing_configuration until the key material is provisioned and a
-      canonical model identifier is pinned.
+    notes: >
+      Transport registration observed 2026-10-03 (historical observation,
+      branch policy/provider-transport-metadata-xai-nous-2026-10-03): a local
+      noesis-orchestrator provider declaration existed with base endpoint
+      https://api.x.ai/v1 and environment-key reference XAI_API_KEY. A
+      2026-10-30 audit-context runtime observation reported xAI requests
+      failing with an HTTP 403 spending-limit condition; current credential
+      health is NOT verified here and no live probe was performed for this
+      change. Transport availability does not establish a canonical model
+      pin, provider-policy approval, data-handling posture, budget, or route
+      activation. XAI_GROK remains non-selectable until every
+      activation_requirement below passes with explicit human approval.
     activation_requirements:
     - key_material_provisioned_to_runtime
     - canonical_model_catalog_entry
