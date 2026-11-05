@@ -191,7 +191,8 @@ and are never reported as one number.
 | `noesis-skeptic` | adversarial-reviewer | reviewer-only | Red-team / adversarial QC; no execution |
 
 `agents/` additionally retains the supporting lanes `noesis-clawdev/`,
-`noesis-praxis/` (council/aeon orchestration skill + runbook),
+`noesis-praxis/` (historical supervisor identity — no council/aeon skill or
+runbook currently exists; see docs/decision-council-integration-2026-11-05.md),
 `claude-code-worker/`, `main-hermes/`, `research-openclaw/`,
 `subconscious-openclaw/`, and `job-application-pipeline/`.
 
@@ -247,7 +248,7 @@ evidence and canary status are recorded in `ROUTING-SMOKE.md`.
 │   ├── main-hermes/                # original supervisor design
 │   ├── research-openclaw/, subconscious-openclaw/
 │   ├── noesis-clawdev/, claude-code-worker/, job-application-pipeline/
-│   └── noesis-praxis/              # council/aeon orchestration skill + runbook
+│   └── noesis-praxis/              # historical supervisor identity (no council/aeon skill or runbook exists)
 │       # agency-*/ profiles are GENERATED (agency/convert.py), not committed:
 │       # see agency/README.md — materialized at apply time by
 │       # scripts/apply-agency-profiles.sh / the Ansible hermes_profiles role.
