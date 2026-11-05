@@ -100,6 +100,36 @@ verifier: even if Sentinel reported `true`, Skeptic re-checks
 independently and writes `BLOCKED` if the file drifted between
 Sentinel's run and Skeptic's.
 
+## Choosing the artifact filename
+
+The `<iter>` token in every artifact path must identify the CANDIDATE, not
+the round. A hand-managed iteration letter works only while someone renames
+it; when a freeze tool regenerates the review contract on every candidate
+change, a fixed name in that generated contract makes the overwrite
+deterministic — the reviewer writes to the path the contract names, correctly,
+and the next round's verdict replaces the previous round's file.
+
+Derive the token from the candidate identity instead, for example the first
+eight hex characters of `combined_sha256`:
+
+  SENTINEL-VERDICT-<combined_sha256[:8]>.md
+  SKEPTIC-VERDICT-<combined_sha256[:8]>.md
+
+Apply the same derivation to the review CONTRACT filenames, then make the
+launcher select the newest matching contract (glob by prefix, newest by
+mtime) rather than a hard-coded name — otherwise the versioned contract is
+never the one that gets launched. The contract's candidate-identity block
+still carries the full digests; the filename token is only a uniqueness
+handle.
+
+Two consequences worth stating plainly. First, a verdict file's name is now
+proof of which bytes it reviewed, so a file whose name does not match the
+contract's candidate identity is a chain-of-custody break, not a naming nit.
+Second, once a fixed path has already overwritten an earlier verdict, that
+earlier text may be unrecoverable if the shared session log does not carry
+the tool inputs — preserve what survives in the mission ledger, state the
+loss, and do not reconstruct the reviewer's words.
+
 ## How to compute combined_sha256 (the recipe that worked)
 
 Run, in the worktree cwd:

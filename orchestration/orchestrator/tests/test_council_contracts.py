@@ -89,6 +89,45 @@ class TestPositiveFixtures:
             assert name not in blob, f"profile name '{name}' leaked into anonymized release"
 
 
+class TestSeatIdentifierConsistency:
+    """Codex review (PR #27): seat_id shape must be identical across session
+    seats, verdict positions, and the Round-2 release keys, so a schema-valid
+    session always produces a schema-valid release keyed by its actual seats."""
+
+    def _release_validator(self):
+        registry = Registry().with_resource(
+            SESSION_SCHEMA["$id"], Resource.from_contents(SESSION_SCHEMA)
+        )
+        return jsonschema.Draft202012Validator(
+            {"$ref": f"{SESSION_SCHEMA['$id']}#/$defs/anonymized_release"}, registry=registry
+        )
+
+    def test_noncanonical_seat_id_rejected_by_both_contracts(self):
+        session = _load_json(FIXTURES / "duo_session.json")
+        session["seats"][0]["seat_id"] = "seat-a"
+        errors = list(SESSION_VALIDATOR.iter_errors(session))
+        assert any(
+            "seats" in str(e.absolute_path) and "seat_id" in str(e.absolute_path)
+            for e in errors
+        ), f"expected seat_id pattern error, got: {[e.message for e in errors]}"
+
+        verdict = _load_json(FIXTURES / "duo_verdict_split.json")
+        verdict["positions"][0]["seat_id"] = "seat-a"
+        errors = list(VERDICT_VALIDATOR.iter_errors(verdict))
+        assert any(
+            "seat_id" in str(e.absolute_path) for e in errors
+        ), f"expected seat_id pattern error, got: {[e.message for e in errors]}"
+
+    def test_release_built_from_valid_session_seat_ids_validates(self):
+        session = _load_json(FIXTURES / "duo_session.json")
+        release = {seat["seat_id"]: "synthetic stance for cross-check" for seat in session["seats"]}
+        _validate(self._release_validator(), release, "release_from_valid_session_seats")
+        bad = dict(release)
+        bad["seat-a"] = "stance keyed by a noncanonical id"
+        errors = list(self._release_validator().iter_errors(bad))
+        assert errors, "release with a noncanonical key must fail the anonymized_release def"
+
+
 class TestBlindFirstStructure:
     """Blind Round 1 is enforced by construction: no seat ever sees another
     seat's identity or position. Checked structurally, not by prompt."""

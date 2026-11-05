@@ -254,6 +254,15 @@ inventories before writing new ones.
    per-file boolean) into the Sentinel contract so the reviewer
    auto-blocks when the worktree has drifted.
 
+   **Make the freeze step refuse to bind a reviewer to a polluted
+   candidate.** The per-file boolean is a check the reviewer must
+   remember to apply; the freeze step is where the refusal belongs. Have
+   the freeze script compute the changed-path set from git itself and
+   abort BEFORE it emits any reviewer contract when a path outside the
+   closed set appears. That way the polluted candidate cannot be handed
+   to a reviewer at all, rather than relying on the reviewer to notice
+   it.
+
 6. **Collect the candidate and verify it.** When the child process
    exits, the adapter records the candidate revision, the changed paths,
    the verification command output, and the residual risks. The
@@ -349,6 +358,12 @@ inventories before writing new ones.
    record: any `Model fallback:` to an unapproved provider/model makes
    the review `dispatch_not_delivered`, even if the process exits zero or
    emits prose. Reviewer runs are *not* exempt from the no-fallback rule.
+   Grep for the exact marker, not the bare word: the word appears
+   constantly in the worker's own reading of routing source (policy
+   fields named `fallback_allowed` and `fallback_routes`, constants like
+   `MAX_FALLBACKS`), so a bare-word count over a session log is dominated
+   by file content rather than by events. When the bare-word count is
+   high, show the surrounding context to prove the hits are content.
 
    **Completion criterion:** the orchestrator only transitions the
    implementer task to `completed` after both verdict files exist at
@@ -759,6 +774,50 @@ the review-round procedure.
   installation, or activation; never summarize an inference-backed workflow as
   “no provider call.”
 
+- **An authorized per-session ceiling is a limit you ENFORCE, not one you
+  record.** When an envelope sets hard ceilings on total tokens, tool calls
+  and wall clock, `--max-turns` does not deliver them: it bounds API-call
+  ITERATIONS, and the installed gateway CLI rejects `--run-budget` outright.
+  Enforce all three from a supervisor-side watchdog that reads live usage and
+  kills the process group on breach. Cached tokens count toward a token
+  ceiling, so sum input + output + cache_read + cache_write over the
+  profile's `state.db` `session_model_usage` primary-task rows, and scope
+  that sum by the SAME model predicate that selects the session. PROVE the
+  watchdog against a synthetic store before the first real dispatch: a cap
+  that must breach and one that must not, plus a row from another model
+  that must not be counted. A watchdog shipped unproven fails as a silent
+  overrun, which is the failure mode a ceiling exists to prevent. See
+  `noesis-in-fleet-review` → `references/bounded-session-launch.md`.
+
+- **A launch that dies in argument validation consumed no session.** Exit
+  code 2 with zero tokens on every axis, zero tool calls and NO session row
+  means the CLI refused the flags before any provider call. That is neither
+  a used session nor a verdict: the authorized session is still outstanding,
+  and the fix is to remove the unsupported flag, not to request more
+  authority. Check the CLI's own unsupported-option table before authoring
+  a launch line so the refusal never happens.
+
+- **A provider quota window is a distinct refusal class from an entitlement
+  block.** HTTP 429 `usage_limit_reached` carries `plan_type`,
+  `limit_window_minutes` and `resets_at` in the provider's own body. A
+  `limit_window_minutes` of 300 is a five-hour rolling ACCOUNT window, so
+  another model on the same subscription does not help — the honest options
+  are to wait for the window or to change provider, and changing provider is
+  a substitution that needs its own authority. When the window is yours to
+  wait out, recover with a SINGLE-FIRE re-dispatch scheduled at `resets_at`
+  plus a margin, on the same lane, same model, same profile, behind a
+  frozen-identity gate so a delayed dispatch cannot act on drifted bytes.
+  Zero tokens and zero tool calls mean the authorized work is OUTSTANDING,
+  not consumed. Never reset, raise or purchase a limit to avoid waiting.
+
+- **Verify the account's own accounting when you enforce a token ceiling.**
+  The CLI's reported `total` is `input + output` where `input` already
+  contains the cached portion, so a watchdog summing a single `total` field
+  double-counts nothing but a watchdog summing `input` plus `cache_read`
+  separately double-counts the cache. Compute the metric from the four
+  columns and verify it reproduces the CLI's reported total exactly before
+  trusting it to kill a session.
+
 - **Policy lane names are not Hermes provider ids.** The spawn gate
   compares `approved_provider` to the policy lane name, while `hermes
   --provider` requires a provider id from `PROVIDER_REGISTRY`. Before
@@ -768,6 +827,33 @@ the review-round procedure.
   absent, stop and report that missing map. Do not cite a stale
   "no mapping exists" note as a current blocker, and do not skip
   reconciliation gates because the map exists.
+
+  **A direct profile launch has no lane mapping, so resolve the provider
+  id from the registry itself.** When you launch a profile directly rather
+  than through the control plane there is no `hermes_provider:` field to
+  read, and the roster's declared lane is not necessarily the registry's
+  literal id — the two can differ in spelling while naming the same
+  service. Read the installed provider registry source and take the id
+  from there before composing `--provider`; passing a plausible-looking
+  lane name the registry does not define spends the launch attempt on a
+  guaranteed failure. Check the registry ids and the roster's declared
+  lanes in the same pass and record which registry id each declared lane
+  resolves to.
+
+- **Re-read your own contract or envelope for internal contradictions
+  before presenting it.** A draft can hold a blanket prohibition next to
+  a step the same prohibition forbids — for example, a rule that no
+  provider request of any kind may occur, sitting beside a requirement
+  to dispatch the work to an executor and reviewers, which are themselves
+  provider sessions. Present the contradiction to the operator as a
+  resolved reading, naming which clause governs which surface, instead
+  of silently reinterpreting it: the usual resolution is that the
+  prohibition governs the product code and its tests while the dispatch
+  and review sessions are authorized by the approval itself. A contract
+  whose contradiction is resolved in the operator's favour without
+  disclosure is an unauthorized expansion; one resolved silently against
+  their favour is a hidden refusal. Disclose the resolution in the
+  presentation and record it in the ledger.
 
 - **Operator-authorized ledger-recorded direct launch (degraded route when
   canonical spawn is broken).** With explicit operator approval only: (1)

@@ -1,6 +1,6 @@
 ---
 name: noesis-control-plane-dev
-version: 1.4.0
+version: 1.5.0
 author: noesis-orchestrator
 license: Proprietary
 description: "Use when changing Noesis routing or task lifecycle."
@@ -149,6 +149,17 @@ claim that the current implementation satisfies them.
    (`PYTHONPATH= <main-checkout>/.venv/bin/python -m pytest tests/ -q`):
    clearing PYTHONPATH matters because a global PYTHONPATH pointing at a
    Hermes runtime venv shadows the project venv's dependencies (ruamel).
+   The worst case is a cross-version leak — a Python 3.14 site-packages tree
+   in PYTHONPATH resolved inside a 3.11 venv, where a compiled extension
+   fails to import and pytest dies at COLLECTION with a signature like
+   `ModuleNotFoundError: No module named 'rpds.rpds'` in
+   `test_schema_conformance.py`. That signature is an environment defect, not
+   a candidate regression: re-run with PYTHONPATH cleared before reporting any
+   collection failure, and never 'fix' it by editing the test. Also prove the
+   interpreter resolves the WORKTREE's package rather than the operational
+   checkout — check for an editable install (`.pth` / `__editable__` finder
+   files) and print the imported module's `__file__` before trusting a suite
+   count as worktree-bound.
    Preserve the test process exit status; do not pipe it through a successful tail command.
    A verification-tool rejection means tests did not run, not tests failed or
    passed. Write failing behavioral tests before the smallest repair.
@@ -343,7 +354,57 @@ and review provenance stay authoritative. See
   `candidate-ci-coverage` for the full recipe and the skip/xfail/xpass
   baseline accounting.
 - Pair source-level findings with behavioral regressions. Label a finding
-  source-confirmed until the regression actually runs.
+  source-confirmed until the regression actually runs. When the regression
+  was authored by an outside reviewer, replay the reviewer's exact file
+  rather than an equivalent re-implementation: a re-implementation asserts
+  whatever your own code happens to do, so it can report green while the
+  reviewer's own assertion still fails. See the `noesis-in-fleet-review` skill's
+  `references/reviewer-evidence-verification.md`.
+- **Prove a repair regression has teeth by mutation, and clone the whole tree
+  to do it.** A repair regression that passes on the repaired bytes proves
+  nothing until it fails on the pre-repair bytes. Copy the ENTIRE worktree
+  (not just the package directory) into a scratch clone, revert only the fix
+  under test, and re-run that one regression: it must fail for the intended
+  reason — the route admitted, the value invented, the gate bypassed — not
+  with a fixture or import error. Cloning only the package directory leaves
+  fixture paths unresolvable and yields a `FileNotFoundError` that looks
+  like a successful mutation check. Locate the block to mutate by
+  indentation rather than by a hand-written regex, because an imprecise
+  replacement can leave a dangling call and produce a `NameError` instead of
+  the intended assertion failure. Record the before/after output as the
+  teeth evidence.
+- **A persisted record is a claim, never an authority.** Moving authority-
+  bearing state into the durable store to fix a durability defect converts that
+  store into an untrusted input surface: any record whose event name matches
+  can now be replayed as if it were the decision. The dispatch path must
+  RE-DERIVE the authoritative value from the current sources and compare the
+  recorded claim to it field for field, over a closed schema that rejects
+  unknown and missing fields, with a positive-result check and a digest over
+  the claim bytes. **An UNKEYED digest over the claim bytes is corruption
+  detection, NOT authenticity — a writer who can alter the ledger can recompute
+  it.** Require current-source verification plus a fresh derivation and an exact
+  field comparison before treating any record as validated. Audit every read
+  path a durability fix introduces for
+  forged-input reachability; "we wrote this record" is not evidence. And when
+  the record feeds a surface this candidate should not own at all, DELETING that
+  read path is stronger than hardening it — see the scope-reduction rules above.
+- **A docstring that claims a mechanism the code does not implement is a
+  finding, and an adapter that bypasses the existing seam is a parallel path
+  even when its own tests pass.** When a module says it reuses the existing
+  preflight, readiness, audit, or isolated-home mechanisms, verify the claim
+  against the imports and call sites and make the two agree. A module that
+  calls the store transition directly while the canonical path requires
+  current-attempt preflight evidence is a fail-open adapter, and a test that
+  admits a task with missing preflight evidence will not catch it because the
+  test asserts the adapter's own contract. Drive the invariant through the
+  existing seam, not around it.
+- **A profile-level or toolset-level flag is not per-capability evidence.** A
+  non-empty toolset list does not prove that every capability named beside it
+  is installed, and a directory that exists does not prove a capability is
+  present in it. Keep declared, installed, exposed, and task-authorized
+  states separate, source installed/exposed from per-capability evidence in
+  the actual runtime surface, and refuse when that evidence does not exist
+  rather than inferring it from a neighbouring declaration.
 - **Probe authorization semantics at the final spawn boundary, not just at the
   policy helper.** For bounded non-dry-run launch, add behavioral regressions
   proving that missing enforcer initialization, observe/shadow decisions, a
@@ -384,15 +445,16 @@ and review provenance stay authoritative. See
 
 - **Event/result model fields are capability-index defaults, not the launched pair**: the dispatch result and routing event carry `model_provider`/`model_id` from the capability-index selection, while the actual launch command uses the approved per-task pair. Cite `launch_command` + launcher attestation as execution evidence; never cite the default fields.
 
-- **Reviewer lane-switch discipline**: when a reviewer invocation on one provider lane yields no verdict twice (foreground timeout kill; detached run exiting 130 with banner-only output), switch lanes rather than retrying the same one — reviewer identity is the profile, the model lane is a provider choice. Preserve each failed attempt's output file as evidence, and extract the verdict by grepping the `VERDICT:` token, because output files begin with secret-manager banners and tailing the end can miss a verdict printed early.
+- **Reviewer lane-switch discipline**: when a reviewer invocation on one provider lane yields no verdict twice (foreground timeout kill; detached run exiting 130 with banner-only output) OR the lane dies on an entitlement block (HTTP 403 spending-limit, HTTP 400 credit balance too low), switch lanes rather than retrying the same one — reviewer identity is the profile, the model lane is a provider choice. An entitlement refusal is an account-level block, so a retry burns the same exhausted pool and leaves the candidate with zero reviews; treat it as `dispatch_not_delivered`, never as a verdict or a partial review. **Segment the attempt's stream log by SESSION ID before counting anything about it**: a shared launcher appends every run to one log file, so counting tool calls across the file attributes an earlier run's calls to a later failed one, and the failed session may have completed substantial work before the refusal. The lane-survey, substitution and verdict-extraction procedure lives in `noesis-in-fleet-review`.
+- **Scope reduction and the trust boundary before patching**: when review rounds stop converging, reduce scope instead of cycling, and write the trust boundary as a binding table BEFORE the first source edit; a removed authority path must be deleted from the public surface, not left callable. Depth and decision tables: `references/scope-reduction-and-binding-table.md`.
 
-- **Handoff-packet snapshot identity (revision refs are not content identities)**: an abbreviated commit range like `abc1234+def5678` is a revision reference, never a sufficient standalone identity for an operator-mediated review packet. Before freezing any packet, compute: (a) full 40-char revisions for every commit in scope; (b) per-file sha256 of each reviewed file at the tip via `git cat-file blob <tip>:<path> | sha256sum`; (c) a combined snapshot digest over the name-prefixed concatenation of the reviewed files PLUS their frozen code dependencies (e.g. the module the reviewed code imports); (d) a later-change inspection `git log <tip>..HEAD --name-only` proving no later commit touches the reviewed code or its dependencies; (e) `git status --porcelain` for the reviewed paths. Verify the snapshot digest BEFORE the review starts and after it returns. See `references/review-handoff-identity.md` for the exact command recipe.
+- **Handoff-packet snapshot identity (revision refs are not content identities)**: an abbreviated commit range like `abc1234+def5678` is a revision reference, never a sufficient standalone identity for an operator-mediated review packet. Before freezing any packet, compute: (a) full 40-char revisions for every commit in scope; (b) per-file sha256 of each reviewed file at the tip; (c) a combined snapshot digest over the reviewed files PLUS their frozen code dependencies; (d) a later-change inspection proving no later commit touches the reviewed code or its dependencies; (e) `git status --porcelain` for the reviewed paths. Verify the snapshot digest BEFORE the review starts and after it returns. See `references/review-handoff-identity.md` for the exact command recipe.
 - **Dirty-worktree candidate manifests must separate identity from evidence metadata**: create a pure `candidate-files.sha256` containing only final `hash  path` rows and verify it with `shasum -a 256 -c`; keep baseline, test chronology, unavailable-linter notes, and scope declarations in a separate evidence manifest. Build the review patch from tracked AND new candidate files — ordinary `git diff` omits untracked files, so append a `git diff --no-index --binary /dev/null <new-file>` fragment for every new file. Reverify the pure manifest after the last documentation edit; any byte change creates a new candidate identity and invalidates pending verdicts. Follow `references/protocol-adapter-planning.md` for the bounded offline adapter-contract slice and review-freeze sequence.
 - **Per-file content hash: use `git show` or `git cat-file blob`, never `git ls-tree ^{tree}`**: the `git ls-tree <commit>^{tree} -- <path>` form returns the SHA of the **tree entry blob** that points at the file, not the file's actual content. That blob SHA is computed from the file's mode + path + content and is normally identical to the content SHA, but a small change in tree construction (e.g. a different mode bit, a directory rearrangement) can produce a different blob SHA for the same content. The two safe forms for per-file content sha256 are `git show <tip>:<path> | shasum -a 256` and `git cat-file blob <tip>:<path> | sha256sum`. Use one of those. The wrong form silently breaks recipe reproduction — every per-file hash matches the documented table, the combined digest does not, and the discrepancy is in the tree-entry encoding, not content drift. Same recipe applies to any combined-digest verification (planner, A6 v3, lease-lifecycle, etc.).
 
 - **Combined-digest recipe: never let `sort` over raw `sha256sum` output stand in for the documented sort over `path:hash` lines**: a one-liner that pipes raw `sha256sum` output through `sort` and then rewrites each line as `path:hash` is sorting the raw bytes (by hash), not the canonical `path:hash` lines (by path). The combined digest will diverge from a recipe that was documented over sorted `path:hash` lines even when every per-file hash matches the table. The discrepancy is in the recipe encoding, not content drift. Build the canonical recipe text exactly as documented — for the planner-digest style: `printf 'path:hash\n...'` in alphabetical path order, then `sha256sum` over the joined bytes. If a recipe file shows a one-shot shell snippet that sorts raw output, treat it as a doc bug in the example, not a contradiction of the canonical recipe text. Validate the recipe before declaring a digest mismatch to be a real drift.
 
-- **Never `bool()`-coerce authoritative booleans at replay**: `bool("false")` is `True`, `bool("yes")` is `True`, `bool(0)` is `False`, `bool(None)` is `False`. Wrapping `data.get(key, False)` in `bool(...)` silently turns present-non-bool values into authoritative facts: a lease recorded as `"revoked": "false"` replays as revoked, a task recorded as `"accepted": "yes"` replays as accepted and the planner reports `completed_within_scope`. The fail-closed shape is the pattern already in `TaskStore._optional_execution_revoked`: present and `isinstance(value, bool)` → use it; present and not bool → raise `ValueError`; absent → documented default. Apply the same shape to every authoritative boolean parsed from a durable record (`accepted`, `revoked`, `quarantined`, `approved`, `blocked`). When the contract permits "absent → default," do not coerce the absent branch through `bool(default)` either; pass the default through the same type check or use an explicit `if "key" not in raw: return default` so the default never silently swallows a present-malformed value. Silent rewriting of historical records at replay is a fail-open defect; provenance for diagnostics is preserved by carrying the raw value into the replay error, not by coercing it.
+- **Never `bool()`-coerce authoritative booleans at replay**: `bool("false")` is `True`, `bool("yes")` is `True`, `bool(0)` is `False`, `bool(None)` is `False`. Wrapping `data.get(key, False)` in `bool(...)` silently turns present-non-bool values into authoritative facts: a lease recorded as `"revoked": "false"` replays as revoked, a task recorded as `"accepted": "yes"` replays as accepted and the planner reports `completed_within_scope`. The fail-closed shape is the pattern already in `TaskStore._optional_execution_revoked`: present and `isinstance(value, bool)` → use it; present and not bool → raise `ValueError`; absent → documented default. Apply the same shape to every authoritative boolean parsed from a durable record (`accepted`, `revoked`, `quarantined`, `approved`, `blocked`). When the contract permits "absent → default," do not coerce the absent branch through `bool(default)` either; use an explicit `if "key" not in raw: return default`. Silent rewriting of historical records at replay is a fail-open defect; provenance for diagnostics is preserved by carrying the raw value into the replay error, not by coercing it.
 
 - **Advisory adapters must be authority-isolated, not just data-minimal**: any read-only retrieval/ranking/copilot layer (Jev, embedding recall, a council scorer, an LLM summarizer) integrated with noesis imports only the read-only projection (`GraphProjection` / `GraphQuery`); it never imports `TaskStore`, `DelegationStore`, or any module that can mutate authoritative state. The shipped payload to the external backend is fingerprints only — entity_id, type, evidence_state, scope — never raw record bodies, lease timestamps, approval manifest IDs, or finding descriptions. Withhold **identities of access-filtered records too**, not just their contents: report only the count to the external backend, never individual entity_ids, so the backend cannot derive what it was filtered from. Mandatory exact-identity evidence is returned to the caller before the adapter is consulted and cannot be demoted, excluded, or reranked by any probabilistic signal — if the adapter's stop reason is "enough" while a mandatory record is missing, that is a false-sufficiency defect. The adapter is never a mandatory dependency for noesis operation; on timeout, malformed output, outage, or budget exhaustion it falls back to a deterministic baseline that does not touch the external backend. Confidence returned by the external backend is a model signal, not proof of correctness or permission.
 
@@ -459,7 +521,7 @@ and review provenance stay authoritative. See
 
 - Store consistency and authorization linearization discipline: do not describe BEGIN IMMEDIATE alone as making external TaskStore validation atomic with SQLite reservation. Bind the validated task/route/budget revision to the reservation explicitly (e.g. contract_revision and baseline columns in the reservation record). Specify the ordering or serialization mechanism for authority updates and admission: an already authorized attempt may complete under its bound revision according to the documented cancellation policy, but this is distinct from validating stale state before an unrelated SQLite lock. For durable reconciliation of TaskStore-first/SQLite-second failure, persist quarantine state in the TaskStore JSONL with requires_manual_reconciliation: true, and specify recovery behavior: restart opens (never creates) the SQLite ledger, replays the TaskStore, and preserves quarantine state.
 
-- Review-verdict recording discipline (audit updates): a new review event gets a NEW separate receipt file; never edit the prior reviewer receipt, completion packet, diff, manifest, or logs — prior artifacts stay byte-identical. The receipt binds to the FULL candidate identity (baseline commit, content digest, diff sha256, manifest sha256); abbreviated digest prefixes are display-only, never the recorded identity. Never cite any hash, commit id, or artifact path from memory in a receipt or supplement — recompute every cited value from source after the artifact's final edit and patch in the real values; when a receipt must reference itself, record its own hash in the ledger rather than inside the file. Record exactly the verdict and scope delivered (verdict, static-vs-reproduced, binding scope); do not reconstruct finding text that was not delivered, and set `verification_reproduced` accurately (a static review is false even when the verdict is PASS). Never let a receipt imply endorsement of unreviewed corrections: a follow-up handoff's "Required invariants" is a PROPOSED corrected remediation contract — state explicitly that the reviewer has not reviewed or endorsed it (e.g. `reviewer_endorsement_of_corrections: false`) until a reviewer approves that successor snapshot. Ledger status updates are in-place transitions (e.g. NOT_REVIEWED → REQUEST_CHANGES) that preserve the prior row text as history; set the next decision explicitly (operator authorization of the bounded follow-up, not another review dispatch). Idempotency: if an instruction to record a verdict matches already-recorded state (same reviewer, verdict, candidate digest), do NOT rewrite the receipt — a new write changes its hash and fabricates a second record; verify the receipt fields, ledger lines, and preserved artifact hashes, then report confirmation. No audit-record write authorizes code changes, tests, provider calls, reviewer relaunch, adapter/runtime work, installation, activation, commit, push, merge, or deployment — say so. When the operator supplies a review verdict that was produced outside the orchestrator's observed session, mark provenance as operator-supplied in the receipt and do not claim the orchestrator observed or can attest the review session itself. When recording a second reviewer's verdict, first verify the first reviewer's receipt is preserved byte-identical by checking its SHA-256; report both receipt hashes in the ledger line.
+- Review-verdict recording discipline (audit updates): a new review event gets a NEW separate receipt file; never edit the prior reviewer receipt, completion packet, diff, manifest, or logs — prior artifacts stay byte-identical. The receipt binds to the FULL candidate identity (baseline commit, content digest, diff sha256, manifest sha256); abbreviated digest prefixes are display-only, never the recorded identity. Never cite any hash, commit id, or artifact path from memory in a receipt or supplement — recompute every cited value from source after the artifact's final edit and patch in the real values; when a receipt must reference itself, record its own hash in the ledger rather than inside the file. Record exactly the verdict and scope delivered (verdict, static-vs-reproduced, binding scope); do not reconstruct finding text that was not delivered, and set `verification_reproduced` accurately (a static review is false even when the verdict is PASS). Give each reviewer an identity-keyed verdict PATH, not a fixed one, so a later review cannot silently overwrite an earlier verdict file. Never let a receipt imply endorsement of unreviewed corrections: a follow-up handoff's "Required invariants" is a PROPOSED corrected remediation contract — state explicitly that the reviewer has not reviewed or endorsed it (e.g. `reviewer_endorsement_of_corrections: false`) until a reviewer approves that successor snapshot. Ledger status updates are in-place transitions (e.g. NOT_REVIEWED → REQUEST_CHANGES) that preserve the prior row text as history; set the next decision explicitly (operator authorization of the bounded follow-up, not another review dispatch). Idempotency: if an instruction to record a verdict matches already-recorded state (same reviewer, verdict, candidate digest), do NOT rewrite the receipt — a new write changes its hash and fabricates a second record; verify the receipt fields, ledger lines, and preserved artifact hashes, then report confirmation. No audit-record write authorizes code changes, tests, provider calls, reviewer relaunch, adapter/runtime work, installation, activation, commit, push, merge, or deployment — say so. When the operator supplies a review verdict that was produced outside the orchestrator's observed session, mark provenance as operator-supplied in the receipt and do not claim the orchestrator observed or can attest the review session itself. When recording a second reviewer's verdict, first verify the first reviewer's receipt is preserved byte-identical by checking its SHA-256; report both receipt hashes in the ledger line.
 
 - Finding-provenance correction discipline (audit clarifications): when the operator directs a correction to finding attribution or numbering without authorizing a new review or candidate change, write a SEPARATE audit-clarification file (e.g. `track-b-aN-finding-provenance-clarification.md`) rather than editing the original review receipt. Preserve the original receipt byte-identical; the clarification file carries the corrected mapping (e.g. restored original N1–N6 numbering, verbatim finding statements) and explicitly states it does not supersede the original receipt. Update the ledger to reference the clarification path and SHA-256 while preserving the original receipt hash. Record any separately-categorized items (e.g. network-denial, profile-isolation, historical-verdict notes) as qualification caveats distinct from the reviewer's findings, not as substituted findings. State explicitly that the audit correction authorizes documentation updates only — no implementation, tests, provider calls, integration, installation, activation, commit, push, merge, or deployment.
 
@@ -589,6 +651,84 @@ and review provenance stay authoritative. See
   `cancel` transition and a provenance-preserving reason. Never mark it
   succeeded, reuse its idempotency key, or edit JSONL; first prove its
   folded state permits cancellation, then read back the terminal event.
+
+## Scope reduction, trust boundaries, and reviewer-case fidelity
+
+When repeated adversarial review rounds keep finding NEW instances of ONE
+architectural shape — a caller-supplied or observed value that reaches a
+decision without being bound to an authoritative source — the next repair
+cycle is usually the wrong move. Reduce the surface instead, and define the
+remaining trust boundary BEFORE patching.
+
+- **Read the authorization's scope qualifier before declaring a budget
+  spent.** A bound written "two repair cycles per newly discovered issue
+  group" is not "two cycles total"; the per-group clause is operative, and
+  reading it as a total silently kills authorized work. Read the envelope's
+  exact wording, state the reading you are acting on, and if you already told
+  the operator a bound was exhausted and it is not, correct that plainly
+  before continuing. An ambiguous clause is an authorization gap to return
+  once, not a judgement call to make silently.
+- **Removal beats defence for an authority surface.** Every cycle that adds
+  validation to a read path invites the next round to find the bypass you did
+  not close. Deleting the surface removes the class. Prefer the structural
+  property over the field check: if the admission path never reads the
+  untrusted store, a forged record cannot influence it, and that is cheaper
+  to defend and easier to prove than any schema validation.
+- **Define the remaining trust boundary before patching.** One row per value
+  that can influence a decision: value, authoritative source, who may supply
+  or alter it, validation rule, persisted binding, consumer, negative test.
+  Two rules govern such a table — observed evidence is never relabelled to
+  fit a requested identity, and the decision record is an immutable snapshot
+  rather than a grant. Starter files: `templates/trust-boundary-binding-table.md`
+  and `templates/focused-review-packet.md`. Full procedure:
+  `references/scope-reduction-and-trust-boundary.md`.
+- **A reviewer's test is a specification, not a suggestion.** An
+  implementer's report that a reviewer's tests now pass is evidence only if
+  you ran the reviewer's OWN preserved file; a candidate carrying a REWRITTEN
+  variant reports green while the reviewer's assertion still fails. When a
+  case is carried forward, diff its function body against the preserved
+  artifact and REPORT THE MEASURED byte-fidelity count — an implementer that
+  reports "all reviewer tests now pass" against its own rewritten copies is
+  an evidence defect even when the code is correct.
+- **Classify every replayed failure as behaviour-reaching or stale
+  precondition.** A test that fails at its own setup assertion — the fixture
+  was expected to be empty, to lack a key, to hold a different value — is a
+  stale precondition, not a defect in the code under test. Separate the two
+  classes explicitly, count only the first, and retain the stale ones
+  separately; a risk count inflated by stale preconditions misstates the
+  exposure and can wrongly exhaust a repair budget.
+- **Give each reviewer an identity-keyed verdict path.** A fixed path lets a
+  later review silently overwrite an earlier verdict file, and the overwritten
+  artifact cannot be recovered from the ledger. Key the path to the candidate
+  digest, and preserve each prior verdict byte-identical.
+- **Closed-set and manifest scripts enumerate WORKTREE content, not index
+  state.** A file staged-added and then deleted shows as `AD` in
+  `git status --porcelain` and trips a changed-path check even though it is
+  not candidate content. Unstage it (`git reset -- path`) so the candidate
+  state is unambiguous.
+- **Audit a `--query-file` prompt for Rich markup before dispatch.** Square
+  brackets and angle brackets outside a code fence are consumed by the Rich
+  parser and can mangle a path or a glob. Strip or rephrase them and
+  re-audit; the check is cheap and the mangling is silent.
+- **An unkeyed self-digest is corruption detection, not authenticity.** A
+  digest stored beside the record it covers is recomputable by whoever wrote
+  the record, so a self-digest check answers "were these bytes altered", never
+  "did an authorised writer produce these bytes" — it is a checksum, not a
+  signature. A helper that labels a self-digest-checked record "validated"
+  hands the next reader a false guarantee; either remove the read path or
+  require a fresh derivation and exact field comparison before returning
+  anything, and name the remaining digest for what it detects. See
+  `references/scope-reduction-and-trust-boundary.md`.
+- **A loop over an empty collection is a pass, not a check.** A verifier that
+  iterates a caller-supplied mapping performs zero comparisons when it is
+  empty and returns success. Require the expected binding to be present and
+  non-empty BEFORE the loop, and give that case its own typed refusal.
+- **Derive every claim about a failed run from the record, not from a
+  conclusion line.** A scripted report that prints "no tool calls" beside a
+  parsed record with seventy-four of them is a self-inflicted evidence
+  defect: the next reader trusts the sentence over the data. Compute the
+  claim, print it from the computed value, and never hardcode a
+  conclusion next to a derived fact.
 
 ## Boundaries
 

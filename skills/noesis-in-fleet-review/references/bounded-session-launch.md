@@ -149,7 +149,167 @@ read the verdict file from disk and validate its schema
 yourself (the skill's `noesis-in-fleet-review` step 5 covers
 that).
 
+## Selecting the contract file and naming the log in the launcher
+
+When the freeze tool versions the review CONTRACT filename by candidate
+identity (recommended — see `references/verdict-schema-and-digest-recipe.md`),
+the launcher must resolve `--query-file` dynamically instead of naming one
+file. Glob by the reviewer prefix and take the newest by mtime, and fail
+loudly when the glob is empty or ambiguous:
+
+```bash
+CONTRACT="$(ls -t "$ART"/contracts/GOVERNED-ROUTING-${UPPER}-REVIEW-CONTRACT-*.md 2>/dev/null | sed -n '1p')"
+[ -n "$CONTRACT" ] || { echo "no review contract for $PROFILE" >&2; exit 5; }
+```
+
+Use `sed -n '1p'` rather than `head -1` under `set -o pipefail`: `head`
+closing the pipe early can make the upstream command fail with SIGPIPE and
+turn a successful selection into a non-zero script exit.
+
+Name the log per lane, not per reviewer: `review-<profile>-<provider>.log`.
+A single per-reviewer log accumulates every attempt, so a later failed
+dispatch is indistinguishable from an earlier delivered one — and a reader
+who counts tool calls across the file attributes one attempt's calls to
+another. Segment a shared log by `session_id` before counting; a failed
+attempt's zero tool calls are the proof that nothing partial happened.
+
+## Enforcing per-session ceilings externally
+
+An envelope that authorises hard per-session ceilings — total tokens, tool
+calls, wall clock — is not satisfied by recording the limits. A ceiling you
+cannot enforce is an aspiration. `--run-budget` is rejected by the installed
+gateway CLI, and `--max-turns` bounds API-call ITERATIONS, not tool calls and
+not tokens. Enforce all three from a supervisor-side watchdog that wraps the
+launch and kills the process group on breach.
+
+### What the watchdog reads
+
+  total tokens   the profile's `state.db`, table `session_model_usage`,
+                 PRIMARY-task rows only (`task = ''`), summed as
+                 `input_tokens + output_tokens + cache_read_tokens +
+                 cache_write_tokens`. Cached tokens count toward the ceiling.
+                 The CLI's reported `total` is `input + output` where
+                 `input` already contains the cached portion, so sum the four
+                 columns yourself rather than trusting one "total" field.
+  tool calls     the live stream-json log, counting `"type": "tool_use"`
+                 records. This is the HIGHER of the two available measures —
+                 `state.db` reported 81 tool calls against 113 log records
+                 for the same session — so it binds conservatively.
+  wall clock     the watchdog's own deadline.
+
+**Scope the token sum by the SAME model predicate that selects the
+session.** Selecting the session by model but summing every model's rows
+charges a second model's usage to your ceiling. A row for a different model
+must be excluded by the query, not by a later subtraction.
+
+### Prove the watchdog before dispatching with it
+
+A watchdog shipped unproven is an assumption whose failure mode is a silent
+overrun. Prove it against a synthetic database before the first real launch:
+
+  - a cap the synthetic usage must breach — it must fire mid-run;
+  - a cap the same usage must not breach — it must not fire;
+  - a row for a DIFFERENT model — it must not be counted.
+
+Re-read the live profile `state.db` read-only; never write to it.
+
+### Kill semantics
+
+SIGTERM to the process group, then SIGKILL after a short grace. The watchdog
+never raises a ceiling, never extends a session, and never starts a
+replacement. A breach is a reported fact, not something to negotiate around.
+
+### A monitored ceiling is a threshold, not a hard limit
+
+Say which of the four layers a ceiling actually is, because they carry
+different guarantees and only one of them is a real maximum.
+
+  provider/runtime-enforced maximum   the upstream refuses past the number,
+                                     so the session cannot exceed it.
+  locally monitored limit            a supervisor observes usage and kills
+                                     the process group after crossing it.
+                                     The ceiling is DETECTED, not PREVENTED.
+  delayed or post-session reporting  the true total is not knowable at kill
+                                     time; the accounting settles later.
+  outstanding requests after cancel  requests already accepted by the
+                                     provider finish and are billed after the
+                                     process is gone.
+
+A ceiling enforced only by monitoring is breached BY THE MONITOR. Expect the
+measured total to exceed the nominal one, and never report a threshold as a
+hard limit.
+
+Why the overshoot is structural, not a tuning failure:
+
+  - **Detection happens after the crossing.** The supervisor polls, so it
+    observes the threshold already exceeded. The figure it reports at the
+    moment of the kill is a LOWER BOUND.
+  - **Usage accrues per API call, and cache reads dominate.** A long session
+    can spend most of its budget on cached context re-reads, and one API
+    call between two polls can carry a large increment. A short poll
+    interval cannot land on the ceiling.
+  - **In-flight requests finish after the kill.** The gateway completes and
+    records the requests that were already in flight, and keeps updating the
+    usage rows for minutes after the process group is gone. A session killed
+    mid-flight can still add a large fraction of its budget afterwards.
+  - **A signal cannot un-spend tokens.** SIGKILL stops new work; it does not
+    refund tokens the provider already accepted, nor erase rows already
+    written.
+
+So: read the TRUE total from the usage table AFTER the session settles,
+not the supervisor's reading at kill time, and report both when they
+differ. Quote the ceiling, the value observed at termination, the final
+recorded value, and the gap. An envelope that promised a hard ceiling and
+was served by monitoring alone has been breached, and the report says so
+with the overshoot measured.
+
+### Token usage is not financial cost
+
+Keep them apart in every report. The usage table records a cost status
+per provider, and the two common states are: a metered lane whose actual
+cost is unknown or unset, and a subscription lane whose usage is
+`included` and carries no per-session dollar figure. In both cases the
+recorded dollar amount is zero or absent while the tokens are large.
+
+Report the token totals, the ceiling, and the utilization. Report the cost
+fields only as the records state them, and when no per-session cost is
+derivable, say that no cost figure is available rather than estimating one
+from a token count. A token ceiling is a budget for consumption, and it
+must never be presented as a money figure.
+
+### Aggregate usage across sessions
+
+Per-session figures do not add up to the envelope's consumption. When an
+envelope covers several sessions, report the aggregate alongside the
+per-session breakdown: sessions authorized versus sessions used, total
+tokens and total tool calls against the sum of the per-session ceilings,
+and the sessions that consumed nothing. A report that shows only the
+largest single session understates what the envelope spent.
+
+### The frozen-identity gate
+
+Have the launcher recompute the candidate digest and refuse to dispatch on a
+mismatch (distinct non-zero exit). A dispatch delayed by hours — a provider
+quota window, a scheduled re-dispatch — must never review bytes that moved
+after the freeze.
+
+### A launch that dies at argument validation consumed nothing
+
+`exit 2`, zero tokens on every axis, zero tool calls, and NO session row in
+the profile `state.db` means the CLI refused the flags before any provider
+call. That is neither a used session nor a verdict: the authorised session is
+still outstanding, and the fix is to remove the unsupported flag. Check the
+CLI's own unsupported-option table before authoring a launch line, so the
+refusal never happens at all.
+
 ## Failure modes
+
+- `Unsupported gateway CLI options: --run-budget`: the installed gateway CLI
+  refuses this flag and relocates it to `agent.run_budget_seconds` in
+  config.yaml. It is rejected in ARGUMENT VALIDATION, so the launch exits 2
+  with zero tokens, zero tool calls and no session row — the authorised
+  session is NOT consumed. Remove the flag and enforce the wall-clock
+  ceiling externally, as described above.
 
 - `hermes: the checkout cannot start after an interrupted
   'hermes update'...`: the runtime's update recovery code fires

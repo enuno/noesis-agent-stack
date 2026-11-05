@@ -949,9 +949,12 @@ jobs:
           set -eu
           cat <<'EOF'
           Combined A+C baseline asserted by this job, measured with the hermetic recipe
-          after the stale G1 and G4 xfail markers were removed, and updated on
-          2026-11-05 when 14 council contract tests were added (PR #27):
-            passed=775 failed=0 skipped=2 xfailed=2 xpassed=0
+          after the stale G1 and G4 xfail markers were removed, updated on
+          2026-11-05 when 14 council contract tests were added (PR #27), and
+          updated again on 2026-11-05 when 16 council duo-slice tests were
+          added (Phase C), and again the same day when 2 cross-contract
+          seat-identifier tests were added (Codex review repair):
+            passed=793 failed=0 skipped=2 xfailed=2 xpassed=0
           These combined counts are exact. Do not turn them into floors.
           Focused A must be 39 passed. Focused C must be 147 passed.
           xfailed is G2 and G3 only. Do not delete those markers to go green.
@@ -1212,7 +1215,7 @@ jobs:
           ec=$?
           set -e
           cat "$RUNNER_TEMP/suite.txt"
-          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 775
+          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 793
           if [ "$ec" -ne 0 ]; then
             echo "combined orchestrator suite pytest exited $ec"
             exit "$ec"
