@@ -21,6 +21,10 @@ An uncommitted local skill edit is a policy violation, not a pending chore.
 ## When to use
 
 - Creating, editing, or patching a `noesis-*` skill in any profile's skills dir.
+- **A `skill_manage` call that writes a `noesis-*` skill.** `skill_manage` edits
+  the FLEET copy, so it starts this obligation immediately - in the same turn,
+  not in some later cleanup. A lesson captured in one turn and synced in a
+  later turn is drift, and the pre-commit gate will block the next commit.
 - Seeing drift in `scripts/sync-noesis-skills.py --status` or `--check`.
 - Reviewing or committing anything that touches `noesis-agent-stack/skills/`.
 
@@ -57,6 +61,17 @@ An uncommitted local skill edit is a policy violation, not a pending chore.
 
 ## Pitfalls
 
+- **The pre-commit gate checks the OPERATIONAL checkout, not your worktree.**
+  The hook resolves its repository root from the shared `.git/hooks` path, so
+  `skills-sync --check` always runs against the operator's primary checkout
+  regardless of which worktree you commit from. A commit in a linked worktree
+  therefore fails with `pre-commit: FAIL - noesis skill drift` even when that
+  worktree's `skills/` is perfectly in sync. The remedy is to sync the
+  OPERATIONAL checkout too - but back up the operator's uncommitted `skills/`
+  tree first and verify the sync is lossless, because `--sync` deletes and
+  recreates each destination directory and would discard untracked files there.
+  Never bypass this with `--no-verify`.
+
 - **`HERMES_HOME` is not the scan root.** Inside a fleet profile session it points
   at the profile dir (`~/.hermes/profiles/<p>`), which has no `profiles/` child.
   The script resolves the real root itself; if you write your own scan, resolve it
@@ -64,10 +79,41 @@ An uncommitted local skill edit is a policy violation, not a pending chore.
   it the fleet.
 - **Digest must be recursive.** Hashing only `SKILL.md` misses edits to
   `references/*.md`, which is where most of these skills' content actually lives.
+- **The manifest digest is a TREE digest, not a file digest.** Each entry
+  carries `source_digest_sha256` and `repo_digest_sha256`, computed over
+  path+bytes for every file in the skill directory. To check whether ONE file
+  matches, hash that file directly; to check whether the whole skill matches,
+  compare the manifest's tree digests. A per-file digest you compute will
+  never equal the manifest's digest, and treating that mismatch as drift sends
+  you chasing a problem you do not have.
 - **`_skill_library_update.json` is excluded** from the durable copy — it records
   the author's home-directory source path and leaks private paths into git.
 - A skill added on another machine, or from another profile, still syncs from
   here: the scan covers `~/.hermes/profiles/*/skills` and `~/.hermes/skills`.
+
+- **Drift in a fleet copy is often NOT yours — attribute it before you claim
+  it or fix it.** Hermes' background curator rewrites profile skill copies on
+  its own schedule, so a `noesis-*` fleet copy can differ from the repo copy
+  without you having edited anything. Attribution evidence lives in two
+  places: the curator ledger at
+  `~/.hermes/profiles/<p>/skills/.curator_ledger.jsonl` (timestamped actions)
+  and the pre-edit blobs under `~/.hermes/profiles/<p>/.curator_backups/blobs/`
+  (a blob whose hash equals the repo copy's hash proves the fleet copy ALREADY
+  differed before the curator's edit — i.e. the drift pre-dates the curator
+  run and pre-dates your session). Compare hashes and mtimes before
+  attributing drift to yourself, and before reporting a drift you did not
+  cause as your own uncommitted skill edit.
+
+- **When an envelope forbids touching the operational checkout or
+  committing, REPORT drift — do not remediate it.** `--sync` writes into the
+  operational checkout's `skills/` and clears Gate 3 only via a commit, so a
+  bounded envelope that preserves the checkout and excludes commits cannot
+  clear drift. Record the drifted skill names, the attribution evidence, and
+  the exact remediation command (`scripts/sync-noesis-skills.py --sync`, then
+  commit `skills/noesis-*/` with `skills/noesis-skills.manifest.json`), and
+  hand it to the operator as an outstanding obligation alongside that
+  envelope's own next-decision request. Do not let an unrelated envelope
+  silently expand into a repo mutation.
 
 ## Commands
 

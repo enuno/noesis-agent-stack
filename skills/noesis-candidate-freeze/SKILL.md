@@ -51,7 +51,11 @@ contracts / operator packets that name a digest.
 6. Compute the reviewer-side pins (profile manifests for each reviewer profile)
    and confirm source-base HEADs are unchanged.
 7. Only then write reviewer contracts and the operator packet naming the digest,
-   and fill the packet's artifact hash table.
+   and fill the packet's artifact hash table. Fill every count, size, and digest
+   in that table from MEASUREMENT, never by hand -- a wrong number in the
+   packet's identity block blocks the review at the identity gate before it
+   examines anything. See the `noesis-in-fleet-review` skill's
+   `references/review-packet-identity.md`.
 
 ## Pitfalls
 
@@ -90,3 +94,45 @@ contracts / operator packets that name a digest.
   environmental failure that reads as a candidate defect. Verify every test
   command in an orchestrator-authored remediation contract by executing it
   once (with the exact env prefix) before dispatch.
+- **Extend the freeze's closed path set BEFORE re-freezing when a repair
+  contract permits a NEW file.** A repair cycle allowed to add a regression
+  test file otherwise makes that file read as out-of-scope drift: the freeze
+  refuses to emit reviewer contracts, and widening the set after the fact
+  reads as scope laundering. Add the permitted path to the freeze tool's
+  closed set at the same time you write the repair contract, then re-freeze
+  and record the new identity. A superseded digest is never rewritten in
+  place — the prior identity and its verdicts stay on disk, still bound to
+  the bytes they actually reviewed.
+- Verify each repair regression's teeth by mutation before freezing: copy the
+  whole tree, revert only the fix, and confirm the regression fails for the
+  intended reason. See `noesis-control-plane-dev` for the exact recipe and the
+  fixture-resolution pitfall.
+- **Key every review artifact path to the candidate identity, not to a fixed
+  name.** The freeze tool is the generator: if it emits `VERDICT-1.md`, the
+  reviewer writes there — correctly, because the contract names that path —
+  and the next round's verdict overwrites the previous round's file,
+  destroying the evidence that justified the repair cycle that followed. Derive
+  the verdict path AND the review-contract filename from the candidate digest,
+  and make the launcher select the newest matching contract rather than a
+  hard-coded name. When a fixed path has already caused an overwrite, the
+  earlier verdict's text may be unrecoverable if the shared session log does
+  not carry tool inputs: preserve what survives in the mission ledger, state
+  the loss plainly, and do not reconstruct the reviewer's words.
+- **Verify the WHOLE frozen tree before AND after the review — not just the
+  candidate-path digest.** The candidate digest covers the closed path set; it
+  does not cover a file written elsewhere in the tree, and a file written
+  under an ignored path never appears in `git status` at all. Capture a
+  per-file sha256 inventory of EVERY file in the worktree (excluding `.git`)
+  before the launch, and after the reviewer exits re-hash the whole tree:
+  nothing added, nothing removed, nothing changed, and no
+  `__pycache__`/`.pyc`/generated artifact. The reviewer does all executable
+  work — tests, compilation, mutation probes, generated output — in a
+  disposable copy OUTSIDE the tree with bytecode writing disabled, so the
+  frozen tree cannot gain a generated file even by accident. Compare the
+  post-review `git status --porcelain -uall` byte-for-byte against the frozen
+  status manifest as well: a status comparison alone misses an ignored path,
+  and a digest comparison alone misses a file outside the closed set. Use
+  `--untracked-files=all` for that comparison — plain porcelain collapses an
+  untracked directory into one entry and hides a new file inside it. Any
+  difference is an integrity deviation, not a rounding error: report it
+  against the candidate, do not absorb it.

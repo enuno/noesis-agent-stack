@@ -121,6 +121,14 @@ When a specialist was dispatched as a background `hermes -p <profile> -m
 notification is a claim, not evidence. Run this checklist before
 dispatching any next stage.
 
+A completion notification that arrives long after the work finished
+describes a PAST state. Reconcile it against what actually shipped — the
+merge commit's tree, the merged file contents, the CI run's head SHA — not
+against the digest it names, and never let it restart work or re-open a
+resolved finding. The procedure is in the sibling skill
+`merge-ready-publication-packet`, in its `review-handoff-hygiene.md`
+reference.
+
 Before launching a reviewer, freeze the complete review packet: candidate and
 tree identity, all mandatory discrepancies, evidence limitations, prohibited
 actions, output path, and verdict vocabulary. Hash the packet in durable
@@ -399,6 +407,38 @@ as reviewed.
   `predecessor_attempt_id`. A retry that does not record
   the failure is a budget-accounting defect.
 
+- **A supervisor's exit code is not the worker's outcome, and the numbers it
+  reports at kill time are lower bounds.** A monitor that ends with an
+  unconditional success exit makes a killed session indistinguishable from a
+  completed one; the child's own exit code and terminating signal must be
+  carried through separately, and a signal must be recorded as a signal, never
+  as an exit code. Three ordering and aggregation rules decide whether the
+  monitor's report is true at all:
+  - **Capture the at-termination snapshot BEFORE joining the child's stdout
+    pipe.** The join blocks while a worker that outlived the child still holds
+    the pipe open, so a snapshot taken after the join misreads late writes as
+    pre-existing: late artifacts go unrecorded and late accounting is
+    reported as settled.
+  - **Evaluate a ceiling against the LARGER of the runtime counter and the
+    log-scraped counter.** Either can lead — a session's runtime row can lag
+    a live stream — and using the smaller can miss a real breach. The larger
+    value can only stop the monitor earlier, never later. It is conservative;
+    it is not a complete aggregate, and must not be presented as one.
+  - **Name the kill-time figure a lower bound.** In-flight requests finish
+    after the kill and are billed, and the accounting settles later. A quiet
+    interval is not settlement: where reliable confirmation is unavailable,
+    report the accounting as unresolved.
+
+  Process-group termination is best-effort cancellation, not proof of global
+  quiescence — a worker in its own session survives it and keeps writing. A
+  late artifact is valid evidence but does not erase a limit breach, and does
+  not prove execution stopped when the monitor exited. Distinguish these
+  states explicitly rather than collapsing them into one "stopped" verdict:
+  child completed, child failed, limit-triggered stop requested, execution
+  observed stopped, execution state unknown, accounting unsettled. The
+  checklist and the launch-side details live in the `noesis-in-fleet-review`
+  skill, under its `references/operator-mediated-launch-and-readiness.md`.
+
 - **Do not treat another specialist's in-flight worktree as candidate
   evidence.** Concurrent dispatches on disjoint worktrees are allowed
   even on the same profile (one owner per writable worktree); the
@@ -469,6 +509,25 @@ as reviewed.
   invocation failure. Re-issue ONCE with explicit minimal valid
   arguments (e.g. `action=list`) to surface the true schema error;
   never loop the empty call.
+
+- **Pass a nested array of item objects as a JSON string when the call
+  drops the items' keys.** An array whose objects silently lose their
+  `id` or `text` fails validation before the tool runs, and it fails
+  intermittently, so a retry that happens to succeed reads as flakiness
+  rather than as a shape defect. Serialize the array once and pass the
+  string, keeping each object's fields identical to what the tool
+  expects. This is a payload-shape problem, so fixing it by editing the
+  items is the wrong repair.
+
+- **A state that ages out of a display surface is not a state
+  transition.** Plan, queue, and checklist surfaces that hold a finished
+  item for a bounded window and then stop showing it are ageing out, not
+  losing the record: the durable store still holds every item. Read the
+  store's projection before re-declaring, re-setting, or clearing
+  anything — re-setting restarts the window and fabricates a fresh
+  completion, and clearing what looks like an empty panel destroys the
+  record you were about to read. Distinguish a display window from a
+  durable record, and treat the record as the authority.
 
 - **Do not import reconstructed Hermes runner entrypoints during a read-only
   review without checking early-recovery behavior first.** Importing

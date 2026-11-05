@@ -97,7 +97,7 @@
       "required": ["reached", "explanation"],
       "properties": {
         "reached": {"type": "boolean"},
-        "position": {"type": "string"},
+        "position": {"type": ["string", "null"]},
         "explanation": {"type": "string", "minLength": 1}
       }
     },
@@ -181,6 +181,12 @@
         "enforcement_breakdown": {"type": "object"},
         "chairman_failed_fallback": {"type": "boolean"},
         "fallbacks_triggered": {"type": "array", "items": {"type": "string"}},
+        "stop_condition": {
+          "type": ["string", "null"],
+          "enum": ["split_verdict", "budget_exhausted", "lease_expiry",
+                    "operator_cancel", "quorum_shortfall", null],
+          "description": "Null on a completed session. Partial panels record why they stopped."
+        },
         "fencing": {
           "type": "object",
           "additionalProperties": false,
