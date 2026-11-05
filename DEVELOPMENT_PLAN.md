@@ -2,6 +2,17 @@
 
 This development plan turns the platform specification into a build sequence for a Hermes-supervised, OpenClaw-backed multi-agent system. It assumes Hermes remains the conscious operator and final routing authority, while Research and Subconscious run as bounded OpenClaw worker profiles behind a broker control plane.[cite:126]
 
+> **Status banner (2026-11-05):** Phases 0–7 below are the historical roadmap
+> for the original broker-centric platform (OpenClaw workers, MemPalace,
+> main-hermes supervisor). They are preserved for provenance. The current
+> authoritative architecture is the durable task-contract control plane in
+> `orchestration/orchestrator/` (see `orchestration/orchestrator/README.md`,
+> `contracts/orchestration/task-contract.schema.json`, `WORKFLOWS.md` §5,
+> `platform/risk-tiers.yaml`, `platform/inference-routing.yaml`, and
+> `profiles/noesis-roster.yaml`). All new work — including the proposed
+> Council workstream (§Phase 8, proposed) — targets the task-contract
+> architecture, not the historical phases.
+
 ## Objectives
 
 - Stand up a repo that cleanly separates supervisor logic, worker runtimes, contracts, and workspace state.[cite:126]
@@ -272,6 +283,65 @@ After the core loop is stable, expand into content, ops, and treasury profiles u
 - handoff schemas for content, ops, and treasury
 - schedule definitions for recurring workflows
 - docs and ADRs for each new lane
+
+## Phase 8 (PROPOSED): Council advisory deliberation workstream
+
+Integrate Council of High Intelligence (upstream: 0xNyk/council-of-high-intelligence,
+MIT, vendored reference digest recorded in the ADR) as a bounded advisory
+capability invoked through existing task contracts and specialist handoffs.
+Council convenes as a parent task contract (`parent_task_id` linkage) whose
+per-seat rounds are child contracts on existing eligible roster profiles. It
+is not an orchestrator, approval authority, runtime supervisor, or ledger.
+
+- Workflow definitions, contracts, skills, and acceptance tests: this repo.
+- No daemon, container, port, or service (verified against upstream at
+  14d398f44…). `noesis-ansible` and `noesis-command-and-control`: no changes
+  required for Phases A–D.
+- Upstream provider auto-detection and native-host fallback are NOT adopted;
+  every seat resolves its inference route through `platform/inference-routing.yaml`.
+- Verdicts are advisory artifacts with dissent preserved; they are never
+  execution authorization, task acceptance, release approval, or spend
+  permission. Acceptance stays with the orchestrator and human gates.
+
+### Phase-A deliverables (discovery)
+
+- `docs/decision-council-integration-2026-11-05.md` — ADR: architecture choice,
+  authority boundaries, mode semantics, threat model summary, recorded upstream
+  revision and vendored-digest policy.
+- README correction and this phase entry.
+
+### Phase-B deliverables (contracts + offline fixtures)
+
+- `contracts/orchestration/council-session.schema.json` — session/parent metadata
+  extension reusing `task-contract.schema.json` (no schema changes to the
+  existing contract; new schema references it via `parent_task_id` + `labels`).
+- `contracts/orchestration/council-verdict.schema.json` — verdict artifact:
+  positions, weighted tally, dissent/minority report, kill criteria, acceptable
+  compromises, evidence-label map, session metadata block (mode, panel_size,
+  rounds_run, fencing IDs).
+- `orchestration/orchestrator/tests/fixtures/council/` — deterministic offline
+  fixtures: sealed Round-1 envelopes, anonymized Round-2 release, split-verdict
+  and exhausted-budget cases.
+
+### Phase-C deliverables (minimal governed vertical slice — duo mode)
+
+- `skills/noesis-council/` — SKILL.md implementing the duo protocol as governed
+  workflow stages (seat selection → blind Round 1 → anonymized exchange →
+  chairman synthesis) on top of `delegated-task.v1` handoffs; persona/lens
+  mapping table (Socrates→noesis-skeptic, Taleb→noesis-sentinel, Aristotle→
+  noesis-architect, Munger/Meadows→noesis-optimizer, plus adversarial-strategy
+  and user-outcome seats drawn from the specialist roster; chairs rotate by
+  exclusion).
+- `orchestration/orchestrator/app/council.py` (read-only projection +
+  session assembly only; never imports `TaskStore`/`DelegationStore` mutators —
+  per `skills/noesis-control-plane-dev/SKILL.md` authority-isolation rule).
+
+### Phase-D–F (review, qualification, rollout)
+
+Independent Sentinel/Skeptic review of the slice; separately authorized
+runtime qualification and bounded live canary; broader modes (triad, full)
+only after explicit acceptance per mode. See the ADR for gates and open
+questions.
 
 ## Recommended build order
 
