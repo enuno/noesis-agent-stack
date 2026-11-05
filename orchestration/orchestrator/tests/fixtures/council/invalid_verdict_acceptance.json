@@ -1,0 +1,19 @@
+{
+  "comment": "NEGATIVE FIXTURE: a verdict that carries an acceptance disposition. Must fail council-verdict.schema.json additionalProperties. Verdicts are advisory; acceptance lives on the parent task contract only.",
+  "schema_version": "noesis.council-verdict/v1",
+  "session_id": "council-demo-duo-0001",
+  "parent_task_id": "task-demo-parent-0001",
+  "council_revision": {"upstream_rev": "14d398f44771be1fc49488ab1b8a348ed76ca172", "protocol_mode_version": "duo@1"},
+  "mode": "duo",
+  "decision_question": "Should we proceed?",
+  "positions": [{"seat_id": "s1", "stance": "yes", "confidence_basis": "test", "known_limitations": []}],
+  "tally": {"method": "confidence_weighted_2of3", "threshold": 0.667, "options": [{"option": "yes", "weight": 1.0, "backers": ["s1"], "cleared_threshold": true}]},
+  "consensus": {"reached": true, "position": "yes", "explanation": "unanimous"},
+  "acceptable_compromises": [],
+  "kill_criteria": [{"condition": "never observed", "observable_by": "2026-12-01T00:00:00Z", "action_on_trigger": "revisit"}],
+  "concrete_next_step": {"verb": "file", "object": "the artifact", "owner": "operator", "due": "2026-12-01T00:00:00Z"},
+  "unresolved_questions": [],
+  "usage": {"observed": {}, "estimated": {}, "unknown_fields": ["everything"]},
+  "session_metadata": {"panel_size": 1, "rounds_run": 1, "fencing": {"task_version": 0, "epoch": 0}},
+  "acceptance_disposition": "accepted"
+}

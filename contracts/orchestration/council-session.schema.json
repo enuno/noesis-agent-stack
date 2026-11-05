@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/orchestration/council-session.schema.json",
+  "title": "CouncilSession",
+  "description": "Advisory multi-perspective deliberation session bound to an existing orchestrator task contract via parent_task_id. A CouncilSession never mutates the parent task's lifecycle, approval state, or acceptance; it produces an advisory verdict artifact (council-verdict.schema.json) consumed as evidence by the orchestrator/human acceptance path. Mode names (duo/quick/triad/full) are upstream protocol modes, NOT Noesis risk tiers. Seats resolve inference routes exclusively through platform/inference-routing.yaml; there is no provider auto-detection and no fallback to a less-private route or native host.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "session_id",
+    "parent_task_id",
+    "council_revision",
+    "mode",
+    "fencing",
+    "decision",
+    "seats",
+    "limits",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {"const": "noesis.council-session/v1"},
+    "session_id": {"type": "string", "minLength": 1},
+    "parent_task_id": {"type": "string", "minLength": 1},
+    "council_revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["upstream_repo", "upstream_rev", "protocol_mode_version"],
+      "properties": {
+        "upstream_repo": {"const": "0xNyk/council-of-high-intelligence"},
+        "upstream_rev": {"type": "string", "minLength": 7},
+        "protocol_mode_version": {"type": "string", "minLength": 1},
+        "vendored_docs_digest": {"type": "string"}
+      }
+    },
+    "mode": {"enum": ["duo", "quick", "triad", "full"]},
+    "fencing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task_version", "epoch"],
+      "properties": {
+        "task_version": {"type": "integer", "minimum": 0},
+        "epoch": {"type": "integer", "minimum": 0},
+        "attempt_id": {"type": "string"}
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question", "alternatives", "constraints", "reversible"],
+      "properties": {
+        "question": {"type": "string", "minLength": 1},
+        "alternatives": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "constraints": {"type": "array", "items": {"type": "string"}},
+        "deadline": {"type": "string", "format": "date-time"},
+        "reversible": {"type": "boolean"}
+      }
+    },
+    "evidence_manifest": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ref", "provenance", "sensitivity"],
+        "properties": {
+          "ref": {"type": "string", "minLength": 1},
+          "provenance": {"type": "string", "minLength": 1},
+          "freshness": {"type": "string", "format": "date-time"},
+          "sensitivity": {"enum": ["public", "internal", "sensitive"]},
+          "labels": {
+            "type": "array",
+            "items": {"enum": ["FACT", "INFERENCE", "ASSUMPTION", "UNKNOWN"]}
+          }
+        }
+      }
+    },
+    "seats": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 18,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["seat_id", "profile", "lens", "inference_route", "budget"],
+        "properties": {
+          "seat_id": {"type": "string", "minLength": 1},
+          "profile": {"type": "string", "minLength": 1},
+          "lens": {"type": "string", "minLength": 1},
+          "inference_route": {"type": "string", "minLength": 1},
+          "budget": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["max_output_tokens", "round_timeout_s"],
+            "properties": {
+              "max_output_tokens": {"type": "integer", "minimum": 1},
+              "round_timeout_s": {"type": "integer", "minimum": 1}
+            }
+          },
+          "write_scope": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "chairman": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile", "excluded_from_panel"],
+      "properties": {
+        "profile": {"type": "string", "minLength": 1},
+        "excluded_from_panel": {"const": true}
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rounds", "max_concurrent_seats", "cost_ceiling"],
+      "properties": {
+        "rounds": {"type": "integer", "minimum": 1, "maximum": 3},
+        "max_concurrent_seats": {"type": "integer", "minimum": 1, "maximum": 4},
+        "cost_ceiling": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["unit"],
+          "properties": {
+            "unit": {"const": "tokens"},
+            "estimated_tokens": {"type": "integer", "minimum": 0},
+            "observed_tokens": {"type": "integer", "minimum": 0},
+            "currency_value": {"type": "null"},
+            "currency_note": {"type": "string"}
+          }
+        },
+        "session_timeout_s": {"type": "integer", "minimum": 1}
+      }
+    },
+    "stop_conditions": {
+      "type": "array",
+      "items": {
+        "enum": ["split_verdict", "budget_exhausted", "lease_expiry", "operator_cancel", "quorum_shortfall"]
+      }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "artifact_ttl_days": {"type": "integer", "minimum": 1},
+        "sensitivity_class": {"enum": ["public", "internal", "sensitive"]}
+      }
+    },
+    "created_at": {"type": "string", "format": "date-time"}
+  },
+  "$defs": {
+    "sealed_envelope": {
+      "title": "SealedRoundOneEnvelope",
+      "description": "Per-seat Round-1 context envelope. MUST NOT contain peer seat identities, peer profile names, or any peer positions. Blind-first is enforced by construction and tested (test_council_contracts.py), not by prompt instruction.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question", "alternatives", "constraints"],
+      "properties": {
+        "question": {"type": "string", "minLength": 1},
+        "alternatives": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "constraints": {"type": "array", "items": {"type": "string"}},
+        "evidence_refs": {"type": "array", "items": {"type": "string"}},
+        "sensitivity": {"enum": ["public", "internal", "sensitive"]}
+      },
+      "not": {
+        "anyOf": [
+          {"required": ["peers"]},
+          {"required": ["peer_positions"]},
+          {"required": ["other_seats"]},
+          {"required": ["positions"]}
+        ]
+      }
+    },
+    "anonymized_release": {
+      "title": "AnonymizedCrossExamRelease",
+      "description": "Round-2 controlled release keyed by seat_id only; profile names are never included.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^s[0-9]+$": {"type": "string"}
+      },
+      "minProperties": 1
+    }
+  }
+}

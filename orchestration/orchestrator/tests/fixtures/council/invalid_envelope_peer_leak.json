@@ -1,0 +1,10 @@
+{
+  "comment": "NEGATIVE FIXTURE: a Round-1 envelope that leaks peer identity. Must fail the sealed_envelope schema ($defs.sealed_envelope 'not' clause).",
+  "seat_id": "s1",
+  "envelope": {
+    "question": "Should we proceed?",
+    "alternatives": ["yes", "no"],
+    "constraints": [],
+    "peers": [{"seat_id": "s2", "profile": "noesis-architect"}]
+  }
+}
