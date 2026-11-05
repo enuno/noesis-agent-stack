@@ -1,0 +1,93 @@
+{
+  "schema_version": "noesis.council-verdict/v1",
+  "session_id": "council-demo-duo-0001",
+  "parent_task_id": "task-demo-parent-0001",
+  "council_revision": {
+    "upstream_repo": "0xNyk/council-of-high-intelligence",
+    "upstream_rev": "14d398f44771be1fc49488ab1b8a348ed76ca172",
+    "protocol_mode_version": "duo@1"
+  },
+  "mode": "duo",
+  "decision_question": "Should the council vertical slice ship as a duo-mode-only capability first?",
+  "positions": [
+    {
+      "seat_id": "s1",
+      "profile": "noesis-skeptic",
+      "lens": "socrates",
+      "stance": "ship duo first — a full protocol built without a live duo slice is an unexamined assumption",
+      "evidence_labels": {
+        "FACT": ["docs/decision-council-integration-2026-11-05.md phases A-D are docs/contracts/tests only"],
+        "INFERENCE": ["duo exercises every authority boundary the full panel does, at one ninth the seat count"],
+        "ASSUMPTION": ["a later full-mode expansion will not need contract changes"],
+        "UNKNOWN": ["whether quick and triad share a quorum floor"]
+      },
+      "confidence_basis": "every claimed authority boundary is testable in duo mode",
+      "known_limitations": ["cannot observe multi-seat dissent dynamics present only in larger panels"]
+    },
+    {
+      "seat_id": "s2",
+      "profile": "noesis-architect",
+      "lens": "aristotle",
+      "stance": "build full protocol first — duo under-exercises the anonymized cross-examination stage",
+      "evidence_labels": {
+        "FACT": ["the full mode adds an anonymized Round 2 that duo abbreviates"],
+        "INFERENCE": ["cross-examination is where leak and suppression defects surface"],
+        "UNKNOWN": ["actual defect rate difference between abbreviated and full exchange"]
+      },
+      "confidence_basis": "stage coverage argument",
+      "known_limitations": ["higher cost and longer feedback loop before any observable behavior"]
+    }
+  ],
+  "tally": {
+    "method": "confidence_weighted_2of3",
+    "threshold": 0.667,
+    "options": [
+      {"option": "ship duo first", "weight": 1.0, "backers": ["s1"], "cleared_threshold": false},
+      {"option": "build full protocol first", "weight": 1.0, "backers": ["s2"], "cleared_threshold": false}
+    ],
+    "no_option_carried": true
+  },
+  "consensus": {
+    "reached": false,
+    "explanation": "Split verdict: neither option cleared the weighted threshold. The round budget is spent; the dilemma is escalated to the orchestrator/operator. No extra round was run."
+  },
+  "acceptable_compromises": [
+    "duo slice ships with its abbreviated exchange stage explicitly labeled a protocol deviation",
+    "full-mode cross-examination is covered by deterministic fixture tests before any live full session"
+  ],
+  "kill_criteria": [
+    {
+      "condition": "duo slice review finds a leak path that fixture tests did not cover",
+      "observable_by": "2026-12-05T00:00:00Z",
+      "action_on_trigger": "halt council workstream; revert to direct-answer workflow"
+    }
+  ],
+  "concrete_next_step": {
+    "verb": "authorize",
+    "object": "Phase C duo vertical slice implementation",
+    "owner": "operator",
+    "due": "2026-11-12T00:00:00Z"
+  },
+  "unresolved_questions": [
+    "whether quick and triad share a quorum floor (UNKNOWN in both positions)",
+    "actual defect rate difference between abbreviated and full exchange (UNKNOWN in s2)"
+  ],
+  "dissent": {
+    "minority_report": "s2 maintains that shipping duo first risks certifying an exchange stage that has never been adversarially exercised; s1 maintains that an unshipped full protocol certifies nothing at all.",
+    "points_of_disagreement": ["whether stage coverage or feedback loop length dominates risk"]
+  },
+  "synthesis_notes": "Chairman (noesis-quill, excluded from panel) synthesized positions; both positions recorded verbatim before release and are immutable in this artifact.",
+  "usage": {
+    "observed": {"input_tokens": 0, "output_tokens": 0, "duration_s": 0},
+    "estimated": {"input_tokens": 4800, "output_tokens": 4800},
+    "unknown_fields": ["observed input_tokens", "observed output_tokens", "observed duration_s", "currency value"]
+  },
+  "session_metadata": {
+    "panel_size": 2,
+    "rounds_run": 2,
+    "enforcement_breakdown": {"novelty_gate": 0, "dissent_quota": 0, "agreement_check": 0, "anti_recursion": 0, "missing_stance": 0},
+    "chairman_failed_fallback": false,
+    "fallbacks_triggered": [],
+    "fencing": {"task_version": 0, "epoch": 0}
+  }
+}

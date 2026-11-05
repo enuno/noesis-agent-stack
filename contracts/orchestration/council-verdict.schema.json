@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/enuno/noesis-agent-stack/contracts/orchestration/council-verdict.schema.json",
+  "title": "CouncilVerdict",
+  "description": "Advisory deliberation artifact produced by a CouncilSession. A verdict is evidence for the parent task's orchestrator/human acceptance path — never execution authorization, task acceptance, release approval, or spend permission. Deliberately contains no approval, acceptance, or lifecycle fields. Dissent is preserved structurally: positions are recorded independently before release and cannot be removed by synthesis. Usage/cost is recorded as observed vs estimated vs unknown, distinctly.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "session_id",
+    "parent_task_id",
+    "council_revision",
+    "mode",
+    "decision_question",
+    "positions",
+    "tally",
+    "consensus",
+    "acceptable_compromises",
+    "kill_criteria",
+    "concrete_next_step",
+    "unresolved_questions",
+    "usage",
+    "session_metadata"
+  ],
+  "properties": {
+    "schema_version": {"const": "noesis.council-verdict/v1"},
+    "session_id": {"type": "string", "minLength": 1},
+    "parent_task_id": {"type": "string", "minLength": 1},
+    "council_revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["upstream_rev", "protocol_mode_version"],
+      "properties": {
+        "upstream_repo": {"const": "0xNyk/council-of-high-intelligence"},
+        "upstream_rev": {"type": "string", "minLength": 7},
+        "protocol_mode_version": {"type": "string", "minLength": 1}
+      }
+    },
+    "mode": {"enum": ["duo", "quick", "triad", "full"]},
+    "decision_question": {"type": "string", "minLength": 1},
+    "positions": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Final per-seat positions, recorded independently. Synthesis cannot remove or rewrite a position; disagreement survives here even when consensus is declared.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["seat_id", "stance", "confidence_basis", "known_limitations"],
+        "properties": {
+          "seat_id": {"type": "string", "minLength": 1},
+          "profile": {"type": "string", "minLength": 1},
+          "lens": {"type": "string"},
+          "stance": {"type": "string", "minLength": 1},
+          "evidence_labels": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "FACT": {"type": "array", "items": {"type": "string"}},
+              "INFERENCE": {"type": "array", "items": {"type": "string"}},
+              "ASSUMPTION": {"type": "array", "items": {"type": "string"}},
+              "UNKNOWN": {"type": "array", "items": {"type": "string"}}
+            }
+          },
+          "confidence_basis": {"type": "string", "minLength": 1},
+          "known_limitations": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "tally": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "threshold", "options"],
+      "properties": {
+        "method": {"const": "confidence_weighted_2of3"},
+        "threshold": {"type": "number"},
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["option", "weight", "backers"],
+            "properties": {
+              "option": {"type": "string", "minLength": 1},
+              "weight": {"type": "number", "minimum": 0},
+              "backers": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+              "cleared_threshold": {"type": "boolean"}
+            }
+          }
+        },
+        "no_option_carried": {"type": "boolean"}
+      }
+    },
+    "consensus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reached", "explanation"],
+      "properties": {
+        "reached": {"type": "boolean"},
+        "position": {"type": "string"},
+        "explanation": {"type": "string", "minLength": 1}
+      }
+    },
+    "acceptable_compromises": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "What the verdict gives up, named explicitly. Empty array allowed only with explicit 'nothing traded' explanation carried in the synthesis_notes."
+    },
+    "kill_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Observable, dated falsification conditions. Each must be checkable without re-convening the council.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["condition", "observable_by", "action_on_trigger"],
+        "properties": {
+          "condition": {"type": "string", "minLength": 1},
+          "observable_by": {"type": "string", "format": "date-time"},
+          "action_on_trigger": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "concrete_next_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verb", "object", "owner", "due"],
+      "description": "Exactly one action, artifact-producing verb, owned and dated. Never 'consider' or 'explore'. This is a PROPOSAL for the orchestrator/human — not an execution instruction.",
+      "properties": {
+        "verb": {"type": "string", "minLength": 1},
+        "object": {"type": "string", "minLength": 1},
+        "owner": {"type": "string", "minLength": 1},
+        "due": {"type": "string", "format": "date-time"}
+      }
+    },
+    "unresolved_questions": {
+      "type": "array",
+      "description": "What the council does NOT know. UNKNOWN-labelled evidence must appear here.",
+      "items": {"type": "string"}
+    },
+    "dissent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "minority_report": {"type": "string"},
+        "points_of_disagreement": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "synthesis_notes": {"type": "string"},
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observed", "estimated", "unknown_fields"],
+      "description": "Observed vs estimated vs unknown recorded distinctly. Never present estimates as observations.",
+      "properties": {
+        "observed": {
+          "type": "object",
+          "properties": {
+            "input_tokens": {"type": "integer", "minimum": 0},
+            "output_tokens": {"type": "integer", "minimum": 0},
+            "duration_s": {"type": "number", "minimum": 0}
+          }
+        },
+        "estimated": {
+          "type": "object",
+          "properties": {
+            "input_tokens": {"type": "integer", "minimum": 0},
+            "output_tokens": {"type": "integer", "minimum": 0}
+          }
+        },
+        "unknown_fields": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "session_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["panel_size", "rounds_run", "fencing"],
+      "properties": {
+        "panel_size": {"type": "integer", "minimum": 1},
+        "rounds_run": {"type": "integer", "minimum": 1, "maximum": 3},
+        "enforcement_breakdown": {"type": "object"},
+        "chairman_failed_fallback": {"type": "boolean"},
+        "fallbacks_triggered": {"type": "array", "items": {"type": "string"}},
+        "fencing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["task_version", "epoch"],
+          "properties": {
+            "task_version": {"type": "integer", "minimum": 0},
+            "epoch": {"type": "integer", "minimum": 0}
+          }
+        }
+      }
+    }
+  }
+}

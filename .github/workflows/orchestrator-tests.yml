@@ -56,7 +56,7 @@ name: Orchestrator A and C validation
 #     passed >= 608, failed = 0, skipped = 2, xfailed = 2, xpassed = 0
 #     608 is the measured base+CI tree. Every proposed merge state contains it.
 #   Combined A+C merged onto that revision. These counts are exact, not floors:
-#     passed = 761, failed = 0, skipped = 2, xfailed = 2, xpassed = 0
+#     passed = 775, failed = 0, skipped = 2, xfailed = 2, xpassed = 0
 #   Focused A on that combined tree: 39 passed (exact)
 #   Focused C on that combined tree: 147 passed (exact)
 #   Event-tree focused A: 3 files present -> passed >= 39; 2 files present ->
@@ -68,7 +68,7 @@ name: Orchestrator A and C validation
 #   base+CI      608 passed, 2 skipped, 2 xfailed; focused A 33; C absent
 #   base+CI+A    614 passed, 2 skipped, 2 xfailed; focused A 39; C absent
 #   base+CI+C    755 passed, 2 skipped, 2 xfailed; focused A 33; focused C 147
-#   base+CI+A+C  761 passed, 2 skipped, 2 xfailed; focused A 39; focused C 147
+#   base+CI+A+C  775 passed, 2 skipped, 2 xfailed; focused A 39; focused C 147
 #
 # The two skips are requires_historical_ledger in test_lease_lifecycle.py and
 # test_lease_persisted_fold.py. A third skip, or a skip count of 0, is drift.
@@ -949,8 +949,9 @@ jobs:
           set -eu
           cat <<'EOF'
           Combined A+C baseline asserted by this job, measured with the hermetic recipe
-          after the stale G1 and G4 xfail markers were removed:
-            passed=761 failed=0 skipped=2 xfailed=2 xpassed=0
+          after the stale G1 and G4 xfail markers were removed, and updated on
+          2026-11-05 when 14 council contract tests were added (PR #27):
+            passed=775 failed=0 skipped=2 xfailed=2 xpassed=0
           These combined counts are exact. Do not turn them into floors.
           Focused A must be 39 passed. Focused C must be 147 passed.
           xfailed is G2 and G3 only. Do not delete those markers to go green.
@@ -1211,7 +1212,7 @@ jobs:
           ec=$?
           set -e
           cat "$RUNNER_TEMP/suite.txt"
-          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 761
+          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 775
           if [ "$ec" -ne 0 ]; then
             echo "combined orchestrator suite pytest exited $ec"
             exit "$ec"

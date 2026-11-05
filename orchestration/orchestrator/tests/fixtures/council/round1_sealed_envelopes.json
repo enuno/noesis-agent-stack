@@ -1,0 +1,31 @@
+{
+  "comment": "Round-1 sealed envelopes for council-demo-duo-0001. Each envelope carries only the decision framing and evidence references for its own seat. Blind-first is structural: no peer seat_ids, no profile names, no positions.",
+  "envelopes": [
+    {
+      "seat_id": "s1",
+      "envelope": {
+        "question": "Should the council vertical slice ship as a duo-mode-only capability first?",
+        "alternatives": ["ship duo first", "build full protocol before any release"],
+        "constraints": ["advisory only; no execution authority", "offline fixtures only in this phase"],
+        "evidence_refs": [
+          "artifacts/merge-ready-release-mission-2026-10-26/CONTAINMENT-AND-GATE-SLICE-2026-11-02.md",
+          "docs/decision-council-integration-2026-11-05.md"
+        ],
+        "sensitivity": "internal"
+      }
+    },
+    {
+      "seat_id": "s2",
+      "envelope": {
+        "question": "Should the council vertical slice ship as a duo-mode-only capability first?",
+        "alternatives": ["ship duo first", "build full protocol before any release"],
+        "constraints": ["advisory only; no execution authority", "offline fixtures only in this phase"],
+        "evidence_refs": [
+          "artifacts/merge-ready-release-mission-2026-10-26/CONTAINMENT-AND-GATE-SLICE-2026-11-02.md",
+          "docs/decision-council-integration-2026-11-05.md"
+        ],
+        "sensitivity": "internal"
+      }
+    }
+  ]
+}

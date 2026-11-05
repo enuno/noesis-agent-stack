@@ -1,0 +1,67 @@
+{
+  "schema_version": "noesis.council-session/v1",
+  "session_id": "council-demo-duo-0001",
+  "parent_task_id": "task-demo-parent-0001",
+  "council_revision": {
+    "upstream_repo": "0xNyk/council-of-high-intelligence",
+    "upstream_rev": "14d398f44771be1fc49488ab1b8a348ed76ca172",
+    "protocol_mode_version": "duo@1",
+    "vendored_docs_digest": "pending-phase-c-vendoring"
+  },
+  "mode": "duo",
+  "fencing": {"task_version": 0, "epoch": 0, "attempt_id": "attempt-0001"},
+  "decision": {
+    "question": "Should the council vertical slice ship as a duo-mode-only capability first?",
+    "alternatives": ["ship duo first", "build full protocol before any release"],
+    "constraints": ["advisory only; no execution authority", "offline fixtures only in this phase"],
+    "reversible": true
+  },
+  "evidence_manifest": [
+    {
+      "ref": "artifacts/merge-ready-release-mission-2026-10-26/CONTAINMENT-AND-GATE-SLICE-2026-11-02.md",
+      "provenance": "operator-approved slice record",
+      "sensitivity": "internal",
+      "labels": ["FACT"]
+    },
+    {
+      "ref": "docs/decision-council-integration-2026-11-05.md",
+      "provenance": "merged ADR (PR #26)",
+      "sensitivity": "public",
+      "labels": ["FACT"]
+    }
+  ],
+  "seats": [
+    {
+      "seat_id": "s1",
+      "profile": "noesis-skeptic",
+      "lens": "socrates",
+      "inference_route": "KIMI_CODE",
+      "budget": {"max_output_tokens": 1200, "round_timeout_s": 60},
+      "write_scope": ["verdict-artifact", "session-receipts"]
+    },
+    {
+      "seat_id": "s2",
+      "profile": "noesis-architect",
+      "lens": "aristotle",
+      "inference_route": "KIMI_CODE",
+      "budget": {"max_output_tokens": 1200, "round_timeout_s": 60},
+      "write_scope": ["verdict-artifact", "session-receipts"]
+    }
+  ],
+  "chairman": {"profile": "noesis-quill", "excluded_from_panel": true},
+  "limits": {
+    "rounds": 2,
+    "max_concurrent_seats": 2,
+    "cost_ceiling": {
+      "unit": "tokens",
+      "estimated_tokens": 9600,
+      "observed_tokens": 0,
+      "currency_value": null,
+      "currency_note": "currency unknown; tokens per lane only"
+    },
+    "session_timeout_s": 600
+  },
+  "stop_conditions": ["split_verdict", "budget_exhausted", "lease_expiry", "operator_cancel"],
+  "retention": {"artifact_ttl_days": 90, "sensitivity_class": "internal"},
+  "created_at": "2026-11-05T20:30:00Z"
+}
