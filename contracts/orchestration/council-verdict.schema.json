@@ -47,7 +47,7 @@
         "additionalProperties": false,
         "required": ["seat_id", "stance", "confidence_basis", "known_limitations"],
         "properties": {
-          "seat_id": {"type": "string", "minLength": 1},
+          "seat_id": {"type": "string", "minLength": 1, "pattern": "^s[0-9]+$"},
           "profile": {"type": "string", "minLength": 1},
           "lens": {"type": "string"},
           "stance": {"type": "string", "minLength": 1},
