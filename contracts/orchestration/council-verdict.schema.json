@@ -40,8 +40,7 @@
     "decision_question": {"type": "string", "minLength": 1},
     "positions": {
       "type": "array",
-      "minItems": 1,
-      "description": "Final per-seat positions, recorded independently. Synthesis cannot remove or rewrite a position; disagreement survives here even when consensus is declared.",
+      "description": "Final per-seat positions, recorded independently. Synthesis cannot remove or rewrite a position; disagreement survives here even when consensus is declared. Completed verdicts (session_metadata.stop_condition null) require at least one position; partial results record the seats that blocked and leave this empty rather than fabricating entries.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -72,10 +71,13 @@
       "required": ["method", "threshold", "options"],
       "properties": {
         "method": {"const": "confidence_weighted_2of3"},
-        "threshold": {"type": "number"},
+        "threshold": {
+          "type": ["number", "null"],
+          "description": "The weighted threshold applied. Null only in partial results where no tally was performed; completed verdicts must carry a number (enforced by the allOf conditional)."
+        },
         "options": {
           "type": "array",
-          "minItems": 1,
+          "description": "Tally rows. Empty only in partial results where no tally was performed; completed verdicts require at least one row (enforced by the allOf conditional).",
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -108,8 +110,7 @@
     },
     "kill_criteria": {
       "type": "array",
-      "minItems": 1,
-      "description": "Observable, dated falsification conditions. Each must be checkable without re-convening the council.",
+      "description": "Observable, dated falsification conditions. Each must be checkable without re-convening the council. Completed verdicts (session_metadata.stop_condition null) require at least one; partial results may record none rather than fabricating criteria.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -125,9 +126,16 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["verb", "object", "owner", "due"],
-      "description": "Exactly one action, artifact-producing verb, owned and dated. Never 'consider' or 'explore'. This is a PROPOSAL for the orchestrator/human — not an execution instruction.",
+      "description": "Exactly one action, artifact-producing verb, owned and dated. This is a PROPOSAL for the orchestrator/human — not an execution instruction. Council outputs propose actions; only the existing control plane and human approval mechanisms can authorize them. Authority-shaped verbs are rejected by a tripwire pattern below; that tripwire is a naming guard, not semantic authority isolation.",
       "properties": {
-        "verb": {"type": "string", "minLength": 1},
+        "verb": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "pattern": "(?i)^(authorise|authorize|authorizes|authorised|authorized|approve|approves|approved|accept|accepts|accepted|acceptance|merge|merges|merged|deploy|deploys|deployed|release|releases|released|spend|spends|spent)$"
+          },
+          "description": "Advisory action verb. Authority-shaped verbs (authorize, approve, accept, merge, deploy, release, spend and inflections) are rejected as a tripwire; this is NOT comprehensive semantic enforcement."
+        },
         "object": {"type": "string", "minLength": 1},
         "owner": {"type": "string", "minLength": 1},
         "due": {"type": "string", "format": "date-time"}
@@ -177,7 +185,12 @@
       "required": ["panel_size", "rounds_run", "fencing"],
       "properties": {
         "panel_size": {"type": "integer", "minimum": 1},
-        "rounds_run": {"type": "integer", "minimum": 1, "maximum": 3},
+        "rounds_run": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3,
+          "description": "Rounds that completed with full panel quorum. A Round-2 shortfall after a completed Round 1 reports 1, not 0; a Round-1 quorum shortfall reports 0."
+        },
         "enforcement_breakdown": {"type": "object"},
         "chairman_failed_fallback": {"type": "boolean"},
         "fallbacks_triggered": {"type": "array", "items": {"type": "string"}},
@@ -185,7 +198,7 @@
           "type": ["string", "null"],
           "enum": ["split_verdict", "budget_exhausted", "lease_expiry",
                     "operator_cancel", "quorum_shortfall", null],
-          "description": "Null on a completed session. Partial panels record why they stopped."
+          "description": "Null or ABSENT on a completed session — absent is the pre-repair v1 shape and remains valid (backward compatibility: option A of the Phase D Repair-2 decision). Partial panels record why they stopped and MUST set a non-null value."
         },
         "fencing": {
           "type": "object",
@@ -198,5 +211,32 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "session_metadata": {
+            "anyOf": [
+              {"not": {"required": ["stop_condition"]}},
+              {"properties": {"stop_condition": {"type": "null"}}}
+            ]
+          }
+        }
+      },
+      "then": {
+        "description": "Completed verdict (stop_condition absent or null — both are the completed v1 shape): the original completed-verdict constraints apply unchanged.",
+        "properties": {
+          "positions": {"minItems": 1},
+          "kill_criteria": {"minItems": 1},
+          "tally": {
+            "properties": {
+              "options": {"minItems": 1},
+              "threshold": {"type": "number"}
+            }
+          }
+        }
+      }
+    }
+  ]
 }

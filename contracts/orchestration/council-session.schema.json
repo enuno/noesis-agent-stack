@@ -161,11 +161,15 @@
         "sensitivity": {"enum": ["public", "internal", "sensitive"]}
       },
       "not": {
+        "description": "Peer-identity protection. The required-key branches reject peer-shaped keys, and the pattern branches reject peer seat ids / profile names hidden inside allowed fields (question, alternatives, constraints) where additionalProperties cannot see them. Both mechanisms are load-bearing for their respective leak shapes.",
         "anyOf": [
           {"required": ["peers"]},
           {"required": ["peer_positions"]},
           {"required": ["other_seats"]},
-          {"required": ["positions"]}
+          {"required": ["positions"]},
+          {"properties": {"question": {"pattern": "\\bs[0-9]+\\b|noesis-"}}},
+          {"properties": {"alternatives": {"contains": {"pattern": "\\bs[0-9]+\\b|noesis-"}}}},
+          {"properties": {"constraints": {"contains": {"pattern": "\\bs[0-9]+\\b|noesis-"}}}}
         ]
       }
     },

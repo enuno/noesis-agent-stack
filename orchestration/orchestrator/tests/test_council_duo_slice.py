@@ -65,21 +65,62 @@ def _position(seat: str, option: str, confidence: str = "high", **extra) -> str:
     return json.dumps(payload)
 
 
+_BANNED_IMPORT_NAMES = frozenset({
+    "store", "task_store", "delegation_store",
+    "control_plane", "delegation", "lease_lifecycle",
+    "launcher", "subagent_development",
+})
+
+
+def _banned_import_hits(source: str, banned: frozenset = _BANNED_IMPORT_NAMES) -> set[str]:
+    """Targeted import tripwire (NOT comprehensive authority isolation).
+
+    Flags any import whose dotted path contains a banned module name, plus
+    names imported through relative imports (`from . import store`).
+    """
+    hits: set[str] = set()
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                hits |= set(alias.name.split(".")) & banned
+        elif isinstance(node, ast.ImportFrom):
+            if node.module:
+                hits |= set(node.module.split(".")) & banned
+            # `from x import store` and `from . import store` both carry the
+            # banned name in the imported symbols; relative imports (level>0)
+            # have no module to inspect, so the names are the only signal.
+            hits |= {a.name.split(".")[0] for a in node.names} & banned
+    return hits
+
+
 class TestAuthorityIsolation:
     def test_engine_imports_no_mutators(self):
-        """Static guard: council.py must never import ledger/delegation/control
-        plane mutators (skills/noesis-control-plane-dev authority-isolation)."""
+        """Targeted tripwire: council.py must not import ledger/delegation/
+        control-plane mutator modules under their direct or common variant
+        names. This is a tripwire, not comprehensive authority isolation."""
         src = Path(__import__("app.council").council.__file__).read_text()
-        banned = {"store", "control_plane", "delegation", "lease_lifecycle",
-                  "launcher", "subagent_development"}
-        for node in ast.walk(ast.parse(src)):
-            if isinstance(node, ast.Import):
-                names = {a.name.split(".")[-1] for a in node.names}
-            elif isinstance(node, ast.ImportFrom) and node.module:
-                names = {node.module.split(".")[-1]}
-            else:
-                continue
-            assert not (names & banned), f"council.py imports mutator module(s): {names & banned}"
+        hits = _banned_import_hits(src)
+        assert not hits, f"council.py imports mutator module(s): {sorted(hits)}"
+
+    @pytest.mark.parametrize("snippet", [
+        "from . import store",
+        "from . import store as s",
+        "from .control_plane import transition_to",
+        "from app import task_store",
+        "import delegation_store",
+        "from orchestration.orchestrator.app import lease_lifecycle",
+    ])
+    def test_tripwire_catches_variants(self, snippet):
+        assert _banned_import_hits(snippet), f"tripwire missed: {snippet}"
+
+    @pytest.mark.parametrize("snippet", [
+        "import json",
+        "from app.council import run_duo_session",
+        "from .models import SeatUsage",
+        "import hashlib as hl",
+    ])
+    def test_tripwire_no_false_positives(self, snippet):
+        assert not _banned_import_hits(snippet), f"tripwire false positive: {snippet}"
 
 
 class TestFailClosedGuards:
@@ -185,6 +226,23 @@ class TestTallyAndDissent:
         with pytest.raises(Exception, match="not in alternatives"):
             weigh_tally({"s1": {"option": "nonsense", "confidence": "high"}}, ["a", "b"])
 
+    def test_low_confidence_paths(self):
+        """Skeptic K2/K3 gap closure: the 0.5-weight 'low' confidence band
+        must be exercised — same-option low+med clears; split low+med does
+        not clear (the med seat holds majority weight)."""
+        tally = weigh_tally(
+            {"s1": {"option": "ship", "confidence": "low"},
+             "s2": {"option": "ship", "confidence": "med"}},
+            ["ship", "wait"],
+        )
+        assert tally["no_option_carried"] is False
+        tally = weigh_tally(
+            {"s1": {"option": "ship", "confidence": "low"},
+             "s2": {"option": "wait", "confidence": "med"}},
+            ["ship", "wait"],
+        )
+        assert tally["no_option_carried"] is True
+
 
 class TestFailureBehavior:
     def test_malformed_output_blocks_seat_and_yields_partial_panel(self):
@@ -230,6 +288,83 @@ class TestFailureBehavior:
         assert verdict["usage"]["observed"]["input_tokens"] == 40
         assert verdict["usage"]["observed"]["output_tokens"] == 80
         assert "currency value" in verdict["usage"]["unknown_fields"]
+
+
+class TestPartialResultAccounting:
+    """F-1: truthful partial-result accounting. rounds_run counts rounds
+    that completed with full panel quorum; partial outcomes validate against
+    the explicit partial shape instead of fabricating positions/tally rows."""
+
+    def _verdict_validator(self):
+        jsonschema = pytest.importorskip("jsonschema")
+        from referencing import Registry, Resource
+
+        schema = json.loads((CONTRACTS / "council-verdict.schema.json").read_text())
+        registry = Registry().with_resource(schema["$id"], Resource.from_contents(schema))
+        return jsonschema.Draft202012Validator(schema, registry=registry)
+
+    def test_round1_shortfall_reports_zero_completed_rounds(self):
+        session = _session()
+        runner = _ScriptedRunner({
+            "s1": [_position("s1", "ship duo first"), _position("s1", "ship duo first")],
+            "s2": ["not json at all", _position("s2", "ship duo first")],
+        })
+        verdict = run_duo_session(session, runner, ALLOWED)
+        assert verdict["session_metadata"]["stop_condition"] == "quorum_shortfall"
+        assert verdict["session_metadata"]["rounds_run"] == 0
+        assert verdict["positions"] == []
+        assert verdict["tally"]["threshold"] is None
+        assert verdict["tally"]["options"] == []
+
+    def test_round2_shortfall_reports_one_completed_round(self):
+        session = _session()
+        runner = _ScriptedRunner({
+            "s1": [_position("s1", "ship duo first"), _position("s1", "ship duo first")],
+            "s2": [_position("s2", "ship duo first"), "not json at all"],
+        })
+        verdict = run_duo_session(session, runner, ALLOWED)
+        assert verdict["session_metadata"]["stop_condition"] == "quorum_shortfall"
+        # Round 1 completed with full quorum; only the final round fell short.
+        assert verdict["session_metadata"]["rounds_run"] == 1
+
+    def test_partial_outcomes_validate_against_verdict_contract(self):
+        session = _session()
+        validator = self._verdict_validator()
+        r1 = run_duo_session(
+            session,
+            _ScriptedRunner({
+                "s1": [_position("s1", "ship duo first")] * 2,
+                "s2": ["garbage", _position("s2", "ship duo first")],
+            }),
+            ALLOWED,
+        )
+        r2 = run_duo_session(
+            session,
+            _ScriptedRunner({
+                "s1": [_position("s1", "ship duo first")] * 2,
+                "s2": [_position("s2", "ship duo first"), "garbage"],
+            }),
+            ALLOWED,
+        )
+        for label, verdict in (("round1_shortfall", r1), ("round2_shortfall", r2)):
+            errors = list(validator.iter_errors(verdict))
+            assert not errors, f"{label}: " + "; ".join(
+                f"{'/'.join(map(str, e.path))}: {e.message}" for e in errors
+            )
+
+    def test_completed_verdict_conformance_unchanged(self):
+        session = _session()
+        runner = _ScriptedRunner({
+            "s1": [_position("s1", "ship duo first")] * 2,
+            "s2": [_position("s2", "ship duo first")] * 2,
+        })
+        verdict = run_duo_session(session, runner, ALLOWED)
+        assert verdict["session_metadata"]["stop_condition"] is None
+        assert verdict["session_metadata"]["rounds_run"] == 2
+        errors = list(self._verdict_validator().iter_errors(verdict))
+        assert not errors, "; ".join(
+            f"{'/'.join(map(str, e.path))}: {e.message}" for e in errors
+        )
 
 
 class TestVerdictContractConformance:

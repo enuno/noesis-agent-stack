@@ -953,8 +953,14 @@ jobs:
           2026-11-05 when 14 council contract tests were added (PR #27), and
           updated again on 2026-11-05 when 16 council duo-slice tests were
           added (Phase C), and again the same day when 2 cross-contract
-          seat-identifier tests were added (Codex review repair):
-            passed=793 failed=0 skipped=2 xfailed=2 xpassed=0
+          seat-identifier tests were added (Codex review repair), and again
+          for the Phase D repair slice (21 tests: partial-result shape and
+          rounds accounting, pinned not-clause mechanism with control
+          case and load-bearing demonstration, hardened import tripwire),
+          and again for the Phase D Repair-2 slice (9 tests: F-4 original
+          subject regression with authority-verb tripwire checks,
+          stop_condition v1-compatibility branch, low-confidence tally):
+            passed=823 failed=0 skipped=2 xfailed=2 xpassed=0
           These combined counts are exact. Do not turn them into floors.
           Focused A must be 39 passed. Focused C must be 147 passed.
           xfailed is G2 and G3 only. Do not delete those markers to go green.
@@ -1215,7 +1221,7 @@ jobs:
           ec=$?
           set -e
           cat "$RUNNER_TEMP/suite.txt"
-          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 793
+          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 823
           if [ "$ec" -ne 0 ]; then
             echo "combined orchestrator suite pytest exited $ec"
             exit "$ec"

@@ -183,6 +183,98 @@ class TestNegativeFixtures:
         assert "risk_tier" not in props
 
 
+class TestNegativeMechanismPinned:
+    """F-3: pin the intended negative-validation mechanism. The peer-leak
+    fixture must fail because of the `not` clause (not incidentally), a
+    control case must fail additionalProperties for a distinguishable
+    reason, and removing the `not` clause must make the leak validate —
+    proof the clause is what carries the protection."""
+
+    def _envelope_validator(self, schema=None):
+        schema = schema or SESSION_SCHEMA
+        registry = Registry().with_resource(schema["$id"], Resource.from_contents(schema))
+        return jsonschema.Draft202012Validator(
+            {"$ref": f"{schema['$id']}#/$defs/sealed_envelope"}, registry=registry
+        )
+
+    def test_peer_leak_fails_on_not_clause(self):
+        doc = _load_json(FIXTURES / "invalid_envelope_peer_leak.json")
+        errors = list(self._envelope_validator().iter_errors(doc["envelope"]))
+        assert errors, "peer-leak envelope must be rejected"
+        assert any(e.validator == "not" for e in errors), (
+            f"expected a 'not' failure, got validators {[e.validator for e in errors]}"
+        )
+
+    def test_additional_properties_control_case(self):
+        envelope = {
+            "question": "Should we proceed?",
+            "alternatives": ["yes", "no"],
+            "constraints": [],
+            "mystery_key": "not a peer structure, just unknown",
+        }
+        errors = list(self._envelope_validator().iter_errors(envelope))
+        assert any(e.validator == "additionalProperties" for e in errors), (
+            f"expected an additionalProperties failure, got {[e.validator for e in errors]}"
+        )
+        assert not any(e.validator == "not" for e in errors), (
+            "control case must not trip the not clause"
+        )
+
+    def test_removing_not_clause_accepts_leak(self):
+        import copy
+
+        schema = copy.deepcopy(SESSION_SCHEMA)
+        del schema["$defs"]["sealed_envelope"]["not"]
+        doc = _load_json(FIXTURES / "invalid_envelope_peer_leak.json")
+        errors = list(self._envelope_validator(schema).iter_errors(doc["envelope"]))
+        assert not errors, (
+            "without the not clause the peer-leak envelope validates — "
+            "the clause is load-bearing and the regression test would fail"
+        )
+
+
+class TestPartialResultShape:
+    """F-1: explicit schema-valid partial-result shape. Completed-verdict
+    constraints are preserved unchanged (allOf conditional keyed on
+    session_metadata.stop_condition == null); partial results may carry
+    empty positions/tally/kill_criteria instead of fabricating entries."""
+
+    def _partial(self):
+        doc = _load_json(FIXTURES / "duo_verdict_split.json")
+        doc["session_metadata"]["stop_condition"] = "quorum_shortfall"
+        doc["positions"] = []
+        doc["tally"] = {
+            "method": "confidence_weighted_2of3",
+            "threshold": None,
+            "options": [],
+            "no_option_carried": True,
+        }
+        doc["kill_criteria"] = []
+        return doc
+
+    def test_partial_result_validates(self):
+        _validate(VERDICT_VALIDATOR, self._partial(), "partial_result")
+
+    def test_completed_verdict_still_requires_positions(self):
+        doc = _load_json(FIXTURES / "duo_verdict_split.json")  # stop_condition: null
+        doc["positions"] = []
+        errors = list(VERDICT_VALIDATOR.iter_errors(doc))
+        assert errors, "completed verdict with empty positions must fail"
+
+    def test_completed_verdict_still_requires_tally_rows_and_kill_criteria(self):
+        doc = _load_json(FIXTURES / "duo_verdict_split.json")
+        doc["tally"]["options"] = []
+        doc["kill_criteria"] = []
+        errors = list(VERDICT_VALIDATOR.iter_errors(doc))
+        assert errors, "completed verdict with empty tally options or kill_criteria must fail"
+
+    def test_completed_verdict_requires_numeric_threshold(self):
+        doc = _load_json(FIXTURES / "duo_verdict_split.json")
+        doc["tally"]["threshold"] = None
+        errors = list(VERDICT_VALIDATOR.iter_errors(doc))
+        assert errors, "completed verdict with null threshold must fail"
+
+
 class TestModeAndBudgetSemantics:
     def test_modes_are_distinct_from_risk_tiers(self):
         modes = set(SESSION_SCHEMA["properties"]["mode"]["enum"])
@@ -217,3 +309,100 @@ class TestModeAndBudgetSemantics:
         for banned in ("detect-providers", "auto_route", "auto-route", "native_host",
                        "fallback_provider", "grants"):
             assert banned not in src, f"session schema carries '{banned}'"
+
+
+class TestF4OriginalSubject:
+    """Repair-2 regression: the ORIGINAL F-4 subject — the positive fixture's
+    concrete_next_step verb must not express an authorization action, and the
+    schema tripwire must reject authority-shaped verbs. The tripwire is a
+    naming guard, NOT semantic authority isolation."""
+
+    def test_positive_fixture_uses_advisory_verb(self):
+        doc = _load_json(FIXTURES / "duo_verdict_split.json")
+        _validate(VERDICT_VALIDATOR, doc, "duo_verdict_split")
+        verb = doc["concrete_next_step"]["verb"]
+        assert verb == "review", (
+            f"positive fixture must model an advisory action; found {verb!r}"
+        )
+        assert verb.lower() not in {"authorize", "authorise", "approve", "accept",
+                                    "merge", "deploy", "release", "spend"}
+
+    @staticmethod
+    def _verdict_with_verb(verb: str) -> dict:
+        doc = _load_json(FIXTURES / "duo_verdict_split.json")
+        doc["concrete_next_step"]["verb"] = verb
+        return doc
+
+    @staticmethod
+    def _verb_errors(verb: str):
+        return [
+            e for e in VERDICT_VALIDATOR.iter_errors(TestF4OriginalSubject._verdict_with_verb(verb))
+            if "concrete_next_step" in "/".join(str(p) for p in e.absolute_path)
+        ]
+
+    def test_authority_verbs_rejected_by_tripwire(self):
+        for banned in ("authorize", "Authorize", "AUTHORIZE", "approve", "accepted",
+                       "merge", "Deploy", "release", "spent"):
+            errors = self._verb_errors(banned)
+            assert errors, f"verb {banned!r} was accepted; tripwire failed"
+
+    def test_advisory_verbs_still_accepted(self):
+        for advisory in ("review", "file", "draft", "run", "halt"):
+            errors = self._verb_errors(advisory)
+            assert not errors, (
+                f"advisory verb {advisory!r} rejected: "
+                + "; ".join(e.message for e in errors)
+            )
+
+
+class TestStopConditionCompatibility:
+    """Repair-2 option A: preserve council-verdict v1 compatibility. A
+    completed artifact with stop_condition ABSENT (the pre-repair v1 shape)
+    remains valid; only partial results must carry a non-null stop_condition.
+    Completed minimums are unchanged in every branch."""
+
+    @staticmethod
+    def _completed_v1_without_stop_condition() -> dict:
+        doc = _load_json(FIXTURES / "duo_verdict_split.json")
+        del doc["session_metadata"]["stop_condition"]
+        return doc
+
+    @staticmethod
+    def _partial_without_stop_condition() -> dict:
+        doc = _load_json(FIXTURES / "duo_verdict_split.json")
+        doc["session_metadata"]["stop_condition"] = None
+        doc["positions"] = []
+        doc["tally"] = {"method": doc["tally"]["method"], "threshold": None,
+                        "options": [], "no_option_carried": True}
+        del doc["session_metadata"]["stop_condition"]
+        return doc
+
+    def test_completed_v1_artifact_without_stop_condition_validates(self):
+        _validate(VERDICT_VALIDATOR, self._completed_v1_without_stop_condition(),
+                  "completed v1 without stop_condition")
+
+    def test_completed_with_explicit_null_still_validates(self):
+        _validate(VERDICT_VALIDATOR, _load_json(FIXTURES / "duo_verdict_split.json"),
+                  "completed with stop_condition null")
+
+    def test_partial_without_stop_condition_rejected(self):
+        errors = list(VERDICT_VALIDATOR.iter_errors(self._partial_without_stop_condition()))
+        assert errors, "partial result without stop_condition must not validate"
+        # completed minimums re-apply when stop_condition is absent: the
+        # empty-positions completed shape must be among the failures.
+        paths = {"/".join(str(p) for p in e.absolute_path) for e in errors}
+        assert any("positions" in p for p in paths), f"errors at unexpected paths: {paths}"
+
+    def test_malformed_stop_condition_rejected(self):
+        doc = _load_json(FIXTURES / "duo_verdict_split.json")
+        doc["session_metadata"]["stop_condition"] = "banana"
+        errors = list(VERDICT_VALIDATOR.iter_errors(doc))
+        assert errors, "non-enum stop_condition must be rejected"
+        assert any("stop_condition" in "/".join(str(p) for p in e.absolute_path)
+                   for e in errors)
+
+    def test_invalid_completed_outcome_still_rejected(self):
+        doc = self._completed_v1_without_stop_condition()
+        doc["positions"] = []  # completed shape with no positions
+        errors = list(VERDICT_VALIDATOR.iter_errors(doc))
+        assert errors, "empty positions on a completed verdict must fail"
