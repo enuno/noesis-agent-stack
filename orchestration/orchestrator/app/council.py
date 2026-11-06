@@ -108,9 +108,13 @@ def validate_seat_routes(session: Mapping, approved_routes: set[str]) -> None:
 def reserve_session_budget(session: Mapping) -> int:
     """Compute the total reservation and refuse to exceed the cost ceiling.
 
-    Reservation happens BEFORE any seat work. Consumption is tracked
-    separately and must never exceed the reservation (existing delegation
-    budget protection, reused at the dispatch layer in Phase E).
+    Reservation happens BEFORE any seat work: this function is the only
+    budget guard in the offline slice. Observed-token accounting during the
+    session is informational (recorded on the verdict's usage block); it is
+    NOT enforced against the reservation or the ceiling here. Consumption
+    enforcement belongs to the governed dispatch adapter (Phase E) and must
+    reuse the existing delegation budget/lease protection, never a parallel
+    system.
     """
     limits = session.get("limits", {})
     ceiling = limits.get("cost_ceiling", {})
@@ -250,10 +254,13 @@ def run_duo_session(
 ) -> dict:
     """Drive the full duo protocol offline and assemble the verdict artifact.
 
-    Stages: route validation (fail closed) → budget reservation (pre-work) →
-    sealed Round 1 → anonymized release → final blind round → weighted tally →
-    verdict assembly. Split verdicts are preserved and escalated; the round
-    budget is never exceeded (the forcing function holds).
+    Stages: route validation (fail closed) → budget reservation (pre-work,
+    checked against the cost ceiling only when the session declares
+    estimated_tokens) → sealed Round 1 → anonymized release → final blind
+    round → weighted tally → verdict assembly. Split verdicts are preserved
+    and escalated. The pre-work reservation is the only budget guard in
+    this slice; observed consumption is recorded but never enforced here
+    (Phase E scope).
     """
     if session.get("mode") != "duo":
         raise CouncilError("this slice implements duo mode only")
@@ -274,7 +281,7 @@ def run_duo_session(
     round1 = [_run_seat(runner, s, envelopes[s["seat_id"]], session, envelopes, observed) for s in seats]
     ok1 = {r.seat_id: r for r in round1 if r.ok}
     if len(ok1) < 2:
-        return _partial_verdict(session, seats, round1, observed, "quorum_shortfall")
+        return _partial_verdict(session, seats, round1, observed, "quorum_shortfall", 0)
 
     release = anonymized_release({sid: r.payload for sid, r in ok1.items()})
 
@@ -282,7 +289,8 @@ def run_duo_session(
     final = [_run_seat(runner, s, release, session, envelopes, observed) for s in seats]
     ok_final = {r.seat_id: r for r in final if r.ok}
     if len(ok_final) < 2:
-        return _partial_verdict(session, seats, final, observed, "quorum_shortfall")
+        # Round 1 completed with full quorum; only the final round fell short.
+        return _partial_verdict(session, seats, final, observed, "quorum_shortfall", 1)
 
     positions = {
         sid: {
@@ -381,8 +389,15 @@ def run_duo_session(
     }
 
 
-def _partial_verdict(session, seats, results, observed, stop_condition: str) -> dict:
-    """Partial panel: blocked seats reported, never silently substituted."""
+def _partial_verdict(session, seats, results, observed, stop_condition: str, rounds_completed: int) -> dict:
+    """Partial panel: blocked seats reported, never silently substituted.
+
+    rounds_completed is the number of rounds that finished with full panel
+    quorum (0 when Round 1 itself fell short, 1 when only the final round
+    did). positions stays empty — Round-1 outputs are not final positions
+    and fabricating entries to satisfy completed-verdict minimums would be
+    dishonest; the tally records null/empty to say "no tally performed".
+    """
     return {
         "schema_version": "noesis.council-verdict/v1",
         "session_id": session["session_id"],
@@ -391,7 +406,12 @@ def _partial_verdict(session, seats, results, observed, stop_condition: str) -> 
         "mode": "duo",
         "decision_question": session["decision"]["question"],
         "positions": [],
-        "tally": {"method": TALLY_METHOD, "threshold": 0, "options": [], "no_option_carried": True},
+        "tally": {
+            "method": TALLY_METHOD,
+            "threshold": None,
+            "options": [],
+            "no_option_carried": True,
+        },
         "consensus": {
             "reached": False,
             "explanation": f"Partial panel ({stop_condition}); quorum floor for duo is two-of-two. "
@@ -420,7 +440,7 @@ def _partial_verdict(session, seats, results, observed, stop_condition: str) -> 
         },
         "session_metadata": {
             "panel_size": len(seats),
-            "rounds_run": 0,
+            "rounds_run": rounds_completed,
             "enforcement_breakdown": {},
             "chairman_failed_fallback": False,
             "fallbacks_triggered": [],

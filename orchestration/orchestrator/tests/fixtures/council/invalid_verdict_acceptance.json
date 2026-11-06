@@ -14,6 +14,6 @@
   "concrete_next_step": {"verb": "file", "object": "the artifact", "owner": "operator", "due": "2026-12-01T00:00:00Z"},
   "unresolved_questions": [],
   "usage": {"observed": {}, "estimated": {}, "unknown_fields": ["everything"]},
-  "session_metadata": {"panel_size": 1, "rounds_run": 1, "fencing": {"task_version": 0, "epoch": 0}},
-  "acceptance_disposition": "accepted"
+  "session_metadata": {"panel_size": 1, "rounds_run": 1, "stop_condition": null, "fencing": {"task_version": 0, "epoch": 0}},
+  "acceptance_disposition": "recorded"
 }

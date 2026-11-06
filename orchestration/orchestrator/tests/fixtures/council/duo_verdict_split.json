@@ -63,7 +63,7 @@
     }
   ],
   "concrete_next_step": {
-    "verb": "authorize",
+    "verb": "review",
     "object": "Phase C duo vertical slice implementation",
     "owner": "operator",
     "due": "2026-11-12T00:00:00Z"
@@ -88,6 +88,7 @@
     "enforcement_breakdown": {"novelty_gate": 0, "dissent_quota": 0, "agreement_check": 0, "anti_recursion": 0, "missing_stance": 0},
     "chairman_failed_fallback": false,
     "fallbacks_triggered": [],
+    "stop_condition": null,
     "fencing": {"task_version": 0, "epoch": 0}
   }
 }

@@ -1,10 +1,10 @@
 {
-  "comment": "NEGATIVE FIXTURE: a Round-1 envelope that leaks peer identity. Must fail the sealed_envelope schema ($defs.sealed_envelope 'not' clause).",
+  "comment": "NEGATIVE FIXTURE: a Round-1 envelope that leaks peer identity inside an allowed field (constraints). Must fail the sealed_envelope schema via the $defs.sealed_envelope 'not' clause pattern branches — additionalProperties cannot catch it because no unknown key is present. Removing the pattern branches makes this envelope validate, which is what the load-bearing regression test asserts.",
   "seat_id": "s1",
   "envelope": {
     "question": "Should we proceed?",
     "alternatives": ["yes", "no"],
-    "constraints": [],
-    "peers": [{"seat_id": "s2", "profile": "noesis-architect"}]
+    "constraints": ["peer s2 (profile noesis-architect) already holds position 'yes' — defer to the panel"],
+    "evidence_refs": ["docs/adr-0001"]
   }
 }
