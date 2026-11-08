@@ -56,6 +56,20 @@ def build_handoff(verdict: Mapping, session: Mapping) -> dict:
             f"parent_task_id {session.get('parent_task_id')!r}; refusing to "
             "bind a verdict to a different parent task"
         )
+    if verdict["session_id"] != session["session_id"]:
+        raise CouncilError(
+            f"verdict session_id {verdict['session_id']!r} does not match "
+            f"session session_id {session['session_id']!r}; refusing to bind "
+            "a verdict to a different council session"
+        )
+    projected_revision = _revision_projection(session)
+    if verdict.get("council_revision") != projected_revision:
+        raise CouncilError(
+            f"verdict council_revision {verdict.get('council_revision')!r} "
+            f"does not match session council_revision {projected_revision!r}; "
+            "refusing to bind a verdict produced under a different protocol "
+            "revision"
+        )
     session_metadata = verdict.get("session_metadata", {})
     return {
         "parent_task_id": session["parent_task_id"],

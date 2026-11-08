@@ -68,8 +68,9 @@ class CouncilSeatDispatch:
     ``observer`` optionally exposes
     ``observe_budget(task_id, requests=, output_tokens=, input_tokens=,
     cache_read_tokens=, cache_write_tokens=)``; it is called once per
-    completed seat round after the engine returns (or after a mid-session
-    abort), with unreported fields passed as None.
+    completed seat round after the engine returns, after a mid-session
+    abort, or after an engine exception (whichever exit path run() takes),
+    with unreported fields passed as None.
     """
 
     def __init__(
@@ -214,7 +215,11 @@ class CouncilSeatDispatch:
         On RevokedError (abort/revocation mid-session) convert to the engine's
         partial-verdict shape with stop_condition "operator_cancel" — no
         further launcher calls happen after abort, by construction of
-        run_round. Usage for completed rounds is reported on both paths.
+        run_round. On any other engine exception, report usage for the rounds
+        that did complete and re-raise the original exception unchanged; a
+        failure inside usage reporting itself never masks the primary engine
+        exception. Usage for completed rounds is reported on every exit path,
+        exactly once per recorded call.
         """
         try:
             verdict = run_duo_session(self.session, self, allowed_routes)
@@ -232,5 +237,17 @@ class CouncilSeatDispatch:
                 "operator_cancel",
                 self._completed_rounds(),
             )
+        except BaseException:
+            # Any other engine failure (e.g. MalformedSeatOutput raised by
+            # weigh_tally after every launcher call completed): the recorded
+            # calls really consumed budget, so report them exactly once and
+            # re-raise the original exception with type and args unchanged.
+            # A failure inside reporting itself must never mask or replace
+            # the primary engine exception.
+            try:
+                self._report_usage()
+            except Exception:
+                pass
+            raise
         self._report_usage()
         return verdict
