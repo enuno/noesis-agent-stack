@@ -966,8 +966,10 @@ jobs:
           Phase E Slice A.1 review fixes (7 tests: bridge session_id and
           council_revision identity refusal before handoff construction,
           dispatch usage reporting on engine-exception paths with
-          reporting-failure safety):
-            passed=857 failed=0 skipped=2 xfailed=2 xpassed=0
+          reporting-failure safety), and again on 2026-11-08 for the offline
+          canary qualification harness (24 tests: synthetic process-boundary
+          admission, usage honesty, and group-termination oracle):
+            passed=881 failed=0 skipped=2 xfailed=2 xpassed=0
           These combined counts are exact. Do not turn them into floors.
           Focused A must be 39 passed. Focused C must be 147 passed.
           xfailed is G2 and G3 only. Do not delete those markers to go green.
@@ -1228,7 +1230,7 @@ jobs:
           ec=$?
           set -e
           cat "$RUNNER_TEMP/suite.txt"
-          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 857
+          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 881
           if [ "$ec" -ne 0 ]; then
             echo "combined orchestrator suite pytest exited $ec"
             exit "$ec"
