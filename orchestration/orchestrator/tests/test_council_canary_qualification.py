@@ -1,7 +1,9 @@
+import hashlib
 import json
 import os
 import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -38,6 +40,52 @@ CLOSED_SET = {
     "orchestration/orchestrator/tests/fixtures/council_canary/synthetic_seam.py",
     "orchestration/orchestrator/tests/test_council_canary_qualification.py",
 }
+
+
+def _git_visible_paths():
+    """Git-visible worktree paths (porcelain -uall, __pycache__ excluded)."""
+    proc = subprocess.run(
+        ["git", "status", "--porcelain", "-uall"],
+        cwd=str(REPO_ROOT), capture_output=True, text=True,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(f"git status failed at import: {proc.stderr}")
+    paths = set()
+    for line in proc.stdout.splitlines():
+        entry = line[3:]
+        if " -> " in entry:
+            entry = entry.split(" -> ", 1)[1]
+        paths.add(entry)
+    return {p for p in paths if "__pycache__" not in p.split("/")}
+
+
+def _snapshot_hashes(paths):
+    """Content hash per git-visible path; None when the file is unreadable."""
+    hashes = {}
+    for rel in paths:
+        try:
+            hashes[rel] = hashlib.sha256(
+                (REPO_ROOT / rel).read_bytes()
+            ).hexdigest()
+        except OSError:
+            hashes[rel] = None
+    return hashes
+
+
+# Baseline of git-visible worktree state captured at MODULE IMPORT, before
+# any test in the collected session runs. Q15 compares the final state
+# against this snapshot, so pre-existing unrelated checkout dirt is
+# attributed to the checkout and only harness-created or harness-modified
+# git-visible paths fail the test. When the tree is not a git worktree the
+# baseline cannot exist: Q15 then fails loudly (same as the old code's
+# `git status` return-code assertion) while the rest of the module still
+# collects and runs.
+try:
+    _WORKTREE_BASELINE = _snapshot_hashes(_git_visible_paths())
+    _WORKTREE_BASELINE_ERROR = None
+except (RuntimeError, OSError) as exc:
+    _WORKTREE_BASELINE = None
+    _WORKTREE_BASELINE_ERROR = str(exc)
 
 
 def _canary_session(**over):
@@ -168,14 +216,157 @@ def _validate_verdict_schema(verdict):
     return problems
 
 
+def _read_proc_stat_state(pid):
+    """Linux /proc/<pid>/stat state char (field 3). None when unavailable.
+
+    comm may contain spaces or parentheses, so the state is read after the
+    LAST ')' rather than by fixed column offsets.
+    """
+    try:
+        text = Path(f"/proc/{pid}/stat").read_text(encoding="ascii")
+    except OSError:
+        return None
+    rest = text.rpartition(")")[2].split()
+    if not rest:
+        return None
+    return rest[0]
+
+
+def _ps_stat_state(pid):
+    """Process state char via ps(1) (BSD/procps 'stat' first column).
+
+    None when ps cannot observe the process (absent, or ps missing/broken).
+    """
+    try:
+        proc = subprocess.run(
+            ["ps", "-o", "stat=", "-p", str(pid)],
+            capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    out = proc.stdout.strip()
+    if proc.returncode != 0 or not out:
+        return None
+    return out.split()[0]
+
+
+def _pid_termination_state(pid):
+    """Classify pid WITHOUT trusting kill(pid, 0) alone.
+
+    A zombie (terminated but not yet reaped) still answers os.kill(pid, 0),
+    so existence is confirmed by kill and executability by /proc or ps state:
+
+    - "absent": no such process (kill raised ProcessLookupError).
+    - "terminated": exited, awaiting reap (state Z/X) — holds no executable
+      work and MUST NOT be reported as continued execution.
+    - "alive": running/sleeping — still capable of work.
+    - "unknown": existence provable but state unobservable (e.g. no /proc
+      and no ps); consumers must fail closed, never treat it as dead.
+    """
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return "absent"
+    except PermissionError:
+        return "alive"
+    except OSError:
+        return "unknown"
+    state = _read_proc_stat_state(pid)
+    if state is None:
+        state = _ps_stat_state(pid)
+    if state is None:
+        return "unknown"
+    if state in ("Z", "X", "x"):
+        return "terminated"
+    return "alive"
+
+
+def _proc_pgid_members(pgid):
+    """Linux /proc scan -> {pid: state char} for pgid members.
+
+    None when /proc is unavailable (non-Linux); callers fall back to ps.
+    """
+    try:
+        entries = list(Path("/proc").iterdir())
+    except OSError:
+        return None
+    members = {}
+    for entry in entries:
+        if not entry.name.isdigit():
+            continue
+        try:
+            text = (entry / "stat").read_text(encoding="ascii")
+        except OSError:
+            continue
+        rest = text.rpartition(")")[2].split()
+        if len(rest) < 3:
+            continue
+        try:
+            if int(rest[2]) == pgid:  # rest: state ppid pgrp ...
+                members[int(entry.name)] = rest[0]
+        except ValueError:
+            continue
+    return members
+
+
+def _pgid_live_members(pgid):
+    """Live (non-zombie) member pids of pgid; None when unobservable.
+
+    A zombie retains its process-group membership, so raw killpg(pgid, 0)
+    cannot prove a group is gone — group liveness must exclude unreaped
+    terminated members the same way single-pid liveness does.
+    """
+    scanned = _proc_pgid_members(pgid)
+    if scanned is not None:
+        return [pid for pid, state in scanned.items()
+                if state not in ("Z", "X", "x")]
+    try:
+        proc = subprocess.run(
+            ["ps", "-A", "-o", "pid=", "-o", "pgid=", "-o", "stat="],
+            capture_output=True, text=True, timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if proc.returncode != 0:
+        return None
+    members = []
+    for line in proc.stdout.splitlines():
+        parts = line.split()
+        if len(parts) < 3:
+            continue
+        try:
+            pid_s, pgid_s, state = parts[0], parts[1], parts[2]
+            if int(pgid_s) == pgid and not state.startswith(("Z", "X")):
+                members.append(int(pid_s))
+        except ValueError:
+            continue
+    return members
+
+
 def _wait_dead(pid, timeout_s=10.0):
+    """Poll until pid is absent OR terminated-but-unreaped.
+
+    "unknown" is never treated as dead: it keeps polling and fails closed
+    after the timeout, exactly as a live process does.
+    """
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
-        try:
-            os.kill(pid, 0)
-        except ProcessLookupError:
+        if _pid_termination_state(pid) in ("absent", "terminated"):
             return True
-        except PermissionError:
+        time.sleep(0.05)
+    return False
+
+
+def _wait_group_dead(pgid, timeout_s=10.0):
+    """Poll until pgid has no live members (absent group or all zombies).
+
+    None from the membership probe (unobservable) keeps polling and fails
+    closed after the timeout.
+    """
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        members = _pgid_live_members(pgid)
+        if members is not None and not members:
             return True
         time.sleep(0.05)
     return False
@@ -354,7 +545,11 @@ class TestQ8TimeoutAndProcessGroup:
     def test_timeout_kills_descendant_group(self):
         """Q8 descendant scenario: the seat spawns a grandchild in its own
         process group; the seam's killpg must take down the grandchild too.
-        Asserted portably via kill(pid, 0) polling for ProcessLookupError."""
+        Liveness is asserted WITHOUT kill(pid, 0) alone: an unreaped
+        terminated process (zombie) still answers kill(pid, 0), so death is
+        confirmed via /proc or ps state. Terminated-but-unreaped counts as
+        dead; running/sleeping counts as alive; unobservable state fails
+        closed (never treated as dead)."""
         session = _canary_session()
         session["seats"][0]["budget"]["round_timeout_s"] = 2
         session["seats"][1]["budget"]["round_timeout_s"] = 2
@@ -374,10 +569,94 @@ class TestQ8TimeoutAndProcessGroup:
             assert _wait_dead(grandchild_pid), (
                 f"grandchild {grandchild_pid} survived the killpg"
             )
-            with pytest.raises(ProcessLookupError):
-                os.killpg(excinfo.value.pgid, 0)
+            # the whole group is gone of LIVE members: a zombie retains
+            # process-group membership, so raw killpg(pgid, 0) is not proof.
+            assert _wait_group_dead(excinfo.value.pgid), (
+                f"process group {excinfo.value.pgid} still has live members"
+            )
         finally:
             _reap_if_alive(grandchild_pid)
+
+
+class TestQ8ProcessStateProbe:
+    """Unit probes for the zombie-aware liveness observation.
+
+    These use disposable synthetic processes only; cleanup runs after each
+    observation. They pin the four-way distinction the Q8 oracle relies on:
+    running/sleeping (alive), terminated-but-unreaped (terminated), absent,
+    and unknown.
+    """
+
+    def test_probe_classifies_live_sleeping_process(self):
+        proc = subprocess.Popen(
+            [sys.executable, "-c", "import time; time.sleep(60)"]
+        )
+        try:
+            assert _pid_termination_state(proc.pid) == "alive"
+        finally:
+            proc.kill()
+            proc.wait()
+
+    def test_probe_classifies_absent_pid(self):
+        # A pid that never existed on this host. Avoid pid 0/1 semantics.
+        absent = 2 ** 22 - 1  # 4194303, above any realistic pid ceiling
+        while True:
+            try:
+                os.kill(absent, 0)
+            except ProcessLookupError:
+                break
+            except PermissionError:
+                absent -= 1
+            except OSError:
+                break
+        assert _pid_termination_state(absent) == "absent"
+
+    def test_probe_classifies_zombie_as_terminated_then_dead(self):
+        # Child exits immediately; the parent (this process) deliberately
+        # does not reap it until after the observation: the pid is a zombie,
+        # which kill(pid, 0) alone cannot distinguish from a live process.
+        proc = subprocess.Popen(
+            [sys.executable, "-c", "import sys; sys.exit(0)"]
+        )
+        try:
+            deadline = time.monotonic() + 5.0
+            state = None
+            while time.monotonic() < deadline:
+                state = _pid_termination_state(proc.pid)
+                if state == "terminated":
+                    break
+                time.sleep(0.05)
+            assert state == "terminated", (
+                f"unreaped exited child classified as {state!r}, "
+                "expected terminated-but-unreaped"
+            )
+            # terminated-but-unreaped must satisfy the death oracle...
+            assert _wait_dead(proc.pid, timeout_s=1.0) is True
+        finally:
+            proc.wait()  # reap: cleanup after the observation
+        time.sleep(0.1)
+        assert _pid_termination_state(proc.pid) == "absent"
+
+    def test_probe_unknown_when_state_unobservable(self):
+        proc = subprocess.Popen(
+            [sys.executable, "-c", "import time; time.sleep(60)"]
+        )
+        try:
+            monkey_none = lambda pid: None  # noqa: E731
+            real_proc_reader = _read_proc_stat_state
+            real_ps_reader = _ps_stat_state
+            globals()["_read_proc_stat_state"] = monkey_none
+            globals()["_ps_stat_state"] = monkey_none
+            try:
+                assert _pid_termination_state(proc.pid) == "unknown"
+                # unknown fails closed: the death oracle must NOT go green
+                assert _wait_dead(proc.pid, timeout_s=0.5) is False
+            finally:
+                globals()["_read_proc_stat_state"] = real_proc_reader
+                globals()["_ps_stat_state"] = real_ps_reader
+        finally:
+            proc.kill()
+            proc.wait()
 
 
 class TestQ9CancellationBeforeLaunch:
@@ -549,26 +828,44 @@ class TestQ14PartialVerdictLinkage:
 
 
 class TestQ15ClosedSetOnly:
-    def test_worktree_gained_only_closed_set_files(self):
-        """Q15: the harness writes nothing outside pytest tmp dirs.
+    """Q15: the harness writes nothing outside pytest tmp dirs.
 
-        Before publication, porcelain (pycache excluded) is exactly the four
-        closed-set paths. After those paths are tracked, porcelain must be
-        empty. Either shape is the closed set. Any other dirty path fails.
-        """
-        proc = subprocess.run(
-            ["git", "status", "--porcelain", "-uall"],
-            cwd=str(REPO_ROOT), capture_output=True, text=True,
+    Captures the git-visible worktree state (porcelain -uall, __pycache__
+    excluded) with a content hash per path at MODULE IMPORT, i.e. before
+    any test in the collected session runs, then compares the final state
+    against that baseline. Pre-existing unrelated dirt belongs to the
+    checkout, not the harness: the test fails only if a new git-visible
+    path appears during the run or if a path already dirty at baseline
+    changed content (or changed git-visible state).
+
+    Documented limits, unchanged: ignored files, transient create-then-
+    delete writes, writes outside the inspected tree, and concurrent
+    unrelated writers are not proved absent by final Git status — and not
+    by the baseline delta either, since a path created and removed within
+    the interval is invisible to both snapshots. Do not read a green Q15
+    as proof that no filesystem write occurred.
+    """
+
+    def test_worktree_non_interference_against_baseline(self):
+        assert _WORKTREE_BASELINE is not None, (
+            "cannot evaluate worktree interference: "
+            f"{_WORKTREE_BASELINE_ERROR}"
         )
-        assert proc.returncode == 0, proc.stderr
-        paths = set()
-        for line in proc.stdout.splitlines():
-            entry = line[3:]
-            if " -> " in entry:
-                entry = entry.split(" -> ", 1)[1]
-            paths.add(entry)
-        non_pycache = {p for p in paths if "__pycache__" not in p.split("/")}
-        if not non_pycache:
+        baseline_paths = set(_WORKTREE_BASELINE)
+        final_paths = _git_visible_paths()
+        final_hashes = _snapshot_hashes(final_paths)
+        new_paths = sorted(final_paths - baseline_paths)
+        changed = sorted(
+            rel for rel in (final_paths & baseline_paths)
+            if _WORKTREE_BASELINE[rel] != final_hashes[rel]
+        )
+        assert not new_paths and not changed, (
+            "harness dirtied the worktree: "
+            f"new paths={new_paths} changed paths={changed}"
+        )
+        if not final_paths:
+            # Published shape: nothing dirty, so the closed set must be
+            # tracked and present.
             missing = []
             for path in sorted(CLOSED_SET):
                 tracked = subprocess.run(
@@ -581,9 +878,11 @@ class TestQ15ClosedSetOnly:
                 f"published tree missing closed-set paths: {missing}"
             )
             return
-        assert non_pycache == CLOSED_SET, (
-            f"worktree changed outside the closed set: {non_pycache - CLOSED_SET}"
-        )
+        if final_paths == CLOSED_SET:
+            return  # pre-publication shape; the delta check proved it static
+        # Anything else left over is exactly the pre-existing checkout dirt
+        # captured at baseline; the delta check proved the harness did not
+        # add to it or modify it.
 
 
 class TestQ16R1ResidualExposure:
