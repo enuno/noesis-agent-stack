@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from app.council import CouncilError
+from app.council import CouncilError, SeatUsage, run_duo_session
 from app.council_bridge import (
     ADVISORY_AUTHORITY_MARKER,
     HandoffValidationError,
@@ -79,6 +79,72 @@ class TestBuildHandoff:
         session["parent_task_id"] = "task-someone-else"
         with pytest.raises(CouncilError, match="parent_task_id"):
             build_handoff(split_verdict, session)
+
+
+class TestBuildHandoffIdentityRefusal:
+    """F-1: a verdict may only bind to the session that produced it.
+
+    Provenance comes from two sources today: the session (parent_task_id,
+    council_revision projection) and the verdict (session_id, content). A
+    cross-session bind was silently accepted as long as parent_task_id
+    matched, producing a handoff with internally contradictory provenance.
+    """
+
+    def test_session_id_mismatch_refused_naming_both_values(self, session, split_verdict):
+        other = dict(session)
+        other["session_id"] = "council-demo-duo-9999"
+        with pytest.raises(CouncilError) as exc:
+            build_handoff(split_verdict, other)
+        message = str(exc.value)
+        assert split_verdict["session_id"] in message
+        assert other["session_id"] in message
+
+    def test_council_revision_mismatch_refused_naming_both_values(self, session, split_verdict):
+        verdict = json.loads(json.dumps(split_verdict))
+        verdict["council_revision"]["protocol_mode_version"] = "duo@2"
+        with pytest.raises(CouncilError) as exc:
+            build_handoff(verdict, session)
+        message = str(exc.value)
+        assert "duo@2" in message
+        assert session["council_revision"]["protocol_mode_version"] in message
+
+    def test_refusal_happens_before_handoff_construction(self, session, split_verdict):
+        # Both new identity checks fire before any handoff dict exists; the
+        # exception is the only outcome (no partial artifact is returned).
+        other = dict(session)
+        other["session_id"] = "council-demo-duo-9999"
+        with pytest.raises(CouncilError):
+            build_handoff(split_verdict, other)
+
+    def test_engine_produced_verdict_bound_with_own_session_accepted(self, session):
+        class _ScriptedRunner:
+            def run_round(self, seat_id, payload, budget):
+                option = "ship duo first"
+                text = json.dumps({
+                    "option": option,
+                    "stance": f"{seat_id} argues for {option}",
+                    "confidence": "high",
+                    "confidence_basis": "scripted fixture",
+                    "known_limitations": ["scripted"],
+                    "evidence_labels": {"UNKNOWN": []},
+                })
+                return text, SeatUsage(input_tokens=100, output_tokens=200)
+
+        verdict = run_duo_session(session, _ScriptedRunner(), {"KIMI_CODE"})
+        handoff = build_handoff(verdict, session)
+        # Field order/values identical to pre-fix construction for a genuine
+        # engine verdict bound with its own session.
+        assert list(handoff.keys()) == [
+            "parent_task_id", "council_revision", "session_id", "mode",
+            "stop_condition", "verdict", "digest", "dissent", "authority",
+        ]
+        assert handoff["session_id"] == session["session_id"]
+        assert handoff["council_revision"] == verdict["council_revision"]
+        assert handoff["digest"] == _canonical_digest(verdict)
+        assert handoff["authority"] == ADVISORY_AUTHORITY_MARKER
+        assert handoff["mode"] == "duo"
+        assert handoff["stop_condition"] is None
+        assert validate_for_review(handoff) is handoff
 
 
 class TestValidateForReview:

@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from app.council import CouncilError, SeatUsage, sealed_envelopes
+from app.council import CouncilError, MalformedSeatOutput, SeatUsage, sealed_envelopes
 from app.council_dispatch import (
     AdmissionError,
     CouncilSeatDispatch,
@@ -309,3 +309,63 @@ class TestMalformedSeatOutput:
         # The one completed round is still reported to the observer.
         assert len(observer.records) == 1
         assert observer.records[0]["output_tokens"] == 200
+
+
+class TestExceptionPathUsageReporting:
+    """F-2: engine exceptions after recorded launcher calls still report usage.
+
+    weigh_tally raises MalformedSeatOutput only after every launcher call for
+    the session completed and was recorded in dispatch.calls — that budget was
+    really consumed and must reach the observer on every exit path.
+    """
+
+    def _dispatch_with_final_round_bad_option(self, observer):
+        # Round 1 completes for both seats; the final round also completes for
+        # both seats (4 recorded calls), but s1's final position names an
+        # option outside the session alternatives, so the engine's weigh_tally
+        # raises MalformedSeatOutput after all launcher calls completed.
+        outputs = {
+            "s1": [_position("s1", "ship duo first"),
+                   _position("s1", "an option outside the alternatives")],
+            "s2": [_position("s2", "ship duo first"),
+                   _position("s2", "ship duo first")],
+        }
+        launcher = _ScriptedLauncher(outputs)
+        dispatch = _dispatch(_session(), launcher, observer=observer)
+        return dispatch, launcher
+
+    def test_engine_exception_reports_recorded_usage_and_reraises_unchanged(self):
+        observer = _RecordingObserver()
+        dispatch, launcher = self._dispatch_with_final_round_bad_option(observer)
+        with pytest.raises(MalformedSeatOutput) as exc:
+            dispatch.run(ALLOWED)
+        assert "an option outside the alternatives" in str(exc.value)
+        # All four budget-consuming calls were recorded and reported exactly
+        # once each; unreported usage fields stay None.
+        assert dispatch.dispatch_count == 4
+        assert len(launcher.calls) == 4
+        assert len(observer.records) == 4
+        for rec in observer.records:
+            assert rec["task_id"] == _session()["parent_task_id"]
+            assert rec["requests"] == 1
+            assert rec["output_tokens"] == 200
+            assert rec["input_tokens"] == 100
+            assert rec["cache_read_tokens"] is None
+            assert rec["cache_write_tokens"] is None
+
+    def test_primary_exception_propagates_when_observer_lacks_observe_budget(self):
+        class _NoObserveBudget:
+            pass
+
+        dispatch, _ = self._dispatch_with_final_round_bad_option(_NoObserveBudget())
+        with pytest.raises(MalformedSeatOutput, match="outside the alternatives"):
+            dispatch.run(ALLOWED)
+
+    def test_primary_exception_propagates_when_observer_raises(self):
+        class _RaisingObserver:
+            def observe_budget(self, *args, **kwargs):
+                raise RuntimeError("observer failed mid-report")
+
+        dispatch, _ = self._dispatch_with_final_round_bad_option(_RaisingObserver())
+        with pytest.raises(MalformedSeatOutput, match="outside the alternatives"):
+            dispatch.run(ALLOWED)
