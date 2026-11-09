@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "artifact_type": "mcpjungle-gateway-state-backup",
-  "captured_at": "2026-10-29T22:15:41.213877+00:00",
+  "captured_at": "2026-11-09T14:50:55.005499+00:00",
   "target": {
     "registry_base_url": "https://mcpjungle.tailf99a0.ts.net",
     "mcp_endpoint": "https://mcpjungle.tailf99a0.ts.net/mcp",
@@ -11,7 +11,7 @@
     "server_mode_note": "The gateway runs in SERVER_MODE=development. In this mode MCPJungle performs no authentication and no ACLs. The trust boundary for the resulting open access is the tailnet itself."
   },
   "main_gateway_servers": {
-    "count": 34,
+    "count": 31,
     "source": "GET /api/v0/servers",
     "description": "The upstream MCP servers registered on the main gateway. This view carries no credentials: every entry has null env, null args and null command, and the only non-empty fields are name, transport, url, description and enabled.",
     "servers": [
@@ -38,17 +38,6 @@
         "session_mode": "stateless"
       },
       {
-        "name": "mintlify",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Mintlify Docs",
-        "url": "https://mcp.mintlify.com",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
         "name": "mintlify-docs",
         "transport": "streamable_http",
         "enabled": true,
@@ -60,44 +49,11 @@
         "session_mode": "stateless"
       },
       {
-        "name": "github",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Official GitHub MCP server",
-        "url": "https://api.githubcopilot.com/mcp/",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
         "name": "linear",
         "transport": "streamable_http",
         "enabled": true,
         "description": "Linear.ai research tool",
         "url": "https://platform.liner.com/api/v1/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "court-listener",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Federal/state opinions, federal RECAP/PACER records, judges, oral arguments, citation extraction/verification, and alerts",
-        "url": "https://mcp.courtlistener.com/",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "GovInfo",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Official federal publications, including legislation, laws, regulations, and publication metadata",
-        "url": "https://api.govinfo.gov/mcp",
         "command": "",
         "args": null,
         "env": null,
@@ -148,44 +104,11 @@
         "session_mode": "stateless"
       },
       {
-        "name": "beacon-managed",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Beacon managed MCP server",
-        "url": "https://mcp.beacon.sh",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
         "name": "exa",
         "transport": "streamable_http",
         "enabled": true,
         "description": "Deep web search and web crawling",
         "url": "https://mcp.exa.ai/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "firecrawl-search",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Web scraping of big data sets",
-        "url": "https://mcp.firecrawl.dev/v2/mcp-oauth",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "framer",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Framer MCP server",
-        "url": "https://mcp.framer.com/mcp",
         "command": "",
         "args": null,
         "env": null,
@@ -218,7 +141,7 @@
         "transport": "streamable_http",
         "enabled": true,
         "description": "Noesis lab N8N automation",
-        "url": "https://n8n.tailf99a0.ts.net/mcp-server/http",
+        "url": "http://n8n-main.n8n.svc.cluster.local:5678/mcp-server/http",
         "command": "",
         "args": null,
         "env": null,
@@ -247,22 +170,11 @@
         "session_mode": "stateless"
       },
       {
-        "name": "notion",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Notion personal docs and knowledge base",
-        "url": "https://mcp.notion.com/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
         "name": "unifi",
         "transport": "streamable_http",
         "enabled": true,
         "description": "UniFi Fleet Manager",
-        "url": "http://10.43.11.10:3000/mcp",
+        "url": "http://unifi-mcp-server.unifi-mcp.svc.cluster.local:3000/mcp",
         "command": "",
         "args": null,
         "env": null,
@@ -291,17 +203,6 @@
         "session_mode": "stateless"
       },
       {
-        "name": "noesis-aeon",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "ships the work: features, vulnerability disclosures, live apps, deep research - and new skills for itself.",
-        "url": "https://www.aeon.fun/connect/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
         "name": "cloudflare-docs",
         "transport": "streamable_http",
         "enabled": true,
@@ -324,33 +225,11 @@
         "session_mode": "stateless"
       },
       {
-        "name": "cloudflare-browser",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Fetch pages, convert pages to Markdown, and take screenshots.",
-        "url": "https://browser.mcp.cloudflare.com/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
         "name": "cloudflare-blog",
         "transport": "streamable_http",
         "enabled": true,
         "description": "Search and read Cloudflare Blog posts.",
         "url": "https://blog.mcp.cloudflare.com/mcp",
-        "command": "",
-        "args": null,
-        "env": null,
-        "session_mode": "stateless"
-      },
-      {
-        "name": "cloudflare",
-        "transport": "streamable_http",
-        "enabled": true,
-        "description": "Cloudflare API access using OAuth",
-        "url": "https://mcp.cloudflare.com/mcp",
         "command": "",
         "args": null,
         "env": null,
@@ -379,11 +258,99 @@
         "session_mode": "stateless"
       },
       {
+        "name": "GovInfo",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Official federal publications, including legislation, laws, regulations, and publication metadata",
+        "url": "https://api.govinfo.gov/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "beacon-managed",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Agent Beacon Memory Service",
+        "url": "https://mcp.beacon.sh",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
         "name": "betterstack-noesis",
         "transport": "streamable_http",
         "enabled": true,
-        "description": "BetterStack monitoring tools for noesis agent stack",
+        "description": "BetterStack Monitoring for Noesis Net",
         "url": "https://mcp.betterstack.com",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "cloudflare",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Cloudflare Account Management",
+        "url": "https://mcp.cloudflare.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "cloudflare-browser",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Cloudflare Browser",
+        "url": "https://browser.mcp.cloudflare.com/mcp",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "court-listener",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Court Docket Monitor",
+        "url": "https://mcp.courtlistener.com/",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "firecrawl-search",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Firecrawl web search",
+        "url": "https://mcp.firecrawl.dev/v2/mcp-oauth",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "mintlify",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "Mintlify Documentation",
+        "url": "https://mcp.mintlify.com",
+        "command": "",
+        "args": null,
+        "env": null,
+        "session_mode": "stateless"
+      },
+      {
+        "name": "radar-cloud",
+        "transport": "streamable_http",
+        "enabled": true,
+        "description": "",
+        "url": "https://api.radarhq.io/mcp",
         "command": "",
         "args": null,
         "env": null,
@@ -408,15 +375,6 @@
       "session_mode": "stateless"
     },
     {
-      "name": "mintlify",
-      "transport": "streamable_http",
-      "description": "Mintlify Docs",
-      "url": "https://mcp.mintlify.com",
-      "session_mode": "stateless",
-      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
-      "oauth_client_id": "<REDACTED:opaque-token:len=55>"
-    },
-    {
       "name": "mintlify-docs",
       "transport": "streamable_http",
       "description": "Mintlify Docs",
@@ -424,42 +382,11 @@
       "session_mode": "stateless"
     },
     {
-      "name": "github",
-      "transport": "streamable_http",
-      "description": "Official GitHub MCP server",
-      "url": "https://api.githubcopilot.com/mcp/",
-      "session_mode": "stateless",
-      "oauth_redirect_uri": "<REDACTED:opaque-token:len=37>",
-      "oauth_client_id": "<REDACTED:opaque-token:len=20>",
-      "oauth_client_secret": "<REDACTED:opaque-token:len=40>"
-    },
-    {
       "name": "linear",
       "transport": "streamable_http",
       "description": "Linear.ai research tool",
       "url": "https://platform.liner.com/api/v1/mcp",
-      "bearer_token": "<REDACTED:opaque-token:len=48>",
-      "session_mode": "stateless",
-      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
-      "oauth_client_id": "<REDACTED:opaque-token:len=27>"
-    },
-    {
-      "name": "court-listener",
-      "transport": "streamable_http",
-      "description": "Federal/state opinions, federal RECAP/PACER records, judges, oral arguments, citation extraction/verification, and alerts",
-      "url": "https://mcp.courtlistener.com/",
-      "session_mode": "stateless",
-      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
-      "oauth_client_id": "<REDACTED:opaque-token:len=36>"
-    },
-    {
-      "name": "GovInfo",
-      "transport": "streamable_http",
-      "description": "Official federal publications, including legislation, laws, regulations, and publication metadata",
-      "url": "https://api.govinfo.gov/mcp",
-      "headers": {
-        "x-api-key": "<REDACTED:opaque-token:len=40>"
-      },
+      "bearer_token": "<REDACTED:opaque-token:len=51>",
       "session_mode": "stateless"
     },
     {
@@ -467,9 +394,6 @@
       "transport": "streamable_http",
       "description": "Search and trace US federal rules across the Federal Register (proposed/final rules and notices), the eCFR (codified, point-in-time CFR full text, locally mirrored), and Regulations.gov (rulemaking dockets and public comments)",
       "url": "https://federal-regulations.caseyjhand.com/mcp",
-      "headers": {
-        "x-api-key": "<REDACTED:opaque-token:len=40>"
-      },
       "session_mode": "stateless"
     },
     {
@@ -491,17 +415,7 @@
       "transport": "streamable_http",
       "description": "CourtListener legal database (US federal/state courts, PACER, eCFR)",
       "url": "https://courtlistener-mcp.vaquill.ai/mcp/",
-      "headers": {
-        "X-CourtListener-Token": "<REDACTED:opaque-token:len=40>"
-      },
-      "session_mode": "stateless"
-    },
-    {
-      "name": "beacon-managed",
-      "transport": "streamable_http",
-      "description": "Beacon managed MCP server",
-      "url": "https://mcp.beacon.sh",
-      "bearer_token": "<REDACTED:opaque-token:len=51>",
+      "bearer_token": "<REDACTED:opaque-token:len=39>",
       "session_mode": "stateless"
     },
     {
@@ -509,31 +423,8 @@
       "transport": "streamable_http",
       "description": "Deep web search and web crawling",
       "url": "https://mcp.exa.ai/mcp",
-      "headers": {
-        "x-api-key": "<REDACTED:opaque-token:len=36>"
-      },
+      "bearer_token": "<REDACTED:opaque-token:len=36>",
       "session_mode": "stateless"
-    },
-    {
-      "name": "firecrawl-search",
-      "transport": "streamable_http",
-      "description": "Web scraping of big data sets",
-      "url": "https://mcp.firecrawl.dev/v2/mcp-oauth",
-      "session_mode": "stateless",
-      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
-      "oauth_client_id": "<REDACTED:opaque-token:len=36>"
-    },
-    {
-      "name": "framer",
-      "transport": "streamable_http",
-      "description": "Framer MCP server",
-      "url": "https://mcp.framer.com/mcp",
-      "session_mode": "stateless",
-      "oauth_redirect_uri": "<REDACTED:opaque-token:len=37>",
-      "oauth_client_id": "<REDACTED:opaque-token:len=16>",
-      "oauth_scopes": [
-        "<REDACTED:opaque-token:len=11>"
-      ]
     },
     {
       "name": "perplexity",
@@ -554,7 +445,7 @@
       "name": "n8n",
       "transport": "streamable_http",
       "description": "Noesis lab N8N automation",
-      "url": "https://n8n.tailf99a0.ts.net/mcp-server/http",
+      "url": "http://n8n-main.n8n.svc.cluster.local:5678/mcp-server/http",
       "bearer_token": "<REDACTED:jwt:len=272>",
       "session_mode": "stateless"
     },
@@ -574,19 +465,10 @@
       "session_mode": "stateless"
     },
     {
-      "name": "notion",
-      "transport": "streamable_http",
-      "description": "Notion personal docs and knowledge base",
-      "url": "https://mcp.notion.com/mcp",
-      "session_mode": "stateless",
-      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
-      "oauth_client_id": "<REDACTED:opaque-token:len=16>"
-    },
-    {
       "name": "unifi",
       "transport": "streamable_http",
       "description": "UniFi Fleet Manager",
-      "url": "http://10.43.11.10:3000/mcp",
+      "url": "http://unifi-mcp-server.unifi-mcp.svc.cluster.local:3000/mcp",
       "bearer_token": "<REDACTED:opaque-token:len=64>",
       "session_mode": "stateless"
     },
@@ -607,15 +489,6 @@
       "session_mode": "stateless"
     },
     {
-      "name": "noesis-aeon",
-      "transport": "streamable_http",
-      "description": "ships the work: features, vulnerability disclosures, live apps, deep research - and new skills for itself.",
-      "url": "https://www.aeon.fun/connect/mcp",
-      "session_mode": "stateless",
-      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
-      "oauth_client_id": "<REDACTED:opaque-token:len=44>"
-    },
-    {
       "name": "cloudflare-docs",
       "transport": "streamable_http",
       "description": "Search current Cloudflare reference documentation",
@@ -630,29 +503,11 @@
       "session_mode": "stateless"
     },
     {
-      "name": "cloudflare-browser",
-      "transport": "streamable_http",
-      "description": "Fetch pages, convert pages to Markdown, and take screenshots.",
-      "url": "https://browser.mcp.cloudflare.com/mcp",
-      "session_mode": "stateless",
-      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
-      "oauth_client_id": "<REDACTED:opaque-token:len=16>"
-    },
-    {
       "name": "cloudflare-blog",
       "transport": "streamable_http",
       "description": "Search and read Cloudflare Blog posts.",
       "url": "https://blog.mcp.cloudflare.com/mcp",
       "session_mode": "stateless"
-    },
-    {
-      "name": "cloudflare",
-      "transport": "streamable_http",
-      "description": "Cloudflare API access using OAuth",
-      "url": "https://mcp.cloudflare.com/mcp",
-      "session_mode": "stateless",
-      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
-      "oauth_client_id": "<REDACTED:opaque-token:len=16>"
     },
     {
       "name": "wolframalpha",
@@ -669,17 +524,91 @@
       "session_mode": "stateless"
     },
     {
+      "name": "GovInfo",
+      "transport": "streamable_http",
+      "description": "Official federal publications, including legislation, laws, regulations, and publication metadata",
+      "url": "https://api.govinfo.gov/mcp",
+      "headers": {
+        "x-api-key": "<REDACTED:opaque-token:len=40>"
+      },
+      "session_mode": "stateless"
+    },
+    {
+      "name": "beacon-managed",
+      "transport": "streamable_http",
+      "description": "Agent Beacon Memory Service",
+      "url": "https://mcp.beacon.sh",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=43>"
+    },
+    {
       "name": "betterstack-noesis",
       "transport": "streamable_http",
-      "description": "BetterStack monitoring tools for noesis agent stack",
+      "description": "BetterStack Monitoring for Noesis Net",
       "url": "https://mcp.betterstack.com",
       "session_mode": "stateless",
       "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
       "oauth_client_id": "<REDACTED:opaque-token:len=43>"
+    },
+    {
+      "name": "cloudflare",
+      "transport": "streamable_http",
+      "description": "Cloudflare Account Management",
+      "url": "https://mcp.cloudflare.com/mcp",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=16>"
+    },
+    {
+      "name": "cloudflare-browser",
+      "transport": "streamable_http",
+      "description": "Cloudflare Browser",
+      "url": "https://browser.mcp.cloudflare.com/mcp",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=16>"
+    },
+    {
+      "name": "court-listener",
+      "transport": "streamable_http",
+      "description": "Court Docket Monitor",
+      "url": "https://mcp.courtlistener.com/",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=36>"
+    },
+    {
+      "name": "firecrawl-search",
+      "transport": "streamable_http",
+      "description": "Firecrawl web search",
+      "url": "https://mcp.firecrawl.dev/v2/mcp-oauth",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=36>"
+    },
+    {
+      "name": "mintlify",
+      "transport": "streamable_http",
+      "description": "Mintlify Documentation",
+      "url": "https://mcp.mintlify.com",
+      "session_mode": "stateless",
+      "oauth_redirect_uri": "<REDACTED:opaque-token:len=63>",
+      "oauth_client_id": "<REDACTED:opaque-token:len=33>"
+    },
+    {
+      "name": "radar-cloud",
+      "transport": "streamable_http",
+      "description": "",
+      "url": "https://api.radarhq.io/mcp",
+      "headers": {
+        "Authorization": "<REDACTED:opaque-token:len=54>"
+      },
+      "session_mode": "stateless"
     }
   ],
   "tool_groups": {
-    "count": 86,
+    "count": 95,
     "source": "config/mcpjungle/groups/*.json, cross-checked against GET /api/v0/tool-groups",
     "description": "The deployable group definitions. Each group is stored with the exact included_tools allowlist that was deployed, so a restore recreates the same tool exposure.",
     "groups": [
@@ -725,6 +654,24 @@
           "exa__agent_run",
           "firecrawl-search__firecrawl_agent",
           "linear__deep_research_agent"
+        ]
+      },
+      {
+        "name": "beacon-managed-auto-read",
+        "description": "Auto-classified newly discovered read-only tools on 'beacon-managed' that passed readOnlyHint=true and the write-admission scan.",
+        "included_tools": [
+          "beacon-managed__beacon_intel_check",
+          "beacon-managed__beacon_intel_get_artifact",
+          "beacon-managed__beacon_intel_lookup"
+        ]
+      },
+      {
+        "name": "betterstack-noesis-auto-read",
+        "description": "Auto-classified newly discovered read-only tools on 'betterstack-noesis' that passed readOnlyHint=true and the write-admission scan.",
+        "included_tools": [
+          "betterstack-noesis__dashboard_versions",
+          "betterstack-noesis__errors_slack_integration",
+          "betterstack-noesis__errors_slack_integrations"
         ]
       },
       {
@@ -807,6 +754,15 @@
         ]
       },
       {
+        "name": "betterstack-ryno-auto-read",
+        "description": "Auto-classified newly discovered read-only tools on 'betterstack-ryno' that passed readOnlyHint=true and the write-admission scan.",
+        "included_tools": [
+          "betterstack-ryno__dashboard_versions",
+          "betterstack-ryno__errors_slack_integration",
+          "betterstack-ryno__errors_slack_integrations"
+        ]
+      },
+      {
         "name": "betterstack-ryno-monitoring-destructive",
         "description": "Irreversible or access-granting changes to the 'ryno' BetterStack tenant: delete monitors/dashboards/charts/webhooks/heartbeats/releases, remove catalog relations and records, change team member roles, invite or remove team members, and mint live ClickHouse data-access credentials. Several of these can silence alerting (remove_monitor, remove_heartbeat) or grant account access (change_team_member_role, create_cloud_connection).",
         "included_tools": [
@@ -876,7 +832,6 @@
           "betterstack-ryno__resolve_incident",
           "betterstack-ryno__set_dashboard_variable",
           "betterstack-ryno__set_exploration_variable",
-          "betterstack-ryno__toggle_chart_alert_pause",
           "betterstack-ryno__unlink_error_issue",
           "betterstack-ryno__update_catalog_relation",
           "betterstack-ryno__update_error_state",
@@ -1050,7 +1005,6 @@
         "name": "communications-send",
         "description": "Send comments, replies, reactions, feedback and shared traces to external services, including provider feedback endpoints for Hunter and GitBook.",
         "included_tools": [
-          "beacon-managed__beacon_share_session",
           "firecrawl-search__firecrawl_feedback",
           "firecrawl-search__firecrawl_search_feedback",
           "gitbook-management__report_tool_feedback",
@@ -1088,8 +1042,6 @@
         "name": "database-readonly",
         "description": "Read n8n data-table rows and the Mintlify deployment databases.",
         "included_tools": [
-          "mintlify__list_databases",
-          "mintlify__read_database",
           "n8n__get_data_table_rows",
           "n8n__search_data_tables"
         ]
@@ -1098,8 +1050,6 @@
         "name": "database-write",
         "description": "Create, extend, rename and delete n8n data tables and columns, and edit Mintlify database rows and columns.",
         "included_tools": [
-          "mintlify__edit_database_columns",
-          "mintlify__edit_database_rows",
           "n8n__add_data_table_column",
           "n8n__add_data_table_rows",
           "n8n__create_data_table",
@@ -1117,12 +1067,10 @@
           "mintlify__delete_node",
           "mintlify__discard",
           "mintlify__edit_page",
-          "mintlify__finalize_image_upload",
           "mintlify__move_node",
           "mintlify__suggest_edit",
           "mintlify__update_config",
           "mintlify__update_node",
-          "mintlify__upload_image",
           "mintlify__write_page"
         ]
       },
@@ -1152,12 +1100,14 @@
         "name": "external-publication",
         "description": "Publish Beacon lenses to the shared marketplace so other agents can install them.",
         "included_tools": [
-          "beacon-managed__beacon_lenses_complete_upload",
-          "beacon-managed__beacon_lenses_create",
-          "beacon-managed__beacon_lenses_list",
-          "beacon-managed__beacon_lenses_prepare_upload",
-          "beacon-managed__beacon_lenses_release_version",
-          "beacon-managed__beacon_lenses_update"
+          "beacon-managed__beacon_lenses_list"
+        ]
+      },
+      {
+        "name": "firecrawl-search-auto-read",
+        "description": "Auto-classified newly discovered read-only tools on 'firecrawl-search' that passed readOnlyHint=true and the write-admission scan.",
+        "included_tools": [
+          "firecrawl-search__firecrawl_provider_directory"
         ]
       },
       {
@@ -1165,6 +1115,13 @@
         "description": "Open a change request on a GitBook space without publishing anything.",
         "included_tools": [
           "gitbook-management__create_change_request"
+        ]
+      },
+      {
+        "name": "gitbook-management-auto-read",
+        "description": "Auto-classified newly discovered read-only tools on 'gitbook-management' that passed readOnlyHint=true and the write-admission scan.",
+        "included_tools": [
+          "gitbook-management__get_schema_definition"
         ]
       },
       {
@@ -1224,6 +1181,19 @@
           "hunter__List-Sequence-Follow-Ups",
           "hunter__List-Sequences",
           "hunter__List-Webhooks"
+        ]
+      },
+      {
+        "name": "hunter-auto-read",
+        "description": "Auto-classified newly discovered read-only tools on 'hunter' that passed readOnlyHint=true and the write-admission scan.",
+        "included_tools": [
+          "hunter__Get-Briefing",
+          "hunter__Get-Opportunity-Results",
+          "hunter__List-Job-Titles",
+          "hunter__List-Monitored-Signals",
+          "hunter__List-Opportunities",
+          "hunter__List-Signals",
+          "hunter__Preview-People"
         ]
       },
       {
@@ -1469,16 +1439,6 @@
         ]
       },
       {
-        "name": "memory-management",
-        "description": "File memory candidates, record review decisions and adjust shared-trace visibility.",
-        "included_tools": [
-          "beacon-managed__beacon_finding_feedback",
-          "beacon-managed__beacon_memory_candidate_create",
-          "beacon-managed__beacon_memory_candidate_review",
-          "beacon-managed__beacon_shared_trace_update"
-        ]
-      },
-      {
         "name": "memory-retrieval",
         "description": "Recall approved lessons, search prior sessions, and read findings and shared trace metadata without changing them.",
         "included_tools": [
@@ -1495,6 +1455,16 @@
           "beacon-managed__beacon_read_session",
           "beacon-managed__beacon_search_sessions",
           "beacon-managed__beacon_shared_traces_list"
+        ]
+      },
+      {
+        "name": "mintlify-auto-read",
+        "description": "Auto-classified newly discovered read-only tools on 'mintlify' that passed readOnlyHint=true and the write-admission scan.",
+        "included_tools": [
+          "mintlify__read_inbox",
+          "mintlify__read_page_history",
+          "mintlify__read_skill",
+          "mintlify__wait_for_page_activity"
         ]
       },
       {
@@ -1982,6 +1952,71 @@
         ]
       },
       {
+        "name": "radar-cloud-destructive",
+        "description": "Radar Cloud Kubernetes object deletion (delete_resource only).",
+        "included_tools": [
+          "radar-cloud__delete_resource"
+        ]
+      },
+      {
+        "name": "radar-cloud-mutate",
+        "description": "Radar Cloud cluster operate/mutate: apply/patch, manage workload/helm/gitops/node/cronjob/rollout, and hosted investigations that may consume billed allowance. Not delete.",
+        "included_tools": [
+          "radar-cloud__apply_resource",
+          "radar-cloud__diagnose",
+          "radar-cloud__follow_up_investigation",
+          "radar-cloud__manage_cronjob",
+          "radar-cloud__manage_gitops",
+          "radar-cloud__manage_helm",
+          "radar-cloud__manage_node",
+          "radar-cloud__manage_rollout",
+          "radar-cloud__manage_workload",
+          "radar-cloud__patch_resource",
+          "radar-cloud__start_investigation",
+          "radar-cloud__stop_investigation"
+        ]
+      },
+      {
+        "name": "radar-cloud-read",
+        "description": "Read-only Radar Cloud fleet and cluster inspection: list/get/search/fleet/issues/logs/metrics/topology. No apply, patch, delete, manage, or hosted investigation start.",
+        "included_tools": [
+          "radar-cloud__discover_metrics",
+          "radar-cloud__fleet_issues",
+          "radar-cloud__fleet_list_gitops",
+          "radar-cloud__fleet_list_packages",
+          "radar-cloud__fleet_search",
+          "radar-cloud__get_changes",
+          "radar-cloud__get_cluster_audit",
+          "radar-cloud__get_cluster_upgrade_readiness",
+          "radar-cloud__get_cost",
+          "radar-cloud__get_dashboard",
+          "radar-cloud__get_events",
+          "radar-cloud__get_helm_chart",
+          "radar-cloud__get_helm_release",
+          "radar-cloud__get_investigation",
+          "radar-cloud__get_neighborhood",
+          "radar-cloud__get_pod_logs",
+          "radar-cloud__get_prometheus_rules",
+          "radar-cloud__get_resource",
+          "radar-cloud__get_rightsizing",
+          "radar-cloud__get_runtime_versions",
+          "radar-cloud__get_subject_permissions",
+          "radar-cloud__get_topology",
+          "radar-cloud__get_workload_logs",
+          "radar-cloud__issues",
+          "radar-cloud__list_clusters",
+          "radar-cloud__list_helm_releases",
+          "radar-cloud__list_investigations",
+          "radar-cloud__list_namespaces",
+          "radar-cloud__list_packages",
+          "radar-cloud__list_resources",
+          "radar-cloud__query_prometheus",
+          "radar-cloud__search",
+          "radar-cloud__top_resources",
+          "radar-cloud__wait_for"
+        ]
+      },
+      {
         "name": "repository-docs",
         "description": "Read AI-generated wiki documentation and structure for a source repository.",
         "included_tools": [
@@ -2182,9 +2217,9 @@
     ]
   },
   "main_endpoint_tool_inventory": {
-    "count": 978,
+    "count": 1044,
     "source": "MCP initialize + tools/list against https://mcpjungle.tailf99a0.ts.net/mcp",
-    "description": "The main /mcp endpoint still serves all 978 tools. Creating tool groups does not narrow the main gateway; narrowing requires pointing a client at a group endpoint. The full per-tool metadata for this surface is maintained in config/mcpjungle/tool-inventory.json and is not duplicated here.",
+    "description": "The main /mcp endpoint still serves all 1044 tools. Creating tool groups does not narrow the main gateway; narrowing requires pointing a client at a group endpoint. The full per-tool metadata for this surface is maintained in config/mcpjungle/tool-inventory.json and is not duplicated here.",
     "inventory_file": "../tool-inventory.json"
   },
   "restore_procedure": {

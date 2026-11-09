@@ -1,0 +1,7 @@
+{
+  "name": "radar-cloud-destructive",
+  "description": "Radar Cloud Kubernetes object deletion (delete_resource only).",
+  "included_tools": [
+    "radar-cloud__delete_resource"
+  ]
+}

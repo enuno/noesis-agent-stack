@@ -1,0 +1,10 @@
+{
+  "name": "mintlify-auto-read",
+  "description": "Auto-classified newly discovered read-only tools on 'mintlify' that passed readOnlyHint=true and the write-admission scan.",
+  "included_tools": [
+    "mintlify__read_inbox",
+    "mintlify__read_page_history",
+    "mintlify__read_skill",
+    "mintlify__wait_for_page_activity"
+  ]
+}

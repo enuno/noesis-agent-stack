@@ -1,0 +1,9 @@
+{
+  "name": "beacon-managed-auto-read",
+  "description": "Auto-classified newly discovered read-only tools on 'beacon-managed' that passed readOnlyHint=true and the write-admission scan.",
+  "included_tools": [
+    "beacon-managed__beacon_intel_check",
+    "beacon-managed__beacon_intel_get_artifact",
+    "beacon-managed__beacon_intel_lookup"
+  ]
+}

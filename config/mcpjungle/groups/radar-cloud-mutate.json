@@ -1,0 +1,18 @@
+{
+  "name": "radar-cloud-mutate",
+  "description": "Radar Cloud cluster operate/mutate: apply/patch, manage workload/helm/gitops/node/cronjob/rollout, and hosted investigations that may consume billed allowance. Not delete.",
+  "included_tools": [
+    "radar-cloud__apply_resource",
+    "radar-cloud__diagnose",
+    "radar-cloud__follow_up_investigation",
+    "radar-cloud__manage_cronjob",
+    "radar-cloud__manage_gitops",
+    "radar-cloud__manage_helm",
+    "radar-cloud__manage_node",
+    "radar-cloud__manage_rollout",
+    "radar-cloud__manage_workload",
+    "radar-cloud__patch_resource",
+    "radar-cloud__start_investigation",
+    "radar-cloud__stop_investigation"
+  ]
+}

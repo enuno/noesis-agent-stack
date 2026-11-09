@@ -1,0 +1,13 @@
+{
+  "name": "hunter-auto-read",
+  "description": "Auto-classified newly discovered read-only tools on 'hunter' that passed readOnlyHint=true and the write-admission scan.",
+  "included_tools": [
+    "hunter__Get-Briefing",
+    "hunter__Get-Opportunity-Results",
+    "hunter__List-Job-Titles",
+    "hunter__List-Monitored-Signals",
+    "hunter__List-Opportunities",
+    "hunter__List-Signals",
+    "hunter__Preview-People"
+  ]
+}

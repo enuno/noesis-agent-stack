@@ -1,0 +1,7 @@
+{
+  "name": "gitbook-management-auto-read",
+  "description": "Auto-classified newly discovered read-only tools on 'gitbook-management' that passed readOnlyHint=true and the write-admission scan.",
+  "included_tools": [
+    "gitbook-management__get_schema_definition"
+  ]
+}

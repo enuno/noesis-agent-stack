@@ -7,12 +7,10 @@
     "mintlify__delete_node",
     "mintlify__discard",
     "mintlify__edit_page",
-    "mintlify__finalize_image_upload",
     "mintlify__move_node",
     "mintlify__suggest_edit",
     "mintlify__update_config",
     "mintlify__update_node",
-    "mintlify__upload_image",
     "mintlify__write_page"
   ]
 }

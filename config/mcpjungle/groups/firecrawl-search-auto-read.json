@@ -1,0 +1,7 @@
+{
+  "name": "firecrawl-search-auto-read",
+  "description": "Auto-classified newly discovered read-only tools on 'firecrawl-search' that passed readOnlyHint=true and the write-admission scan.",
+  "included_tools": [
+    "firecrawl-search__firecrawl_provider_directory"
+  ]
+}

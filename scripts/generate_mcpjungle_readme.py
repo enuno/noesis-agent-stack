@@ -67,7 +67,7 @@ SECTIONS = [
                                                        "platform-docs", "docs-site-read",
                                                        "docs-site-authoring", "docs-site-publish",
                                                        "platform-administration", "memory-retrieval",
-                                                       "memory-management", "database-readonly",
+                                                       "database-readonly",
                                                        "database-write", "data-analytics",
                                                        "observability", "security-audit",
                                                        "twilio-docs-read", "wolframalpha-knowledge-query"]),
@@ -97,6 +97,12 @@ SECTIONS = [
     ("Agent automation — the operator's own Aeon instance",
      ["noesis-aeon-read", "noesis-aeon-configure", "noesis-aeon-identity-write",
       "noesis-aeon-execute"]),
+    ("Radar Cloud — the operator's RadarHQ fleet",
+     ["radar-cloud-read", "radar-cloud-mutate", "radar-cloud-destructive"]),
+    ("Newly discovered auto-read (pending re-home into task-focused groups)",
+     ["beacon-managed-auto-read", "betterstack-noesis-auto-read",
+      "betterstack-ryno-auto-read", "firecrawl-search-auto-read",
+      "gitbook-management-auto-read", "hunter-auto-read", "mintlify-auto-read"]),
 ]
 
 SHORT_PURPOSE = {
@@ -132,7 +138,9 @@ SHORT_PURPOSE = {
     "docs-site-publish": "Publish staged changes; manage workflow runs and their PRs",
     "platform-administration": "Access control, domains, git sources, members, settings",
     "memory-retrieval": "Recall lessons; search sessions; read findings and trace metadata",
-    "memory-management": "File candidates; record review decisions; adjust trace visibility",
+    "radar-cloud-read": "Radar Cloud fleet/cluster inspection (list/get/search/logs/metrics)",
+    "radar-cloud-mutate": "Radar Cloud apply/patch/manage and hosted investigations",
+    "radar-cloud-destructive": "Radar Cloud Kubernetes object deletion",
     "database-readonly": "n8n data tables; Mintlify databases; Notion data sources",
     "database-write": "Create/extend/rename/delete tables and columns; edit database rows",
     "data-analytics": "Docs-site analytics queries and reports",
@@ -201,7 +209,9 @@ def group_table(names):
     rows = ["| Group | Tools | Risk | Intended consumers | Purpose |",
             "|---|---|---|---|---|"]
     for n in names:
-        g = by_name[n]
+        g = by_name.get(n)
+        if g is None:
+            continue
         rows.append(f"| `{n}` | {g['tool_count']} | {g['risk_level']} | {consumers_cell(g)} | "
                     f"{SHORT_PURPOSE.get(n, g['purpose'])} |")
     return "\n".join(rows)

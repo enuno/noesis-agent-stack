@@ -1,0 +1,9 @@
+{
+  "name": "betterstack-ryno-auto-read",
+  "description": "Auto-classified newly discovered read-only tools on 'betterstack-ryno' that passed readOnlyHint=true and the write-admission scan.",
+  "included_tools": [
+    "betterstack-ryno__dashboard_versions",
+    "betterstack-ryno__errors_slack_integration",
+    "betterstack-ryno__errors_slack_integrations"
+  ]
+}

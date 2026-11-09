@@ -1,0 +1,9 @@
+{
+  "name": "betterstack-noesis-auto-read",
+  "description": "Auto-classified newly discovered read-only tools on 'betterstack-noesis' that passed readOnlyHint=true and the write-admission scan.",
+  "included_tools": [
+    "betterstack-noesis__dashboard_versions",
+    "betterstack-noesis__errors_slack_integration",
+    "betterstack-noesis__errors_slack_integrations"
+  ]
+}

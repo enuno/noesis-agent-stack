@@ -42,7 +42,6 @@
     "betterstack-ryno__resolve_incident",
     "betterstack-ryno__set_dashboard_variable",
     "betterstack-ryno__set_exploration_variable",
-    "betterstack-ryno__toggle_chart_alert_pause",
     "betterstack-ryno__unlink_error_issue",
     "betterstack-ryno__update_catalog_relation",
     "betterstack-ryno__update_error_state",
