@@ -30,6 +30,14 @@ from app.isolated_attempt_home import (
     IsolatedAttemptHome,
     IsolatedAttemptHomeDigest,
 )
+from app.seat_credentials import (
+    CredentialUnavailable,
+    SeatCredentialContract,
+    build_spawn_env,
+    remove_seat_credential_files,
+    validate_seat_credential_contract,
+    write_seat_credential_files,
+)
 from app.transport_contract import CapabilityObservation, TransportRequest
 
 
@@ -687,6 +695,7 @@ class HermesCliAdapter:
         contract_revision: str | None = None,
         assignment_epoch: int | None = None,
         baseline: str | None = None,
+        credential_contract: SeatCredentialContract | None = None,
     ) -> LaunchResult:
         if dry_run:
             attestation, error, attest_cmd = self._attest(profile_id)
@@ -717,6 +726,11 @@ class HermesCliAdapter:
                 "fallback_unenforced",
                 "isolated empty fallback chain is not proven; refusing inference",
             )
+        contract = credential_contract if credential_contract is not None else SeatCredentialContract(scope="none")
+        try:
+            validate_seat_credential_contract(contract)
+        except CredentialUnavailable as exc:
+            return self._blocked(profile_id, [], None, "credential_unavailable", str(exc))
         try:
             isolated_root = write_isolated_fallback_session(
                 Path(workspace), profile_id, provider, model
@@ -836,7 +850,8 @@ class HermesCliAdapter:
         attestation = bound
         # Flags verified offline in hermes_cli/_parser.py: -p, --provider, -m, -z.
         cmd = [self.hermes_bin, "-p", profile_id, "--provider", provider, "-m", model, "-z", prompt]
-        env = self._env()
+        written = write_seat_credential_files(isolated_root, contract)
+        env = build_spawn_env(os.environ, contract)
         env["HERMES_HOME"] = str(isolated_root)
         env["NOESIS_FALLBACK_POLICY"] = "deny"
         env["NOESIS_APPROVED_PROVIDER"] = provider
@@ -844,7 +859,10 @@ class HermesCliAdapter:
         env["NOESIS_TASK_ID"] = task_id
         env["NOESIS_REQUESTED_PROFILE"] = profile_id
         try:
-            proc = self._run(cmd, timeout=effective_timeout, cwd=cwd, env=env)
+            try:
+                proc = self._run(cmd, timeout=effective_timeout, cwd=cwd, env=env)
+            finally:
+                remove_seat_credential_files(written)
         except subprocess.TimeoutExpired as exc:
             # Close the budget even on timeout so a repeat launch of the same
             # attempt is refused (F5). Record the failed attempt first.
