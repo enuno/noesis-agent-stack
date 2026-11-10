@@ -275,7 +275,7 @@ def test_symlink_credential_directory_is_refused_before_write(tmp_path):
 
 
 def test_two_seats_two_rounds_keep_distinct_attempt_keys(tmp_path):
-    runner = RecordingTransport(stdout=json.dumps({"text": "pong", "usage": {"output": 1}}))
+    runner = RecordingTransport(stdout=json.dumps({"text": "pong", "usage": {"output_tokens": 1}}))
     adapter = _adapter(tmp_path, runner)
     launcher = HermesCouncilSeatLauncher(
         adapter,
@@ -304,7 +304,7 @@ def test_two_seats_two_rounds_keep_distinct_attempt_keys(tmp_path):
 
 
 def test_same_round_retry_is_refused_after_closure(tmp_path):
-    runner = RecordingTransport(stdout=json.dumps({"text": "pong", "usage": {"output": 1}}))
+    runner = RecordingTransport(stdout=json.dumps({"text": "pong", "usage": {"output_tokens": 1}}))
     adapter = _adapter(tmp_path, runner)
     launcher = HermesCouncilSeatLauncher(
         adapter,
