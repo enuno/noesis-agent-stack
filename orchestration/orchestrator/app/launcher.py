@@ -855,11 +855,14 @@ class HermesCliAdapter:
         attestation = bound
         # Flags verified offline in hermes_cli/_parser.py: -p, --provider, -m, -z.
         cmd = [self.hermes_bin, "-p", profile_id, "--provider", provider, "-m", model, "-z", prompt]
-        written = write_seat_credential_files(
-            isolated_root,
-            contract,
-            trust_root=Path(workspace) if workspace else None,
-        )
+        try:
+            written = write_seat_credential_files(
+                isolated_root,
+                contract,
+                trust_root=Path(workspace) if workspace else None,
+            )
+        except CredentialUnavailable as exc:
+            return self._blocked(profile_id, [], attestation, "credential_unavailable", str(exc))
         env = build_spawn_env(os.environ, contract)
         env["HERMES_HOME"] = str(isolated_root)
         env["NOESIS_FALLBACK_POLICY"] = "deny"
