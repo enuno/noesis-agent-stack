@@ -974,9 +974,17 @@ jobs:
           live/terminated-but-unreaped/absent/unknown classification), and again
           on 2026-11-09 for the ADR Phase D seat-credential contract (9 tests:
           explicit allowlist, missing-credential refusal before spawn, file
-          mode and cleanup, council seam). This is not the earlier verdict-shape
-          Phase D repair slice named above, and it is not a live canary:
-            passed=894 failed=0 skipped=2 xfailed=2 xpassed=0
+          mode and cleanup, council seam), and again for the offline PR #33
+          defect regressions (4 tests: partial-write cleanup, credential
+          directory symlink refusal, two-seat two-round attempt keys, same
+          round retry refusal), and again for the Repair-2 credential-safety
+          slice (7 tests: write-error rollback, short-write rollback,
+          pre-existing directory preservation, cleanup-failure reporting,
+          symlinked-ancestor refusal with trust root, home symlink refusal,
+          ambiguous-timeout attempt closure). This is not the earlier
+          verdict-shape Phase D repair slice named above, and it is not a
+          live canary:
+            passed=905 failed=0 skipped=2 xfailed=2 xpassed=0
           These combined counts are exact. Do not turn them into floors.
           Focused A must be 39 passed. Focused C must be 147 passed.
           xfailed is G2 and G3 only. Do not delete those markers to go green.
@@ -1237,7 +1245,7 @@ jobs:
           ec=$?
           set -e
           cat "$RUNNER_TEMP/suite.txt"
-          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 894
+          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 905
           if [ "$ec" -ne 0 ]; then
             echo "combined orchestrator suite pytest exited $ec"
             exit "$ec"

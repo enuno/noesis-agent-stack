@@ -130,42 +130,144 @@ def build_spawn_env(
     return env
 
 
-def write_seat_credential_files(isolated_root: Path, contract: SeatCredentialContract) -> list[Path]:
-    """Write declared files under the isolated home only. Mode 0600. No parent-store copy."""
+class _CreatedFiles(list):
+    """Paths this call created. Carries directories only this call created."""
+
+    owned_directories: list = []
+
+
+def _symlink_span_rejection(isolated_root: Path, trust_root: Path | None) -> str | None:
+    """Reject when a symlink lies on the span from the home up to the trust root."""
+    if trust_root is None:
+        return None
+    home = Path(isolated_root).absolute()
+    root = Path(trust_root).absolute()
+    if root.is_symlink() or not root.is_dir():
+        return "credential trust root is not a real directory"
+    if home == root or root not in home.parents:
+        return "credential trust root does not contain the seat home"
+    cursor = home
+    while cursor != root:
+        if cursor.is_symlink():
+            return "seat home path crosses a symlinked ancestor"
+        parent = cursor.parent
+        if parent == cursor:
+            return "credential trust root does not contain the seat home"
+        cursor = parent
+    return None
+
+
+def write_seat_credential_files(
+    isolated_root: Path,
+    contract: SeatCredentialContract,
+    *,
+    trust_root: Path | None = None,
+) -> list[Path]:
+    """Write declared files under the isolated home only. Mode 0600.
+
+    Boundary. At or below isolated_root nothing may be a symlink: the home,
+    the credential directory, and each file open fail closed through
+    O_NOFOLLOW, so a rename cannot swap a symlink between check and open.
+    A caller-supplied trust_root extends the no-symlink span upward to that
+    root, refusing a symlinked ancestor that relocates the home into another
+    tree. Ancestors above trust_root are caller scope: on this platform /var
+    is a symlink, so a full ancestor walk requires a real trust root and is
+    not claimed here. None of this is a race-free claim after return.
+
+    Ownership. Only files this call created are rolled back, recorded before
+    the write so a write failure cannot orphan them. A directory is removed
+    only if this call created it and rollback leaves it empty. Cleanup
+    failures are reported, never silently swallowed, and never mask the
+    primary failure.
+    """
     validate_seat_credential_contract(contract)
+    created = _CreatedFiles()
     if not contract.files:
-        return []
-    base = isolated_root / _CREDENTIAL_DIR
-    base.mkdir(mode=0o700, exist_ok=True)
-    os.chmod(base, 0o700)
-    written: list[Path] = []
-    for rel, content in contract.files.items():
-        path = base / rel
-        if path.parent != base:
-            raise CredentialUnavailable("credential file escaped the seat directory")
-        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
-        fd = os.open(path, flags, 0o600)
+        return created
+    if not isolated_root.is_dir() or isolated_root.is_symlink():
+        raise CredentialUnavailable("isolated home is not a real directory")
+    span_rejection = _symlink_span_rejection(Path(isolated_root), trust_root)
+    if span_rejection:
+        raise CredentialUnavailable(span_rejection)
+    root_fd = -1
+    base_fd = -1
+    primary: BaseException | None = None
+    try:
+        root_fd = os.open(isolated_root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
         try:
-            os.write(fd, content.encode("utf-8"))
-        finally:
-            os.close(fd)
-        os.chmod(path, 0o600)
-        written.append(path)
-    return written
+            base_fd = os.open(_CREDENTIAL_DIR, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=root_fd)
+        except FileNotFoundError:
+            os.mkdir(_CREDENTIAL_DIR, 0o700, dir_fd=root_fd)
+            created.owned_directories = [Path(isolated_root) / _CREDENTIAL_DIR]
+            base_fd = os.open(_CREDENTIAL_DIR, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=root_fd)
+        except OSError:
+            raise CredentialUnavailable("credential directory is a symlink or not a real directory") from None
+        try:
+            os.fchmod(base_fd, 0o700)
+        except OSError:
+            raise CredentialUnavailable("credential directory permissions refused") from None
+        for rel, content in contract.files.items():
+            payload = content.encode("utf-8")
+            path = Path(isolated_root) / _CREDENTIAL_DIR / rel
+            fd = -1
+            try:
+                fd = os.open(rel, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=base_fd)
+            except FileExistsError:
+                raise CredentialUnavailable("credential file already exists") from None
+            except OSError:
+                raise CredentialUnavailable("credential file is not creatable in the seat directory") from None
+            created.append(path)
+            try:
+                written_n = os.write(fd, payload)
+            finally:
+                os.close(fd)
+            if written_n != len(payload):
+                raise CredentialUnavailable("credential file write was short")
+    except BaseException as exc:
+        primary = exc
+        if not isinstance(exc, CredentialUnavailable):
+            raise CredentialUnavailable(type(exc).__name__) from exc
+        raise
+    finally:
+        for fd in (base_fd, root_fd):
+            if fd >= 0:
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
+        if primary is not None:
+            notes = remove_seat_credential_files(created, owned_directories=created.owned_directories)
+            if notes:
+                detail = str(primary) if isinstance(primary, CredentialUnavailable) else type(primary).__name__
+                for value in contract.values.values():
+                    if isinstance(value, str) and value:
+                        detail = detail.replace(value, "[redacted]")
+                raise CredentialUnavailable(f"{detail} (cleanup_failed)") from primary
+    return created
 
 
-def remove_seat_credential_files(paths: list[Path]) -> None:
-    for path in paths:
+def remove_seat_credential_files(paths: list[Path], owned_directories: list | None = None) -> list[str]:
+    """Remove only artifacts this attempt owns. Returns cleanup failure notes."""
+    if owned_directories is None:
+        owned_directories = list(getattr(paths, "owned_directories", []))
+    notes: list[str] = []
+    for path in list(paths):
         try:
-            path.unlink(missing_ok=True)
+            Path(path).unlink(missing_ok=True)
         except OSError:
+            notes.append("unlink_failed")
+    for directory in owned_directories:
+        directory = Path(directory)
+        if directory.is_symlink():
+            notes.append("owned_directory_symlink")
             continue
-    parents = {path.parent for path in paths}
-    for parent in parents:
         try:
-            parent.rmdir()
+            directory.rmdir()
+        except FileNotFoundError:
+            pass
         except OSError:
-            continue
+            notes.append("rmdir_failed")
+    return notes
 
 
 class HermesCouncilSeatLauncher:
@@ -192,13 +294,29 @@ class HermesCouncilSeatLauncher:
         self.credential_contract = credential_contract
         self.workspace = workspace
         self.task_id = task_id
+        self._round_counts: dict[str, int] = {}
+
+    def attempt_key(self, seat_id: str, round_n: int) -> str:
+        """Traceable attempt id. Not a random bypass of budget closure."""
+        return f"{self.task_id}|{seat_id}|round-{round_n}|attempt-1"
 
     def __call__(self, seat: Mapping, payload: Mapping, max_output_tokens: int, round_timeout_s: float | None):
         import json
 
         profile_id = str(seat.get("profile") or "")
+        seat_id = str(seat.get("seat_id") or "")
         if not profile_id or profile_id.startswith("-"):
             raise CredentialUnavailable("seat profile is missing")
+        if not seat_id or seat_id.startswith("-"):
+            raise CredentialUnavailable("seat id is missing")
+        explicit_round = seat.get("round")
+        if explicit_round is None:
+            round_n = self._round_counts.get(seat_id, 0) + 1
+            self._round_counts[seat_id] = round_n
+        else:
+            if isinstance(explicit_round, bool) or not isinstance(explicit_round, int) or explicit_round <= 0:
+                raise CredentialUnavailable("seat round is not a positive integer")
+            round_n = explicit_round
         # Untrusted payload is prompt text. It does not select provider, model, or argv flags.
         prompt = json.dumps(payload, sort_keys=True)
         timeout = round_timeout_s if isinstance(round_timeout_s, (int, float)) and round_timeout_s > 0 else None
@@ -208,6 +326,7 @@ class HermesCouncilSeatLauncher:
             profile_id=profile_id,
             prompt=prompt,
             task_id=self.task_id,
+            budget_attempt_id=self.attempt_key(seat_id, round_n),
             cwd=str(self.workspace),
             dry_run=False,
             provider=self.provider,
@@ -235,4 +354,3 @@ class HermesCouncilSeatLauncher:
         if not isinstance(parsed, dict) or "usage" not in parsed:
             raise SeatLaunchRefused("seat stdout has no reported usage")
         return {"text": text, "usage": parsed["usage"]}
-

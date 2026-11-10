@@ -145,6 +145,9 @@ def write_isolated_fallback_session(workspace: Path, profile_id: str, provider: 
     safe_profile = _session_scalar(profile_id)
     safe_provider = _session_scalar(provider)
     safe_model = _session_scalar(model)
+    workspace = Path(workspace)
+    if workspace.is_symlink():
+        raise FallbackDenied("credential_unavailable", "workspace is a symlink")
     root = workspace / ".noesis-fallback-session"
     profile = root / "profiles" / safe_profile
     profile.mkdir(parents=True, exist_ok=True)
@@ -696,6 +699,7 @@ class HermesCliAdapter:
         assignment_epoch: int | None = None,
         baseline: str | None = None,
         credential_contract: SeatCredentialContract | None = None,
+        budget_attempt_id: str | None = None,
     ) -> LaunchResult:
         if dry_run:
             attestation, error, attest_cmd = self._attest(profile_id)
@@ -755,7 +759,8 @@ class HermesCliAdapter:
         # F5: refuse a second launch of the same attempt if the credential
         # budget is already closed (billing/quota failure). A fresh attempt
         # opens the budget and is allowed to proceed.
-        if _credential_budget_closed(provider=provider, model=model, task_id=task_id):
+        budget_key = budget_attempt_id or task_id
+        if _credential_budget_closed(provider=provider, model=model, task_id=budget_key):
             return self._blocked(
                 profile_id,
                 [],
@@ -850,7 +855,11 @@ class HermesCliAdapter:
         attestation = bound
         # Flags verified offline in hermes_cli/_parser.py: -p, --provider, -m, -z.
         cmd = [self.hermes_bin, "-p", profile_id, "--provider", provider, "-m", model, "-z", prompt]
-        written = write_seat_credential_files(isolated_root, contract)
+        written = write_seat_credential_files(
+            isolated_root,
+            contract,
+            trust_root=Path(workspace) if workspace else None,
+        )
         env = build_spawn_env(os.environ, contract)
         env["HERMES_HOME"] = str(isolated_root)
         env["NOESIS_FALLBACK_POLICY"] = "deny"
@@ -858,15 +867,16 @@ class HermesCliAdapter:
         env["NOESIS_APPROVED_MODEL"] = model
         env["NOESIS_TASK_ID"] = task_id
         env["NOESIS_REQUESTED_PROFILE"] = profile_id
+        credential_cleanup_notes: list[str] = []
         try:
             try:
                 proc = self._run(cmd, timeout=effective_timeout, cwd=cwd, env=env)
             finally:
-                remove_seat_credential_files(written)
+                credential_cleanup_notes = remove_seat_credential_files(written)
         except subprocess.TimeoutExpired as exc:
             # Close the budget even on timeout so a repeat launch of the same
             # attempt is refused (F5). Record the failed attempt first.
-            _close_credential_budget(provider=provider, model=model, task_id=task_id)
+            _close_credential_budget(provider=provider, model=model, task_id=budget_key)
             timed_out_pid = getattr(exc, "pid", None)
             if timed_out_pid is None and self.process_runner is not None:
                 timed_out_pid = getattr(self.process_runner, "active_pid", None)
@@ -890,6 +900,9 @@ class HermesCliAdapter:
                 partial_stdout = partial_stdout.decode("utf-8", "replace")
             partial_stdout = redact(str(partial_stdout))
             stdout_digest = hashlib.sha256(partial_stdout.encode("utf-8")).hexdigest() if partial_stdout else None
+            timeout_error = f"process deadline exceeded: {exc}"
+            if credential_cleanup_notes:
+                timeout_error = f"{timeout_error} (cleanup_failed)"
             timeout_workspace = Path(workspace) if workspace else None
             timeout_artifacts, timeout_digest, timeout_collection_error = self._collect_artifacts(
                 partial_stdout, timeout_workspace
@@ -900,7 +913,7 @@ class HermesCliAdapter:
                 attestation.loaded_profile if attestation else None,
                 cmd,
                 attestation,
-                f"process deadline exceeded: {exc}",
+                timeout_error,
                 provider=provider,
                 model=model,
                 timeout_s=effective_timeout,
@@ -922,7 +935,18 @@ class HermesCliAdapter:
                 captured_stdout=partial_stdout,
                 collection_error=timeout_collection_error,
             )
-        _close_credential_budget(provider=provider, model=model, task_id=task_id)
+        _close_credential_budget(provider=provider, model=model, task_id=budget_key)
+        if credential_cleanup_notes:
+            # The child ran, but credential artifacts survived the finally path.
+            # Refuse the result and keep the attempt closed: never report a
+            # launch whose credential cleanup failed as a success.
+            return self._blocked(
+                profile_id,
+                cmd,
+                attestation,
+                "credential_cleanup_failed",
+                "credential files were not removed after the spawn (cleanup_failed)",
+            )
         stdout = redact(getattr(proc, "stdout", "") or "")
         stderr = redact(getattr(proc, "stderr", "") or "")
         stdout_digest = hashlib.sha256(stdout.encode("utf-8")).hexdigest()
@@ -959,7 +983,7 @@ class HermesCliAdapter:
                 dry_run=False,
             )
         if artifact_error:
-            _close_credential_budget(provider=provider, model=model, task_id=task_id)
+            _close_credential_budget(provider=provider, model=model, task_id=budget_key)
             return self._blocked(profile_id, cmd, attestation, artifact_error, "artifact evidence rejected")
         return LaunchResult(
             True,
