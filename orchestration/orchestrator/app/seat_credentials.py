@@ -351,6 +351,14 @@ class HermesCouncilSeatLauncher:
             parsed = json.loads(text)
         except json.JSONDecodeError as exc:
             raise SeatLaunchRefused("seat stdout is not a council verdict") from exc
-        if not isinstance(parsed, dict) or "usage" not in parsed:
-            raise SeatLaunchRefused("seat stdout has no reported usage")
-        return {"text": text, "usage": parsed["usage"]}
+        usage = parsed.get("usage") if isinstance(parsed, dict) else None
+        output_tokens = usage.get("output_tokens") if isinstance(usage, dict) else None
+        if (
+            not isinstance(parsed, dict)
+            or not isinstance(parsed.get("text"), str)
+            or not isinstance(output_tokens, int)
+            or isinstance(output_tokens, bool)
+            or output_tokens < 0
+        ):
+            raise SeatLaunchRefused("seat stdout has no council verdict text or reported usage")
+        return {"text": parsed["text"], "usage": usage}
