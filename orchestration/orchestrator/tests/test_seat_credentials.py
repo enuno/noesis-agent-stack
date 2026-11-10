@@ -27,6 +27,7 @@ from app.seat_credentials import (
 
 SECRET = "sk-" + "syntheticseatvalue0001"
 UNRELATED = "sk-" + "syntheticunrelated0001"
+OTHER_SECRET = "other-" + "synthetic-value"
 
 
 def _expect_equal(left, right, what: str) -> None:
@@ -181,11 +182,11 @@ def test_two_seats_do_not_share_credential_files(tmp_path):
     from app.seat_credentials import remove_seat_credential_files, write_seat_credential_files
 
     first = write_seat_credential_files(left, _contract())
-    second = write_seat_credential_files(right, _contract(files={"other.token": "other-synthetic-value"}))
+    second = write_seat_credential_files(right, _contract(files={"other.token": OTHER_SECRET}))
     _expect_equal(first[0].read_text(encoding="utf-8"), SECRET, "written credential content")
     assert oct(first[0].stat().st_mode & 0o777) == "0o600"
     assert not (right / ".seat-credentials" / "seat.token").exists()
-    assert second[0].read_text(encoding="utf-8") == "other-synthetic-value"
+    _expect_equal(second[0].read_text(encoding="utf-8"), OTHER_SECRET, "second credential content")
     remove_seat_credential_files(first + second)
     assert not first[0].exists()
     assert not second[0].exists()
