@@ -186,6 +186,7 @@ def test_two_seats_do_not_share_credential_files(tmp_path):
     _expect_equal(first[0].read_text(encoding="utf-8"), SECRET, "written credential content")
     assert oct(first[0].stat().st_mode & 0o777) == "0o600"
     assert not (right / ".seat-credentials" / "seat.token").exists()
+    assert not (left / ".seat-credentials" / "other.token").exists()
     _expect_equal(second[0].read_text(encoding="utf-8"), OTHER_SECRET, "second credential content")
     remove_seat_credential_files(first + second)
     assert not first[0].exists()
@@ -430,3 +431,46 @@ def test_home_symlink_is_refused(tmp_path):
     with pytest.raises(CredentialUnavailable):
         write_seat_credential_files(home, _contract(), trust_root=tmp_path)
     assert list(outside.rglob("seat.token")) == []
+
+
+def test_write_refusal_after_validation_does_not_spawn(tmp_path, monkeypatch):
+    called = {"n": 0}
+
+    def boom(*args, **kwargs):
+        called["n"] += 1
+        raise CredentialUnavailable("credential directory is a symlink")
+
+    monkeypatch.setattr("app.launcher.write_seat_credential_files", boom)
+    runner = RecordingTransport()
+    result = _launch(tmp_path, runner, task_id="write-refusal")
+    assert called["n"] == 1
+    assert result.ok is False
+    assert result.blocker_code == "credential_unavailable"
+    assert runner.inference_count == 0
+    _expect_absent(SECRET, result.error or "", "secret in write-refusal error")
+
+
+@pytest.mark.parametrize(
+    "label,stdout",
+    [
+        ("wrong-field", json.dumps({"text": "pong", "usage": {"output": 1}})),
+        ("missing-text", json.dumps({"usage": {"output_tokens": 1}})),
+        ("bool-tokens", json.dumps({"text": "pong", "usage": {"output_tokens": True}})),
+        ("negative-tokens", json.dumps({"text": "pong", "usage": {"output_tokens": -1}})),
+    ],
+)
+def test_malformed_seat_stdout_is_refused(tmp_path, label, stdout):
+    runner = RecordingTransport(stdout=stdout)
+    adapter = _adapter(tmp_path, runner)
+    launcher = HermesCouncilSeatLauncher(
+        adapter,
+        provider="approved-provider",
+        model="approved-model",
+        credential_contract=_contract(),
+        workspace=tmp_path / "workspace",
+        task_id=f"malformed-{label}",
+    )
+    (tmp_path / "workspace").mkdir()
+    with pytest.raises(SeatLaunchRefused):
+        launcher({"profile": "noesis-forge", "seat_id": "forge", "round": 1}, {"ask": "pong"}, 32, 15)
+    assert runner.inference_count == 1
