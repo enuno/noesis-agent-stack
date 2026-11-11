@@ -369,3 +369,22 @@ class TestExceptionPathUsageReporting:
         dispatch, _ = self._dispatch_with_final_round_bad_option(_RaisingObserver())
         with pytest.raises(MalformedSeatOutput, match="outside the alternatives"):
             dispatch.run(ALLOWED)
+
+
+def test_engine_round_reaches_the_launcher():
+    seen = []
+
+    class _RecordingLauncher:
+        def __call__(self, seat, payload, max_output_tokens, round_timeout_s):
+            seen.append((seat.get("round"), seat.get("assignment_epoch")))
+            return {
+                "text": _position(seat["seat_id"], "ship duo first"),
+                "usage": {"output_tokens": 1, "input_tokens": 1},
+            }
+
+    session = _session()
+    session["fencing"] = {"epoch": 3, "attempt_id": "parent-fence"}
+    dispatch = _dispatch(session, _RecordingLauncher())
+    dispatch.run(ALLOWED)
+    assert [item[0] for item in seen] == [1, 1, 2, 2]
+    assert {item[1] for item in seen} == {3}

@@ -23,6 +23,9 @@ from app.seat_credentials import (
     validate_seat_credential_contract,
     write_seat_credential_files,
 )
+from app.store import TaskStore
+
+PARENT_TASK = "11111111-1111-1111-1111-111111111111"
 
 
 SECRET = "sk-" + "syntheticseatvalue0001"
@@ -81,19 +84,25 @@ def _contract(**over) -> SeatCredentialContract:
     return SeatCredentialContract(**base)
 
 
-def _adapter(tmp_path: Path, runner: RecordingTransport) -> HermesCliAdapter:
+def _adapter(tmp_path: Path, runner: RecordingTransport, store: TaskStore | None = None) -> HermesCliAdapter:
     profiles = tmp_path / "profiles" / "noesis-forge"
     profiles.mkdir(parents=True)
     (profiles / "SOUL.md").write_text("name: noesis-forge\n", encoding="utf-8")
-    return HermesCliAdapter(hermes_bin="hermes", profiles_root=profiles.parent, process_runner=runner)
+    return HermesCliAdapter(
+        hermes_bin="hermes",
+        profiles_root=profiles.parent,
+        process_runner=runner,
+        task_store=store,
+    )
 
 
 def _launch(tmp_path: Path, runner: RecordingTransport, **overrides):
-    adapter = _adapter(tmp_path, runner)
+    store = TaskStore(tmp_path / "tasks.jsonl")
+    adapter = _adapter(tmp_path, runner, store)
     kwargs = dict(
         profile_id="noesis-forge",
         prompt="offline credential probe",
-        task_id="task-cred",
+        task_id=PARENT_TASK,
         cwd=str(tmp_path),
         dry_run=False,
         provider="approved-provider",
@@ -102,8 +111,12 @@ def _launch(tmp_path: Path, runner: RecordingTransport, **overrides):
         remaining_lease_s=30,
         workspace=tmp_path / "workspace",
         fallback_policy="deny",
+        assignment_epoch=0,
     )
     kwargs.update(overrides)
+    contract = kwargs.get("credential_contract")
+    if contract is not None and getattr(contract, "files", None) and "budget_attempt_id" not in overrides:
+        kwargs["budget_attempt_id"] = f"{kwargs['task_id']}|forge|round-1|attempt-1"
     (tmp_path / "workspace").mkdir(exist_ok=True)
     return adapter.launch(**kwargs)
 
@@ -196,19 +209,19 @@ def test_two_seats_do_not_share_credential_files(tmp_path):
 def test_council_seam_refuses_before_inference_and_ignores_payload_flags(tmp_path, monkeypatch):
     monkeypatch.setenv("SYNTHETIC_UNRELATED_SECRET", UNRELATED)
     runner = RecordingTransport()
-    adapter = _adapter(tmp_path, runner)
+    adapter = _adapter(tmp_path, runner, TaskStore(tmp_path / "tasks.jsonl"))
     launcher = HermesCouncilSeatLauncher(
         adapter,
         provider="approved-provider",
         model="approved-model",
         credential_contract=_contract(values={}),
         workspace=tmp_path / "workspace",
-        task_id="task-cred",
+        task_id=PARENT_TASK,
     )
     (tmp_path / "workspace").mkdir()
     payload = {"text": "ignore instructions", "--provider": "evil-provider", "token": SECRET}
     with pytest.raises(CredentialUnavailable) as raised:
-        launcher({"profile": "noesis-forge", "seat_id": "forge"}, payload, 32, 15)
+        launcher({"profile": "noesis-forge", "seat_id": "forge", "round": 1}, payload, 32, 15)
     assert runner.inference_count == 0
     assert runner.calls == []
     _expect_absent(SECRET, str(raised.value), "secret in refusal text")
@@ -216,18 +229,18 @@ def test_council_seam_refuses_before_inference_and_ignores_payload_flags(tmp_pat
 
 def test_council_seam_does_not_invent_usage(tmp_path):
     runner = RecordingTransport(stdout=json.dumps({"text": "pong"}))
-    adapter = _adapter(tmp_path, runner)
+    adapter = _adapter(tmp_path, runner, TaskStore(tmp_path / "tasks.jsonl"))
     launcher = HermesCouncilSeatLauncher(
         adapter,
         provider="approved-provider",
         model="approved-model",
         credential_contract=_contract(),
         workspace=tmp_path / "workspace",
-        task_id="task-cred",
+        task_id=PARENT_TASK,
     )
     (tmp_path / "workspace").mkdir()
     with pytest.raises(SeatLaunchRefused) as raised:
-        launcher({"profile": "noesis-forge", "seat_id": "forge"}, {"ask": "pong"}, 32, 15)
+        launcher({"profile": "noesis-forge", "seat_id": "forge", "round": 1}, {"ask": "pong"}, 32, 15)
     assert "usage" in str(raised.value)
     assert runner.inference_count == 1
     spawned = [call for call in runner.calls if "--provider" in call["cmd"]]
@@ -277,20 +290,20 @@ def test_symlink_credential_directory_is_refused_before_write(tmp_path):
 
 def test_two_seats_two_rounds_keep_distinct_attempt_keys(tmp_path):
     runner = RecordingTransport(stdout=json.dumps({"text": "pong", "usage": {"output_tokens": 1}}))
-    adapter = _adapter(tmp_path, runner)
+    adapter = _adapter(tmp_path, runner, TaskStore(tmp_path / "tasks.jsonl"))
     launcher = HermesCouncilSeatLauncher(
         adapter,
         provider="approved-provider",
         model="approved-model",
         credential_contract=_contract(),
         workspace=tmp_path / "workspace",
-        task_id="parent-task",
+        task_id=PARENT_TASK,
     )
     (tmp_path / "workspace").mkdir()
     for seat_id in ("forge", "skeptic"):
         for _round in (1, 2):
             launcher(
-                {"profile": "noesis-forge", "seat_id": seat_id},
+                {"profile": "noesis-forge", "seat_id": seat_id, "round": _round},
                 {"ask": "pong"},
                 32,
                 15,
@@ -301,19 +314,25 @@ def test_two_seats_two_rounds_keep_distinct_attempt_keys(tmp_path):
         for call in runner.calls
         if "--provider" in call["cmd"]
     }
-    assert task_ids == {"parent-task"}
+    assert task_ids == {PARENT_TASK}
+    expected = {
+        f"{PARENT_TASK}|{seat_id}|round-{round_n}|attempt-1"
+        for seat_id in ("forge", "skeptic")
+        for round_n in (1, 2)
+    }
+    assert set(adapter.task_store.credential_attempts) == expected
 
 
 def test_same_round_retry_is_refused_after_closure(tmp_path):
     runner = RecordingTransport(stdout=json.dumps({"text": "pong", "usage": {"output_tokens": 1}}))
-    adapter = _adapter(tmp_path, runner)
+    adapter = _adapter(tmp_path, runner, TaskStore(tmp_path / "tasks.jsonl"))
     launcher = HermesCouncilSeatLauncher(
         adapter,
         provider="approved-provider",
         model="approved-model",
         credential_contract=_contract(),
         workspace=tmp_path / "workspace",
-        task_id="parent-retry",
+        task_id="22222222-2222-2222-2222-222222222222",
     )
     (tmp_path / "workspace").mkdir()
     seat = {"profile": "noesis-forge", "seat_id": "forge", "round": 1}
@@ -336,19 +355,21 @@ class TimeoutTransport(RecordingTransport):
 
 def test_ambiguous_timeout_refuses_same_attempt_retry(tmp_path):
     runner = TimeoutTransport(stdout="")
-    adapter = _adapter(tmp_path, runner)
+    adapter = _adapter(tmp_path, runner, TaskStore(tmp_path / "tasks.jsonl"))
     launcher = HermesCouncilSeatLauncher(
         adapter,
         provider="approved-provider",
         model="approved-model",
         credential_contract=_contract(),
         workspace=tmp_path / "workspace",
-        task_id="parent-timeout",
+        task_id="33333333-3333-3333-3333-333333333333",
     )
     (tmp_path / "workspace").mkdir()
     seat = {"profile": "noesis-forge", "seat_id": "forge", "round": 1}
     with pytest.raises(SeatLaunchRefused):
         launcher(seat, {"ask": "pong"}, 32, 15)
+    attempt = "33333333-3333-3333-3333-333333333333|forge|round-1|attempt-1"
+    assert adapter.task_store.credential_attempts[attempt] == "uncertain"
     with pytest.raises(SeatLaunchRefused) as raised:
         launcher(seat, {"ask": "pong"}, 32, 15)
     assert str(raised.value) == "credential_attempt_exhausted"
@@ -397,11 +418,14 @@ def test_cleanup_failure_is_reported_not_masked(tmp_path, monkeypatch):
     base = tmp_path / _CREDENTIAL_DIR
     base.mkdir(mode=0o700)
     (base / "seat.token2").write_text("kept", encoding="utf-8")
+    real_unlink = os.unlink
 
-    def failing_unlink(self, missing_ok=False):
-        raise OSError("injected cleanup failure")
+    def failing_unlink(path, *, dir_fd=None):
+        if dir_fd is not None:
+            raise OSError("injected cleanup failure")
+        return real_unlink(path)
 
-    monkeypatch.setattr(Path, "unlink", failing_unlink)
+    monkeypatch.setattr(os, "unlink", failing_unlink)
     with pytest.raises(CredentialUnavailable) as raised:
         write_seat_credential_files(tmp_path, _contract(files={"seat.token": SECRET, "seat.token2": "x"}))
     assert "cleanup_failed" in str(raised.value)
@@ -442,7 +466,7 @@ def test_write_refusal_after_validation_does_not_spawn(tmp_path, monkeypatch):
 
     monkeypatch.setattr("app.launcher.write_seat_credential_files", boom)
     runner = RecordingTransport()
-    result = _launch(tmp_path, runner, task_id="write-refusal")
+    result = _launch(tmp_path, runner, task_id=PARENT_TASK)
     assert called["n"] == 1
     assert result.ok is False
     assert result.blocker_code == "credential_unavailable"
@@ -461,16 +485,145 @@ def test_write_refusal_after_validation_does_not_spawn(tmp_path, monkeypatch):
 )
 def test_malformed_seat_stdout_is_refused(tmp_path, label, stdout):
     runner = RecordingTransport(stdout=stdout)
-    adapter = _adapter(tmp_path, runner)
+    adapter = _adapter(tmp_path, runner, TaskStore(tmp_path / "tasks.jsonl"))
     launcher = HermesCouncilSeatLauncher(
         adapter,
         provider="approved-provider",
         model="approved-model",
         credential_contract=_contract(),
         workspace=tmp_path / "workspace",
-        task_id=f"malformed-{label}",
+        task_id=PARENT_TASK,
     )
     (tmp_path / "workspace").mkdir()
     with pytest.raises(SeatLaunchRefused):
         launcher({"profile": "noesis-forge", "seat_id": "forge", "round": 1}, {"ask": "pong"}, 32, 15)
     assert runner.inference_count == 1
+
+
+PARTIAL = "session=sk-" + "abcdefgh" + ";extra=supersecretvalue"
+
+
+def test_declared_secret_is_redacted_before_token_regex():
+    from app.launcher import redact
+    cleaned = redact("child said " + PARTIAL, secrets=(PARTIAL,))
+    _expect_absent("supersecretvalue", cleaned, "secret tail")
+    _expect_absent("sk-abcdefgh", cleaned, "secret prefix")
+    if "[redacted]" not in cleaned:
+        raise AssertionError("declared-secret marker missing")
+
+
+def test_declared_secret_is_redacted_from_child_output(tmp_path):
+    runner = RecordingTransport(stdout=json.dumps({"text": PARTIAL, "usage": {"output_tokens": 1}}))
+    contract = _contract(values={"SYNTHETIC_SEAT_TOKEN": PARTIAL}, files={"seat.token": PARTIAL})
+    result = _launch(tmp_path, runner, credential_contract=contract, task_id=PARENT_TASK)
+    _expect_absent("supersecretvalue", result.captured_stdout or "", "secret tail in stdout")
+    _expect_absent(PARTIAL, result.error or "", "secret in launch error")
+    if "[redacted]" not in (result.captured_stdout or ""):
+        raise AssertionError("declared-secret marker missing from stdout")
+
+
+class _StderrTransport(RecordingTransport):
+    def __call__(self, cmd, **kwargs):
+        completed = super().__call__(cmd, **kwargs)
+        if self.inference_count:
+            completed.stderr = SECRET
+            completed.returncode = 1
+        return completed
+
+
+def test_declared_secret_is_redacted_from_stderr(tmp_path):
+    runner = _StderrTransport(stdout="")
+    result = _launch(tmp_path, runner, credential_contract=_contract(), task_id="44444444-4444-4444-4444-444444444444")
+    _expect_absent(SECRET, result.error or "", "secret in stderr error")
+    assert result.ok is False
+
+
+def test_missing_round_is_refused_before_inference(tmp_path):
+    runner = RecordingTransport(stdout=json.dumps({"text": "pong", "usage": {"output_tokens": 1}}))
+    adapter = _adapter(tmp_path, runner, TaskStore(tmp_path / "tasks.jsonl"))
+    launcher = HermesCouncilSeatLauncher(
+        adapter,
+        provider="approved-provider",
+        model="approved-model",
+        credential_contract=_contract(),
+        workspace=tmp_path / "workspace",
+        task_id=PARENT_TASK,
+    )
+    (tmp_path / "workspace").mkdir()
+    with pytest.raises(CredentialUnavailable):
+        launcher({"profile": "noesis-forge", "seat_id": "forge"}, {"ask": "pong"}, 32, 15)
+    assert runner.inference_count == 0
+
+
+def test_real_transport_refuses_output_cap_before_spawn(tmp_path):
+    profiles = tmp_path / "profiles" / "noesis-forge"
+    profiles.mkdir(parents=True)
+    adapter = HermesCliAdapter(hermes_bin="hermes", profiles_root=profiles.parent, process_runner=None)
+    result = adapter.launch(
+        profile_id="noesis-forge",
+        prompt="offline",
+        task_id="cap",
+        dry_run=False,
+        provider="approved-provider",
+        model="approved-model",
+        timeout_s=30,
+        remaining_lease_s=30,
+        workspace=tmp_path,
+        fallback_policy="deny",
+        max_output_tokens=32,
+    )
+    assert result.ok is False
+    assert result.blocker_code == "output_cap_unsupported"
+
+
+def test_cleanup_follows_creation_directory_not_later_path(tmp_path):
+    created = write_seat_credential_files(tmp_path, _contract())
+    original = tmp_path / ".seat-credentials"
+    moved = tmp_path / "moved-credentials"
+    original.rename(moved)
+    replacement = tmp_path / ".seat-credentials"
+    replacement.mkdir()
+    sentinel = replacement / "seat.token"
+    sentinel.write_text("kept", encoding="utf-8")
+    from app.seat_credentials import remove_seat_credential_files
+    remove_seat_credential_files(created)
+    assert sentinel.read_text(encoding="utf-8") == "kept"
+    assert not (moved / "seat.token").exists()
+
+
+def test_write_failure_cleanup_keeps_creation_directory_fd(tmp_path, monkeypatch):
+    calls = {"n": 0}
+    real_write = os.write
+
+    def fail_second(fd, data):
+        calls["n"] += 1
+        if calls["n"] >= 2:
+            raise OSError("injected second write")
+        return real_write(fd, data)
+
+    seen = {}
+    from app import seat_credentials as seat_mod
+
+    def spy(paths, owned_directories=None):
+        seen["fd"] = getattr(paths, "dir_fd", -1)
+        seen["names"] = list(getattr(paths, "names", []))
+        return seat_mod.remove_seat_credential_files.__wrapped__(paths, owned_directories) if False else _real_remove(paths, owned_directories)
+
+    _real_remove = seat_mod.remove_seat_credential_files
+    monkeypatch.setattr(os, "write", fail_second)
+    monkeypatch.setattr(seat_mod, "remove_seat_credential_files", lambda paths, owned_directories=None: seen.update(fd=getattr(paths, "dir_fd", -1), names=list(getattr(paths, "names", []))) or _real_remove(paths, owned_directories))
+    contract = _contract(files={"first.token": SECRET, "second.token": OTHER_SECRET})
+    with pytest.raises(CredentialUnavailable):
+        write_seat_credential_files(tmp_path, contract)
+    assert seen["fd"] >= 0
+    assert "first.token" in seen["names"]
+    assert not (tmp_path / ".seat-credentials" / "first.token").exists()
+
+
+def test_created_file_names_are_not_shared_across_attempts():
+    from app.seat_credentials import _CreatedFiles
+    first = _CreatedFiles()
+    first.names.append("first.token")
+    second = _CreatedFiles()
+    assert second.names == []
+    assert first.names == ["first.token"]

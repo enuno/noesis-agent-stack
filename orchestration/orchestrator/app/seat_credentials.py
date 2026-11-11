@@ -131,9 +131,13 @@ def build_spawn_env(
 
 
 class _CreatedFiles(list):
-    """Paths this call created. Carries directories only this call created."""
+    """Paths this call created. Carries the directory fd used to create them."""
 
-    owned_directories: list = []
+    def __init__(self) -> None:
+        super().__init__()
+        self.owned_directories: list = []
+        self.dir_fd = -1
+        self.names: list = []
 
 
 def _symlink_span_rejection(isolated_root: Path, trust_root: Path | None) -> str | None:
@@ -217,18 +221,24 @@ def write_seat_credential_files(
             except OSError:
                 raise CredentialUnavailable("credential file is not creatable in the seat directory") from None
             created.append(path)
+            created.names.append(rel)
             try:
                 written_n = os.write(fd, payload)
             finally:
                 os.close(fd)
             if written_n != len(payload):
                 raise CredentialUnavailable("credential file write was short")
+        created.dir_fd = base_fd
+        base_fd = -1
     except BaseException as exc:
         primary = exc
         if not isinstance(exc, CredentialUnavailable):
             raise CredentialUnavailable(type(exc).__name__) from exc
         raise
     finally:
+        if primary is not None and getattr(created, "dir_fd", -1) < 0 and base_fd >= 0:
+            created.dir_fd = base_fd
+            base_fd = -1
         for fd in (base_fd, root_fd):
             if fd >= 0:
                 try:
@@ -247,15 +257,38 @@ def write_seat_credential_files(
 
 
 def remove_seat_credential_files(paths: list[Path], owned_directories: list | None = None) -> list[str]:
-    """Remove only artifacts this attempt owns. Returns cleanup failure notes."""
+    """Remove only artifacts this attempt owns. Returns cleanup failure notes.
+
+    When the creator kept the credential-directory fd, unlink by name through
+    that fd. A later replacement of the pathname does not redirect cleanup.
+    """
     if owned_directories is None:
         owned_directories = list(getattr(paths, "owned_directories", []))
     notes: list[str] = []
-    for path in list(paths):
+    dir_fd = getattr(paths, "dir_fd", -1)
+    names = list(getattr(paths, "names", []))
+    if isinstance(dir_fd, int) and dir_fd >= 0 and names:
+        for name in names:
+            try:
+                os.unlink(name, dir_fd=dir_fd)
+            except FileNotFoundError:
+                pass
+            except OSError:
+                notes.append("unlink_failed")
         try:
-            Path(path).unlink(missing_ok=True)
+            os.close(dir_fd)
         except OSError:
-            notes.append("unlink_failed")
+            notes.append("dir_fd_close_failed")
+        try:
+            setattr(paths, "dir_fd", -1)
+        except AttributeError:
+            pass
+    else:
+        for path in list(paths):
+            try:
+                Path(path).unlink(missing_ok=True)
+            except OSError:
+                notes.append("unlink_failed")
     for directory in owned_directories:
         directory = Path(directory)
         if directory.is_symlink():
@@ -310,18 +343,17 @@ class HermesCouncilSeatLauncher:
         if not seat_id or seat_id.startswith("-"):
             raise CredentialUnavailable("seat id is missing")
         explicit_round = seat.get("round")
-        if explicit_round is None:
-            round_n = self._round_counts.get(seat_id, 0) + 1
-            self._round_counts[seat_id] = round_n
-        else:
-            if isinstance(explicit_round, bool) or not isinstance(explicit_round, int) or explicit_round <= 0:
-                raise CredentialUnavailable("seat round is not a positive integer")
-            round_n = explicit_round
+        if isinstance(explicit_round, bool) or not isinstance(explicit_round, int) or explicit_round <= 0:
+            raise CredentialUnavailable("seat round is not a positive integer")
+        round_n = explicit_round
         # Untrusted payload is prompt text. It does not select provider, model, or argv flags.
         prompt = json.dumps(payload, sort_keys=True)
         timeout = round_timeout_s if isinstance(round_timeout_s, (int, float)) and round_timeout_s > 0 else None
         if timeout is None:
             raise CredentialUnavailable("seat timeout is missing")
+        epoch = seat.get("assignment_epoch", 0)
+        if isinstance(epoch, bool) or not isinstance(epoch, int) or epoch < 0:
+            raise CredentialUnavailable("assignment epoch is not a non-negative integer")
         result = self.adapter.launch(
             profile_id=profile_id,
             prompt=prompt,
@@ -336,6 +368,8 @@ class HermesCouncilSeatLauncher:
             workspace=self.workspace,
             fallback_policy="deny",
             credential_contract=self.credential_contract,
+            max_output_tokens=max_output_tokens,
+            assignment_epoch=epoch,
         )
         if result.blocker_code == "credential_unavailable":
             detail = result.error or "required credential unavailable"

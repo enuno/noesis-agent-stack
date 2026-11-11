@@ -983,11 +983,24 @@ jobs:
           symlinked-ancestor refusal with trust root, home symlink refusal,
           ambiguous-timeout attempt closure), and again for the test-adequacy
           regressions (5 tests: write-refusal through the adapter, four
-          malformed seat-stdout refusals). The two-seat absence check was
+          malformed seat-stdout refusals), and again for the finding-repair
+          slice (7 tests: fallback-session symlink refusal, profile-id
+          traversal refusal, declared-secret stdout redaction, declared-secret
+          stderr redaction, missing-round refusal, real-transport output-cap
+          refusal, creation-directory cleanup), and again for durable attempt
+          fencing (9 tests: restart after fence, uncertain replay, distinct
+          seats and rounds, duplicate admission, malformed records, invalid
+          transition, storage failure, schema-fence rehydrate rejection,
+          ambiguous identity), and again for the review-repair slice (4 tests:
+          partial-secret redaction before the token regex, write-failure
+          cleanup through the creation directory fd, engine round propagation,
+          and per-attempt filename isolation).
+          The schema-fence test calls the current rehydrate path. It does not
+          execute a historical 1.0 binary. The two-seat absence check was
           extended and did not add a test. This is not the earlier
           verdict-shape Phase D repair slice named above, and it is not a
           live canary:
-            passed=910 failed=0 skipped=2 xfailed=2 xpassed=0
+            passed=930 failed=0 skipped=2 xfailed=2 xpassed=0
           These combined counts are exact. Do not turn them into floors.
           Focused A must be 39 passed. Focused C must be 147 passed.
           xfailed is G2 and G3 only. Do not delete those markers to go green.
@@ -1248,7 +1261,7 @@ jobs:
           ec=$?
           set -e
           cat "$RUNNER_TEMP/suite.txt"
-          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 910
+          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 930
           if [ "$ec" -ne 0 ]; then
             echo "combined orchestrator suite pytest exited $ec"
             exit "$ec"

@@ -210,3 +210,23 @@ def test_child_and_reviewer_sessions_keep_the_empty_chain(tmp_path):
         assert scoped_fallback_chain(inherited, [], pinned=False, owner=profile_id) is None
         assert "HERMES_PROVIDER" not in text
         assert root.is_relative_to(tmp_path)
+
+
+def test_fallback_session_symlink_does_not_write_outside(tmp_path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    sentinel = outside / "sentinel"
+    sentinel.write_text("kept", encoding="utf-8")
+    home = tmp_path / "home"
+    home.mkdir()
+    (home / ".noesis-fallback-session").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(FallbackDenied):
+        write_isolated_fallback_session(home, "noesis-forge", "approved-provider", "approved-model")
+    assert sentinel.read_text(encoding="utf-8") == "kept"
+    assert list(outside.glob("profiles")) == []
+
+
+def test_profile_id_traversal_is_rejected(tmp_path):
+    with pytest.raises(ValueError):
+        write_isolated_fallback_session(tmp_path, "../outside", "approved-provider", "approved-model")
+    assert not (tmp_path.parent / "outside").exists()
