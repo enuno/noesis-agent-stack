@@ -33,6 +33,15 @@ DEFAULT_LEDGER = Path("workspace/orchestrator/tasks.jsonl")
 
 # Event/schema version for control-plane records written to the ledger.
 LEDGER_SCHEMA_VERSION = "1.0"
+# Credential-attempt events use schema 1.1 and are folded by this reader.
+# A schema_fence record carries a task marker so a 1.0 reader, which rehydrates
+# any record containing "task" before it looks at event, fails closed with
+# replay_error. That is a rejection fence, not safe compatibility. A 1.0 reader
+# that ignored the fence could reuse an attempt. Do not deploy a 1.0 binary
+# against a ledger that contains these events.
+ATTEMPT_SCHEMA_VERSION = "1.1"
+SCHEMA_FENCE_EVENT = "schema_fence"
+ATTEMPT_FENCE_EVENT = "credential_attempt_fenced"
 
 # Durable control events (no embedded task). Replay folds these to reconstruct
 # operator stop/resume state before dispatch is enabled at startup.
@@ -47,6 +56,47 @@ class TaskVersionConflict(RuntimeError):
         super().__init__(f"task version conflict: expected {expected}, got {actual}")
         self.expected = expected
         self.actual = actual
+
+
+class AttemptFenceError(RuntimeError):
+    """Durable credential-attempt fencing refused the operation."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
+def validate_credential_attempt_identity(
+    *,
+    task_id: str,
+    seat_id: str,
+    round_n: int,
+    attempt_id: str,
+    assignment_epoch: int,
+) -> None:
+    """Reject ambiguous attempt encodings before they are written or folded."""
+    try:
+        parsed = UUID(str(task_id))
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise ValueError("parent task id is not a UUID") from exc
+    if str(parsed) != str(task_id):
+        raise ValueError("parent task id is not a canonical UUID")
+    if (
+        not isinstance(seat_id, str)
+        or not seat_id
+        or seat_id != seat_id.strip()
+        or "|" in seat_id
+        or "/" in seat_id
+        or "\\" in seat_id
+    ):
+        raise ValueError("seat id is not a single path segment")
+    if isinstance(round_n, bool) or not isinstance(round_n, int) or round_n <= 0:
+        raise ValueError("round is not a positive integer")
+    expected = f"{task_id}|{seat_id}|round-{round_n}|attempt-1"
+    if attempt_id != expected:
+        raise ValueError("attempt id does not match task, seat, and round")
+    if isinstance(assignment_epoch, bool) or not isinstance(assignment_epoch, int) or assignment_epoch < 0:
+        raise ValueError("assignment epoch is not a non-negative integer")
 
 
 class ReplayError(RuntimeError):
@@ -194,6 +244,9 @@ class TaskStore:
         # manually reconciles — there is deliberately no automatic unquarantine and
         # no release API here.
         self.quarantined_tasks: set[str] = set()
+        self.credential_attempts: dict[str, str] = {}
+        self.credential_attempt_identity: dict[str, dict[str, Any]] = {}
+        self.schema_fenced = False
         # Set when replay hits a malformed/truncated record. The control plane
         # must fail closed (block dispatch) when this is non-None.
         self.replay_error: str | None = None
@@ -223,7 +276,13 @@ class TaskStore:
                 fh.flush()
                 raise
 
-    def append_control_event(self, event: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def append_control_event(
+        self,
+        event: str,
+        payload: dict[str, Any],
+        *,
+        schema_version: str | None = None,
+    ) -> dict[str, Any]:
         """Durably record a control-plane event (no embedded task).
 
         Returns the persisted record. Raises if the durable write fails; the
@@ -232,7 +291,7 @@ class TaskStore:
         record = {
             "event": event,
             "recorded_at": utcnow().isoformat(),
-            "schema_version": LEDGER_SCHEMA_VERSION,
+            "schema_version": schema_version or LEDGER_SCHEMA_VERSION,
             **payload,
         }
         quarantine_task_id: str | None = None
@@ -254,7 +313,7 @@ class TaskStore:
             fh.flush()
             self._sync(fh.fileno())
         # D2 repair: quarantine records are NOT breaker events.
-        if quarantine_task_id is None:
+        if quarantine_task_id is None and event not in {SCHEMA_FENCE_EVENT, ATTEMPT_FENCE_EVENT}:
             self.breaker_events.append(record)
         return record
 
@@ -288,6 +347,9 @@ class TaskStore:
         self._by_idempotency.clear()
         self.breaker_events.clear()
         self.quarantined_tasks.clear()
+        self.credential_attempts.clear()
+        self.credential_attempt_identity.clear()
+        self.schema_fenced = False
         self.replay_error = None
         with self.ledger_path.open("r", encoding="utf-8") as fh:
             for lineno, line in enumerate(fh, start=1):
@@ -299,6 +361,18 @@ class TaskStore:
                 except json.JSONDecodeError as exc:
                     self.replay_error = f"line {lineno}: invalid JSON: {exc}"
                     return
+                if record.get("event") == SCHEMA_FENCE_EVENT:
+                    version = record.get("schema_version")
+                    marker = record.get("task")
+                    if version != ATTEMPT_SCHEMA_VERSION or marker != {"schema_fence": True}:
+                        self.replay_error = f"line {lineno}: malformed schema fence"
+                        return
+                    self.schema_fenced = True
+                    continue
+                if record.get("event") == ATTEMPT_FENCE_EVENT:
+                    if not self._fold_attempt_event(record, lineno):
+                        return
+                    continue
                 if "task" in record:
                     try:
                         task = self._rehydrate(record["task"])
@@ -450,6 +524,127 @@ class TaskStore:
             self._lock_depth -= 1
             fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
             fh.close()
+
+    def _fold_attempt_event(self, record: dict[str, Any], lineno: int) -> bool:
+        if not self.schema_fenced:
+            self.replay_error = f"line {lineno}: credential attempt without schema fence"
+            return False
+        if record.get("schema_version") != ATTEMPT_SCHEMA_VERSION:
+            self.replay_error = f"line {lineno}: credential attempt schema must be 1.1"
+            return False
+        try:
+            validate_credential_attempt_identity(
+                task_id=record["task_id"],
+                seat_id=record["seat_id"],
+                round_n=record["round"],
+                attempt_id=record["attempt_id"],
+                assignment_epoch=record["assignment_epoch"],
+            )
+        except (KeyError, ValueError) as exc:
+            self.replay_error = f"line {lineno}: malformed credential attempt: {exc}"
+            return False
+        outcome = record.get("outcome")
+        if outcome not in {"fenced", "closed", "uncertain"}:
+            self.replay_error = f"line {lineno}: invalid attempt outcome"
+            return False
+        previous = self.credential_attempts.get(record["attempt_id"])
+        if previous is None and outcome != "fenced":
+            self.replay_error = f"line {lineno}: attempt outcome before fence"
+            return False
+        if previous in {"closed", "uncertain"} and outcome != previous:
+            self.replay_error = f"line {lineno}: invalid attempt transition {previous} -> {outcome}"
+            return False
+        self.credential_attempts[record["attempt_id"]] = outcome
+        self.credential_attempt_identity[record["attempt_id"]] = {
+            "task_id": record["task_id"],
+            "seat_id": record["seat_id"],
+            "round": record["round"],
+            "assignment_epoch": record["assignment_epoch"],
+            "contract_revision": record.get("contract_revision"),
+        }
+        return True
+
+    def fence_credential_attempt(
+        self,
+        *,
+        task_id: str,
+        seat_id: str,
+        round_n: int,
+        attempt_id: str,
+        assignment_epoch: int,
+        contract_revision: str | None = None,
+    ) -> dict[str, Any]:
+        """Durably consume an attempt before spawn. A crash after this write is not unused."""
+        validate_credential_attempt_identity(
+            task_id=task_id,
+            seat_id=seat_id,
+            round_n=round_n,
+            attempt_id=attempt_id,
+            assignment_epoch=assignment_epoch,
+        )
+        with self._exclusive_lock():
+            if self.ledger_path.exists():
+                self._replay_unlocked()
+            if self.replay_error:
+                raise AttemptFenceError("replay_error", self.replay_error)
+            state = self.credential_attempts.get(attempt_id)
+            if state is not None:
+                raise AttemptFenceError("attempt_already_fenced", state)
+            if not self.schema_fenced:
+                self.append_control_event(
+                    SCHEMA_FENCE_EVENT,
+                    {"task": {"schema_fence": True}},
+                    schema_version=ATTEMPT_SCHEMA_VERSION,
+                )
+                self.schema_fenced = True
+            record = self.append_control_event(
+                ATTEMPT_FENCE_EVENT,
+                {
+                    "task_id": task_id,
+                    "seat_id": seat_id,
+                    "round": round_n,
+                    "attempt_id": attempt_id,
+                    "outcome": "fenced",
+                    "assignment_epoch": assignment_epoch,
+                    "contract_revision": contract_revision,
+                },
+                schema_version=ATTEMPT_SCHEMA_VERSION,
+            )
+            self.credential_attempts[attempt_id] = "fenced"
+            return record
+
+    def settle_credential_attempt(self, attempt_id: str, outcome: str) -> dict[str, Any]:
+        """Move a fenced attempt to closed or uncertain. Neither outcome is retryable."""
+        if outcome not in {"closed", "uncertain"}:
+            raise AttemptFenceError("invalid_transition", "outcome must be closed or uncertain")
+        with self._exclusive_lock():
+            if self.ledger_path.exists():
+                self._replay_unlocked()
+            if self.replay_error:
+                raise AttemptFenceError("replay_error", self.replay_error)
+            state = self.credential_attempts.get(attempt_id)
+            if state is None:
+                raise AttemptFenceError("attempt_not_fenced", "attempt was not fenced")
+            if state == outcome:
+                return {"event": ATTEMPT_FENCE_EVENT, "attempt_id": attempt_id, "outcome": outcome}
+            if state != "fenced":
+                raise AttemptFenceError("invalid_transition", f"{state} -> {outcome}")
+            identity = self.credential_attempt_identity[attempt_id]
+            record = self.append_control_event(
+                ATTEMPT_FENCE_EVENT,
+                {
+                    "task_id": identity["task_id"],
+                    "seat_id": identity["seat_id"],
+                    "round": identity["round"],
+                    "attempt_id": attempt_id,
+                    "outcome": outcome,
+                    "assignment_epoch": identity["assignment_epoch"],
+                    "contract_revision": identity.get("contract_revision"),
+                },
+                schema_version=ATTEMPT_SCHEMA_VERSION,
+            )
+            self.credential_attempts[attempt_id] = outcome
+            return record
 
     def reserve_launch(self, task: TaskContract, reservation: dict[str, Any]) -> tuple[TaskContract, bool]:
         """Durably record admission before spawn. Returns (task, created_now).

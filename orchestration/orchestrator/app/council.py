@@ -190,10 +190,17 @@ def _run_seat(
     session: Mapping,
     envelopes: Mapping[str, Mapping],
     observed: dict[str, int],
+    round_n: int,
 ) -> SeatResult:
     sid = seat["seat_id"]
+    budget = dict(seat["budget"])
+    budget["round"] = round_n
+    fencing = session.get("fencing") or {}
+    epoch = fencing.get("epoch", fencing.get("assignment_epoch"))
+    if isinstance(epoch, int) and not isinstance(epoch, bool) and epoch >= 0:
+        budget["assignment_epoch"] = epoch
     try:
-        text, usage = runner.run_round(sid, payload, seat["budget"])
+        text, usage = runner.run_round(sid, payload, budget)
         _check_output_leak(sid, text, session, envelopes)
         payload_obj = _parse_seat_output(sid, text)
         observed["output_tokens"] = observed.get("output_tokens", 0) + usage.output_tokens
@@ -278,7 +285,7 @@ def run_duo_session(
     observed: dict[str, int] = {}
 
     # Round 1 — blind.
-    round1 = [_run_seat(runner, s, envelopes[s["seat_id"]], session, envelopes, observed) for s in seats]
+    round1 = [_run_seat(runner, s, envelopes[s["seat_id"]], session, envelopes, observed, 1) for s in seats]
     ok1 = {r.seat_id: r for r in round1 if r.ok}
     if len(ok1) < 2:
         return _partial_verdict(session, seats, round1, observed, "quorum_shortfall", 0)
@@ -286,7 +293,7 @@ def run_duo_session(
     release = anonymized_release({sid: r.payload for sid, r in ok1.items()})
 
     # Final round — blind again, each seat sees the anonymized release only.
-    final = [_run_seat(runner, s, release, session, envelopes, observed) for s in seats]
+    final = [_run_seat(runner, s, release, session, envelopes, observed, 2) for s in seats]
     ok_final = {r.seat_id: r for r in final if r.ok}
     if len(ok_final) < 2:
         # Round 1 completed with full quorum; only the final round fell short.

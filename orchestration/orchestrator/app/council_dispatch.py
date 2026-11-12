@@ -146,9 +146,13 @@ class CouncilSeatDispatch:
                 f"seat '{seat_id}' round refused: execution revoked or aborted; "
                 "no launcher call was made"
             )
-        seat = self._seats.get(seat_id)
-        if seat is None:
+        seat = dict(self._seats.get(seat_id) or {})
+        if not seat:
             raise CouncilError(f"unknown seat '{seat_id}' in council session")
+        if "round" in budget:
+            seat["round"] = budget["round"]
+        if "assignment_epoch" in budget:
+            seat["assignment_epoch"] = budget["assignment_epoch"]
         result = self.launcher(
             seat,
             payload,
