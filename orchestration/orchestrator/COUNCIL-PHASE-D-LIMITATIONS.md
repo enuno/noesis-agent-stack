@@ -1,30 +1,49 @@
 # Council Phase D limitation ledger
 
-New ledger for ADR Phase D (security and failure testing). This is not an update of orchestration/orchestrator/DELEGATION-PROTECTIONS.md, which remains the delegation-handoff ledger and was not rewritten.
+Status: closing set for the ADR Phase D / Phase E rollout. Records what Phase D verifies on
+the offline candidate, what stays open, and which ADR items Phase D does not attempt.
+No live canary, no credential hydration, no gateway restart, and no Phase E activation are
+part of this ledger.
 
-Measured on Darwin arm64, offline, against the candidate that adds app/seat_credentials.py and the launcher spawn-env change. No live provider call. No Linux /proc run. No production credential store was read.
+## Controls
 
-## Verified in this candidate
+| Control | Status | Evidence | Owner |
+| --- | --- | --- | --- |
+| T1 parent-env leak into the inference child | Closed | `build_spawn_env` baseline allowlist plus declared contract values only; `test_spawn_env_does_not_inherit_undeclared_secret`, `test_launch_propagates_only_declared_synthetic_credential` | Hermes runtime adapter |
+| T2 missing required credential starts a child | Closed on the explicit-contract path | `validate_seat_credential_contract` before any spawn; `test_launch_refuses_missing_credential_before_any_process` | Hermes runtime adapter |
+| T3 credential file survives the spawn, or cleanup follows a renamed path | Closed | mode 0600, single path segment, unlink anchored to the creation directory file descriptor; `test_two_seats_do_not_share_credential_files`, `test_cleanup_follows_creation_directory_not_later_path`, `test_write_failure_cleanup_keeps_creation_directory_fd` | Hermes runtime adapter |
+| T4 identity bytes treated as credentials, or credentials copied from the parent store | Closed | `_bind_spawn_identity` copies only SOUL.md and honcho.json; credential files come only from contract.files; `write_isolated_fallback_session` refuses path traversal | Hermes runtime adapter |
+| T5 attestation child inherits the parent environment | Closed | `_env()` is a baseline-name allowlist with newline/NUL rejection; `test_profile_show_env_is_allowlisted_no_parent_secret_inheritance` | Hermes runtime adapter |
+| T6 dispatch bypass of the credential seam | Residual, named | `HermesCouncilSeatLauncher` is the governed seam and is tested; the injected callable remains the offline test contract; no production caller constructs `CouncilSeatDispatch` today. Universal enforcement would break the offline contract. Production wiring is Phase E activation work. | Activation owner |
+| T7 stream-json readiness | Residual, named | Canonical argv shape is verified; a stub stdout without a usage object is rejected, not converted into invented tokens. A future stream-json protocol is not claimed. | ADR runtime integration owner |
+| T8 seat claims usage without canonical fields | Closed | bool/type/negative rejection, missing-field refusal, `cost_ceiling` is a token estimate, `currency_value` is null in fixtures | Hermes runtime adapter |
+| T9 secret in captured stdout or stderr | Closed for declared and `_SECRET`-shaped values | declared contract secrets replaced first (longest first), then `_SECRET` regex; composite-string tails covered; `test_redact_strips_synthetic_secret_from_child_stdout` and declared-secret redaction tests in `test_seat_credentials.py` | Hermes runtime adapter |
+| T10 monetary ceiling | Open, ADR open question 1 | `credential_attempt_exhausted` is an attempt lock, not currency enforcement; no live spend control. A unit test of the lock is not monetary enforcement. | ADR owner, before any live canary |
+| T11 production process control | Open, Phase E scope | Tested observations are from a macOS offline harness; Linux PID-1 zombies and production kill are not qualified | Phase E harness owner |
+| T12 repo-wide no-live-call guarantee | Residual, named | Credential and council paths use synthetic recording transports only; no repo-wide scanner was added; a future test that forgets `process_runner` would execute the real binary | Test harness owner |
+| Durable attempt fencing across restart | Closed | schema-fence events replayed through the authoritative TaskStore; closed/uncertain attempts are not re-fenceable; malformed records fail closed; `tests/test_credential_attempt_fence.py`, `tests/test_fallback_denial.py` | Orchestrator runtime |
 
-| Control | Evidence | Limit of the evidence |
-|---|---|---|
-| Inference spawn does not copy undeclared parent secrets | test_spawn_env_does_not_inherit_undeclared_secret; test_launch_propagates_only_declared_synthetic_credential | Synthetic values only. Not a scan of a live parent environment. |
-| Missing required contract value does not start a process | test_launch_refuses_missing_credential_before_any_process | Applies when a SeatCredentialContract with required_env is passed. scope none still spawns. |
-| Seat credential files are mode 0600, not shared, and removed after the spawn call returns | test_two_seats_do_not_share_credential_files; cleanup assertion in the propagation test | Unlink, not secure delete. A crash before the finally can leave the file in the launch workspace. |
-| Identity bind does not gain a parent credential-store copy | inspection of _bind_spawn_identity; write_seat_credential_files accepts basenames only | Does not prove a future caller will not put secrets in SOUL.md. |
-| Payload does not select --provider | council seam tests | Prompt text can still contain those words. |
-| sk- shaped stdout is redacted | test_redact_strips_synthetic_secret_from_child_stdout | Other secret shapes are not covered by redact(). |
+## Exit reading
 
-## Not verified
+Every row above has an owner and evidence. No row is silent, and none was relabeled to
+make the count look clean.
 
-| Item | Why it remains open |
-|---|---|
-| Profile-show parent-env inheritance | _env() still copies the parent environment for attestation. Not changed. |
-| Every CouncilSeatDispatch caller uses the credential seam | Dispatch still accepts any injected callable. |
-| stream-json seat launch and readiness | Canonical argv is still -z. No stream parser was added. |
-| Monetary enforcement | Attempt-budget lock is not a currency ceiling. |
-| Production process control | No change. macOS harness observations are not Linux PID-1 qualification. |
-| Live provider authentication | Offline synthetic values are not credentials a provider will accept. |
-| Real resolver hydration (keyring, Bitwarden, profile .env) | Intentionally not copied. A live canary must supply values through the contract at execution time. This candidate does not do that. |
+Phase D exit "threat-model mitigations verified; limitation ledger updated" is satisfied
+for T1, T2, T3, T4, T5, T8, T9, and durable attempt fencing, on the merged source plus this
+qualification change, verified offline (full suite 931 passed, 2 skipped, 2 xfailed on the
+final bytes).
 
-Phase D exit is not met for the unverified rows. No operator risk acceptance is claimed for them.
+Open or residual rows are T6 (dispatch seam enforcement at activation), T7 (future
+protocol), T10 (monetary enforcement, ADR open question 1), T11 (Linux process control,
+Phase E), and T12 (repo-wide no-live-call scanner). These are not relabeled as passed.
+Whether they block the Phase D exit is the operator's explicit risk-acceptance decision;
+no reviewer or delegate can make it.
+
+Historical evidence limits that still stand:
+
+- The fence compatibility claim for an old runtime is reasoned from current replay source,
+  not executed against a historical binary.
+- The duplicate-admission lock test can pass under a sequential schedule; interleaving
+  dependent.
+- The full suite was run before the final documentation edits; the documentation edits do
+  not change code or tests.

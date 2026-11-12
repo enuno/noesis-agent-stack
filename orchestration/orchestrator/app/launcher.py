@@ -31,6 +31,7 @@ from app.isolated_attempt_home import (
     IsolatedAttemptHomeDigest,
 )
 from app.seat_credentials import (
+    BASELINE_ENV_NAMES,
     CredentialUnavailable,
     SeatCredentialContract,
     build_spawn_env,
@@ -41,12 +42,6 @@ from app.seat_credentials import (
 from app.transport_contract import CapabilityObservation, TransportRequest
 
 
-_AMBIENT_INFERENCE_ENV = (
-    "HERMES_INFERENCE_MODEL",
-    "HERMES_MODEL",
-    "HERMES_PROVIDER",
-    "HERMES_INFERENCE_PROVIDER",
-)
 _SECRET = re.compile(
     r"(-----BEGIN [A-Z ]*PRIVATE KEY-----|sk-[A-Za-z0-9]{8,}|AKIA[0-9A-Z]{16}|Bearer\s+\S+)"
 )
@@ -418,11 +413,13 @@ class HermesCliAdapter:
         self.attempt_home_calls: list[str] = []
 
     def _env(self) -> dict[str, str]:
-        """Resolve sibling profiles from the base Hermes home, never ambient inference."""
-        env = os.environ.copy()
+        """Allowlist for profile-show. Does not copy undeclared parent secrets."""
+        env: dict[str, str] = {}
+        for name in BASELINE_ENV_NAMES:
+            value = os.environ.get(name)
+            if isinstance(value, str) and value and "\n" not in value and "\x00" not in value:
+                env[name] = value
         env["HERMES_HOME"] = str(self.hermes_home)
-        for key in _AMBIENT_INFERENCE_ENV:
-            env.pop(key, None)
         return env
 
     def profile_installed(self, profile_id: str) -> bool:

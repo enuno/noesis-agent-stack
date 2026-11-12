@@ -29,7 +29,7 @@ Existing control before this change: denylist _AMBIENT_INFERENCE_ENV only.
 Mitigation: baseline names plus contract.allowed_env values only.
 Verification: tests/test_seat_credentials.py::test_spawn_env_does_not_inherit_undeclared_secret and test_launch_propagates_only_declared_synthetic_credential.
 Pass: unrelated secret absent from the inference env. Fail: any parent key outside the baseline and the contract appears.
-Residual: profile-show still uses _env() (T5).
+Residual: none for the inference child. Profile-show env is T5, now verified.
 
 ### T2 missing required credential starts a child
 
@@ -47,7 +47,7 @@ Scenario: a seat.token file mode is broader than 0600, or a second seat home can
 Mitigation: write under isolated_root/.seat-credentials with mode 0600, single path segment only, unlink in a finally around _run.
 Verification: test_two_seats_do_not_share_credential_files and the cleanup assertion in test_launch_propagates_only_declared_synthetic_credential.
 Pass: mode 0600, other home lacks the file, file gone after launch returns.
-Residual: a crash between write and the finally can leave the file in the workspace. The workspace is the launch workspace, not the persistent profile. No shred beyond unlink.
+Residual: a crash between write and the finally can leave the file in the workspace. The workspace is the launch workspace, not the persistent profile. Cleanup is now anchored to the creation directory file descriptor (merged PR #33), so a rename or substitution of the path after creation does not redirect unlink. No shred beyond unlink.
 
 ### T4 identity bytes treated as credentials, or credentials copied from the parent store
 
@@ -63,10 +63,10 @@ Residual: if a future caller puts secret bytes into SOUL.md, this control does n
 
 Asset: secrets in os.environ. Boundary: 1.
 Scenario: hermes profile show is started with _env(), which copies the parent environment.
-Mitigation: not implemented. Changing attestation env can break profile resolution and was not required to close T1 for the inference child.
-Verification: not claimed.
-Pass would be: profile-show env is also an allowlist, and existing profile-show tests still pass. That test was not added.
-Residual: accepted for this candidate. Not operator-approved risk acceptance. It is an open control.
+Mitigation: _env() is now a baseline-name allowlist (BASELINE_ENV_NAMES plus HERMES_HOME), with newline and NUL value rejection. It no longer copies the parent environment.
+Verification: tests/test_seat_credentials.py::test_profile_show_env_is_allowlisted_no_parent_secret_inheritance. Full suite 931 passed, 2 skipped, 2 xfailed on the final bytes.
+Pass: an unrelated parent secret and a synthetic AWS key are absent from the profile-show env; PATH and HERMES_HOME are present. Existing profile-show tests still pass.
+Residual: none known for the attestation child. A future caller that needs another variable for profile resolution must add it to BASELINE_ENV_NAMES explicitly.
 
 ### T6 dispatch can bypass the credential seam
 
@@ -98,10 +98,10 @@ Residual: the prompt itself can still contain the words "--provider". That is da
 ### T9 secret appears in captured stdout
 
 Asset: synthetic secret values. Boundary: LaunchResult.captured_stdout.
-Existing control: redact() strips sk- tokens, AKIA keys, Bearer tokens, and private-key blocks.
-Verification: test_redact_strips_synthetic_secret_from_child_stdout.
-Pass: captured stdout does not contain the sk- synthetic value.
-Residual: a secret that does not match _SECRET is not stripped by redact(). The council seam additionally replaces contract values in credential-unavailable errors. Other blocker errors do not echo child stderr through that seam; they pass the blocker code only.
+Existing control: redact() replaces declared contract secrets first (longest first), then strips sk- tokens, AKIA keys, Bearer tokens, and private-key blocks.
+Verification: test_redact_strips_synthetic_secret_from_child_stdout and the declared-secret redaction tests in tests/test_seat_credentials.py (merged PR #33).
+Pass: captured stdout and stderr do not contain synthetic sk- or declared contract values, including a tail after the token in a composite string.
+Residual: a secret that matches neither the declared contract nor _SECRET is not stripped by redact(). The council seam additionally replaces contract values in credential-unavailable errors. Other blocker errors do not echo child stderr through that seam; they pass the blocker code only.
 
 ### T10 monetary ceiling is not enforced
 
@@ -128,6 +128,7 @@ Residual: a future test that forgets process_runner would execute the real binar
 
 ## Phase D exit reading
 
-Threat-model mitigations verified, for the controls this document marks verified: T1, T2 on the explicit-contract path, T3, T4 by inspection, T8, T9 for sk- shaped values.
-Not verified, and therefore not accepted: T5, T6 as a universal dispatch gate, T7, T10, T11, T12 as a repo-wide guarantee.
-Phase D is not fully passed. The limitation ledger records that.
+Threat-model mitigations verified, for the controls this document marks verified: T1, T2, T3 with creation-directory-anchored cleanup, T4, T5, T8, T9 including declared contract secrets.
+Not verified, and therefore not accepted without explicit operator risk acceptance: T6 as a universal dispatch gate (the injected callable remains the offline test contract; no production caller constructs CouncilSeatDispatch today, and no shipped production path bypasses the seam), T7 as a stream-json interoperability claim (the implemented protocol is verified; a future protocol is not), T10 monetary enforcement (attempt locks and token estimates are not currency enforcement), T11 Linux process control (requires pinned Linux runtime, Phase E), T12 as a repo-wide no-live-call guarantee (fakes are used in the credential and council paths; no repo-wide scanner was added).
+Durable attempt fencing across restart is verified offline (merged PR #33): schema-fence events, closed/uncertain attempts not re-fenceable, malformed records fail closed. Historical-binary compatibility is reasoned from current replay source, not executed against an old runtime binary; that evidence limit stands.
+Phase D passes for the verified controls above. The remaining items are residuals with named ownership, not silent relabeling. Whether the operator accepts the T6/T7/T10/T11/T12 residuals as Phase D residuals rather than blockers is the operator's explicit decision; no reviewer can make it.

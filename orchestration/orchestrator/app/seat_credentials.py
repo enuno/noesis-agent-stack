@@ -3,10 +3,10 @@
 New requirement, authored for ADR Phase D. Not a pre-existing ADR mandate.
 
 The child discovers credentials from its process environment and from files
-under ``$HERMES_HOME``. ``HermesCliAdapter._env`` copies the parent environment
-and only strips a denylist of ambient inference keys. That is not an isolation
-policy: undeclared parent secrets cross the seat boundary, and secrets that
-exist only in a parent-side resolver never reach the isolated home.
+under ``$HERMES_HOME``. ``HermesCliAdapter._env`` (the profile-show
+attestation child) is a baseline-name allowlist plus ``HERMES_HOME``; it does
+not copy the parent environment, so undeclared parent secrets cannot cross the
+seat boundary. The inference child uses ``build_spawn_env`` below.
 
 This module does not read keyrings, ``.env`` files, or live stores. Callers
 supply synthetic or already-resolved values. Presence is not validity.

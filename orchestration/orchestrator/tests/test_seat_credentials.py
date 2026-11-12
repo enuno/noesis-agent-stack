@@ -627,3 +627,22 @@ def test_created_file_names_are_not_shared_across_attempts():
     second = _CreatedFiles()
     assert second.names == []
     assert first.names == ["first.token"]
+
+
+def test_profile_show_env_is_allowlisted_no_parent_secret_inheritance(tmp_path, monkeypatch):
+    monkeypatch.setenv("UNRELATED_PARENT_SECRET", "synthetic-parent-secret-value")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "synthetic-aws-value")
+    monkeypatch.setenv("PATH", "/usr/bin:/bin")
+    monkeypatch.setenv("USER", "synthetic-user\nwith-newline")
+    runner = RecordingTransport(stdout="")
+    adapter = _adapter(tmp_path, runner)
+    _attestation, error, _cmd = adapter._attest("noesis-forge")
+    assert error is None
+    show = [c for c in runner.calls if "profile" in c["cmd"] and "show" in c["cmd"]]
+    assert len(show) == 1
+    env = show[0]["env"]
+    assert env["PATH"] == "/usr/bin:/bin"
+    assert env["HERMES_HOME"] == str(tmp_path)
+    assert "USER" not in env  # newline value rejected by the allowlist loop
+    assert "UNRELATED_PARENT_SECRET" not in env
+    assert "AWS_SECRET_ACCESS_KEY" not in env
