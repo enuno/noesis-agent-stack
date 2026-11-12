@@ -36,10 +36,69 @@ final bytes).
 Open or residual rows are T6 (dispatch seam enforcement at activation), T7 (future
 protocol), T10 (monetary enforcement, ADR open question 1), T11 (Linux process control,
 Phase E), and T12 (repo-wide no-live-call scanner). These are not relabeled as passed.
-Whether they block the Phase D exit is the operator's explicit risk-acceptance decision;
-no reviewer or delegate can make it.
+The operator's explicit risk-acceptance decision on these residuals is recorded verbatim
+below.
 
-Historical evidence limits that still stand:
+## Operator acceptance (recorded verbatim)
+
+Bound to: merge commit e0a6fdb107a52886504aea883628d42324dca5da (PR #35, head
+0d73820c88b3f510703a44e8481fa03069980a7c); candidate digest
+0e6f9cef9d665e4f1d979d96835ecab57d285835503dc34550246c5932d3a287; final
+file-tool review receipts deleg_0fcf313c (round 1, APPROVE x2) and
+deleg_81c96984 (round 2, APPROVE x2); post-merge run 43146449328 (success);
+this ledger; docs/council-phase-d-threat-model.md.
+
+---
+
+HUMAN ACCEPTANCE — COUNCIL PHASE D
+
+I accept Council Phase D security/failure qualification for the evidence
+published through PR #35 and merged as:
+
+e0a6fdb107a52886504aea883628d42324dca5da
+
+This decision is bound to the published candidate, its final review receipts,
+the threat model, the limitation ledger, and the reported successful
+post-merge run 43146449328.
+
+I accept the following residuals for Phase D exit only:
+
+- T6: universal dispatch-seam enforcement remains an activation-time wiring
+  requirement. This acceptance does not authorize a production path that
+  bypasses required admission or credential controls.
+
+- T7: stream-json is not qualified. Acceptance covers only the implemented
+  protocol and its verified behavior.
+
+- T10: monetary enforcement remains unresolved. Attempt fencing is not a
+  currency ceiling. This acceptance authorizes no live spending.
+
+- T11: Linux production process control remains unqualified and requires
+  separate evidence against the pinned target runtime.
+
+- T12: a repository-wide no-live-call scanner has not been built. The evidence
+  establishes the tested fake-transport boundaries, not a repo-wide guarantee.
+
+I acknowledge these evidence limits:
+
+- Historical-binary compatibility was reasoned from source, not established
+  by executing the historical binary.
+- The duplicate-admission lock test has a sequential-schedule limitation and
+  does not establish exhaustive concurrent-schedule coverage.
+
+These residuals remain open and visible. They are not reclassified as
+verified controls.
+
+Disposition:
+Phase D accepted with the named residuals and evidence limits.
+
+This is not installation, activation, deployment, live attachment, Phase E
+qualification, provider authentication, a live canary, or spending approval.
+It does not authorize Switchyard, delegation-gate, or Bitwarden changes.
+
+---
+
+## Historical evidence limits that still stand
 
 - The fence compatibility claim for an old runtime is reasoned from current replay source,
   not executed against a historical binary.
