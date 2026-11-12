@@ -994,13 +994,15 @@ jobs:
           ambiguous identity), and again for the review-repair slice (4 tests:
           partial-secret redaction before the token regex, write-failure
           cleanup through the creation directory fd, engine round propagation,
-          and per-attempt filename isolation).
+          and per-attempt filename isolation), and again for the Phase D
+          qualification slice (1 test: profile-show env allowlist with no
+          parent-secret inheritance).
           The schema-fence test calls the current rehydrate path. It does not
           execute a historical 1.0 binary. The two-seat absence check was
           extended and did not add a test. This is not the earlier
           verdict-shape Phase D repair slice named above, and it is not a
           live canary:
-            passed=930 failed=0 skipped=2 xfailed=2 xpassed=0
+            passed=931 failed=0 skipped=2 xfailed=2 xpassed=0
           These combined counts are exact. Do not turn them into floors.
           Focused A must be 39 passed. Focused C must be 147 passed.
           xfailed is G2 and G3 only. Do not delete those markers to go green.
@@ -1261,7 +1263,7 @@ jobs:
           ec=$?
           set -e
           cat "$RUNNER_TEMP/suite.txt"
-          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 930
+          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 931
           if [ "$ec" -ne 0 ]; then
             echo "combined orchestrator suite pytest exited $ec"
             exit "$ec"
