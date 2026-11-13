@@ -27,20 +27,27 @@ callable ``launcher(seat, payload, max_output_tokens, round_timeout_s)`` ->
 ``cache_write_tokens``.
 
 Still deliberately NOT a dispatch path: no provider calls, no subprocess,
-no ledger mutation, no network. Consumption enforcement against the cost
-ceiling remains a separately authorized concern and is not implemented here.
+no ledger mutation, no network. ``CouncilSeatDispatch.production`` selects
+the enforced production wiring (governed seam, fencing, cumulative token
+budget) without activating it. Currency-ceiling enforcement remains a
+separately authorized concern and is not implemented here; the budget gate
+is output-token accounting against the session ceiling, never a monetary
+stop.
 """
 
 from __future__ import annotations
 
-from typing import Callable, Mapping, Optional
+from pathlib import Path
+from typing import Any, Callable, Mapping, Optional
 
 from app.council import (
+    BudgetExhausted,
     CouncilError,
     SeatUsage,
     _partial_verdict,
     run_duo_session,
 )
+from app.seat_credentials import HermesCouncilSeatLauncher, SeatCredentialContract
 
 
 class AdmissionError(CouncilError):
@@ -63,7 +70,17 @@ class CouncilSeatDispatch:
       * any seat inference_route not in ``allowed_routes`` (fail closed,
         including an empty allowlist);
       * fencing token (fencing.attempt_id) absent/empty when
-        ``fencing_required`` is True.
+        ``fencing_required`` is True;
+      * ``launcher`` is not a HermesCouncilSeatLauncher when
+        ``require_governed_launcher`` is True (production policy; offline
+        tests keep injecting callables with the default False).
+
+    ``enforce_budget=True`` turns on cumulative output-token consumption
+    enforcement against limits.cost_ceiling.estimated_tokens: before every
+    launcher call the projected total (observed output tokens so far plus
+    this round's max_output_tokens) must fit the ceiling, otherwise
+    BudgetExhausted is raised and NO launcher call is made. This is token
+    accounting, not currency enforcement.
 
     ``observer`` optionally exposes
     ``observe_budget(task_id, requests=, output_tokens=, input_tokens=,
@@ -83,9 +100,20 @@ class CouncilSeatDispatch:
         execution_revoked: Optional[Callable[[], bool]] = None,
         parent_task_id: Optional[str] = None,
         fencing_required: bool = False,
+        require_governed_launcher: bool = False,
+        enforce_budget: bool = False,
     ):
         if not callable(launcher):
             raise AdmissionError("launcher must be a callable")
+        if require_governed_launcher and not isinstance(
+            launcher, HermesCouncilSeatLauncher
+        ):
+            raise AdmissionError(
+                "production dispatch requires the governed seat launcher seam "
+                "(HermesCouncilSeatLauncher); injected callables are the "
+                "offline test contract only"
+            )
+        self.require_governed_launcher = require_governed_launcher
         self.session = session
         self.launcher = launcher
         self.allowed_routes = set(allowed_routes)
@@ -93,9 +121,69 @@ class CouncilSeatDispatch:
         self.execution_revoked = execution_revoked
         self.parent_task_id = parent_task_id or session.get("parent_task_id", "")
         self._aborted = False
+        self.enforce_budget = enforce_budget
         self.calls: list[dict] = []
         self._seats = {s["seat_id"]: s for s in session.get("seats", [])}
         self._admission_checks(fencing_required=fencing_required)
+
+    @classmethod
+    def production(
+        cls,
+        session: Mapping,
+        *,
+        adapter: Any,
+        provider: str,
+        model: str,
+        credential_contract: SeatCredentialContract,
+        workspace: Path,
+        task_id: str,
+        allowed_routes: set[str],
+        observer: Optional[object] = None,
+        execution_revoked: Optional[Callable[[], bool]] = None,
+    ) -> "CouncilSeatDispatch":
+        """Production wiring: governed seam, fencing and budget enforced.
+
+        Builds the HermesCouncilSeatLauncher over the given runtime adapter
+        and returns a dispatch that cannot be satisfied by an injected
+        callable. ``fencing_required`` and ``enforce_budget`` are on here and
+        are not optional on this path. No provider call, subprocess, or
+        deployment happens in this factory; it only selects the enforced
+        wiring for the caller that will activate it under Phase E.
+        """
+        seam = HermesCouncilSeatLauncher(
+            adapter,
+            provider=provider,
+            model=model,
+            credential_contract=credential_contract,
+            workspace=workspace,
+            task_id=task_id,
+        )
+        return cls(
+            session,
+            seam,
+            allowed_routes=allowed_routes,
+            observer=observer,
+            execution_revoked=execution_revoked,
+            parent_task_id=task_id,
+            fencing_required=True,
+            require_governed_launcher=True,
+            enforce_budget=True,
+        )
+
+    def _consumed_output_tokens(self) -> int:
+        return sum(c["output_tokens"] or 0 for c in self.calls)
+
+    def _check_budget(self, requested_output_tokens: int) -> None:
+        """Pre-call consumption gate; raises BudgetExhausted before inference."""
+        ceiling = int(self.session["limits"]["cost_ceiling"]["estimated_tokens"])
+        projected = self._consumed_output_tokens() + requested_output_tokens
+        if projected > ceiling:
+            raise BudgetExhausted(
+                f"projected output tokens {projected} (observed "
+                f"{self._consumed_output_tokens()} + requested "
+                f"{requested_output_tokens}) exceed cost ceiling {ceiling}; "
+                "no launcher call was made"
+            )
 
     def _admission_checks(self, *, fencing_required: bool) -> None:
         limits = self.session.get("limits", {})
@@ -153,6 +241,8 @@ class CouncilSeatDispatch:
             seat["round"] = budget["round"]
         if "assignment_epoch" in budget:
             seat["assignment_epoch"] = budget["assignment_epoch"]
+        if self.enforce_budget:
+            self._check_budget(int(budget["max_output_tokens"]))
         result = self.launcher(
             seat,
             payload,
