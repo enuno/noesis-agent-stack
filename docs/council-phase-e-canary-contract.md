@@ -24,8 +24,24 @@ and `docs/council-phase-e-spend-control.md` (T10 decision D1/D2/D3).
 - Profile: noesis-skeptic only. One seat. (noesis-architect excluded per
   proposal.)
 - Compatible revision: agent-stack at the Phase E activation revision —
-  UNRESOLVED until activation names it; must include PR #33 and PR #35
-  (fencing, T5) and the T6/T10 readiness wiring.
+  the qualified immutable combination is
+  **agent-stack @ 338ac8399d92a8b5e42d453ccaaef81ad22a22e7 (main, PR #37)
+  + hermes v0.23.1 @ 3b421578588243f920886e6fe79a6faa87ea026e**. Any
+  deviation from this pair voids the T11/runtime evidence binding and
+  requires requalification of the changed component.
+
+## Runtime compatibility table (2026-11-12)
+
+| Component | Exact revision | Qualification performed | Intended canary use | Remaining evidence gap |
+| --- | --- | --- | --- | --- |
+| agent-stack | 338ac8399d92a8b5e42d453ccaaef81ad22a22e7 | Offline suite (937 passed) on macOS and Linux container; T11 cases 1-8; reviews deleg_0003eafd APPROVE ×2 | Governance code under test | None for offline behavior; install/activate evidence pending |
+| hermes runtime | v0.23.1 @ 3b421578588243f920886e6fe79a6faa87ea026e | T11 qualification executed on this exact pin (suite + process control + fencing) | Seat launcher child for the canary | Live provider call still unevidenced (the canary itself) |
+| hermes runtime (repo CI pin) | v0.22.5 @ bf0203a794a07aac3ff764972ab9087baa4e4f4e | NOT qualified — no execution evidence on this pin | None — do not silently substitute | Either requalify on v0.22.5 or move CI pin to v0.23.1; both are explicit operator decisions; the untested pin inherits nothing |
+| Host environment | noesis-lab disposable container (ubuntu:26.04 @ sha256:065aa86…) | T11 executed here | Canary host candidate if operator selects it | Bare-metal/systemd/production PID-1 qualification NOT established |
+
+The qualified immutable canary combination is the agent-stack row plus the
+v0.23.1 hermes row. If the canary names a different host, T11 evidence
+carries only if the same container model is used.
 
 ## Task/seat/round/attempt identities
 
@@ -45,8 +61,10 @@ and `docs/council-phase-e-spend-control.md` (T10 decision D1/D2/D3).
 ## Target host/environment
 
 - UNRESOLVED: host identity. Dedicated/isolated only. If the host is Linux,
-  T11 qualification (docs/council-phase-e-linux-qualification.md) must have
-  passed on the pinned runtime first; a Darwin host does not satisfy T11.
+  T11 qualification (docs/council-phase-e-linux-qualification.md) has
+  PASSED on the pinned runtime (2026-11-12, disposable container on
+  noesis-lab); a Darwin host does not satisfy T11, and bare-metal/systemd
+  re-qualification is required for a non-container host.
 
 ## Provider/model route and privacy classification
 

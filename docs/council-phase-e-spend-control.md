@@ -91,3 +91,72 @@ D3. No canary until a mechanism exists: defer Phase E provider execution
 
 No default is chosen here. The canary contract names this decision as a
 prerequisite and is not executable without it.
+
+## Decision package (prepared 2026-11-12; still requires the operator)
+
+Scope note: nothing in this package changes provider/account settings,
+retrieves credentials, or spends. It is a decision aid. Labels D1/D2/D3
+are the authoritative decision names from the section above.
+
+### D1 — provider/account hard cap
+
+- Exact question: which provider-account-level spend control will be
+  enabled for the canary account, who enables it, and what evidence
+  receipt proves it before the canary runs?
+- Supported options: (a) provider console hard budget cap; (b) provider
+  API usage-alerts plus a hard cap where the provider supports one;
+  (c) a prepaid/burner account funded with exactly the canary allowance.
+- Recommendation: (c) prepaid/burner account, or (a) hard cap if the
+  approved provider supports a cap that cannot self-raise. Rationale: it
+  is the only option where the ceiling is a mechanism, not a target; a
+  prepaid balance cannot be exceeded regardless of reporting delays.
+- Enforcement mechanism: provider-side, outside this repository (layer
+  5). Nothing in the agent-stack enforces it.
+- Cost/usage uncertainty: provider usage reporting can lag minutes to
+  hours; token-to-currency conversion needs a pinned rate.
+- Consequence of missing enforcement: spend can exceed the intended
+  allowance with no in-repo stop; the token gate (layer 2) does not
+  prevent this.
+- Human authorization required: yes — provider-account access and
+  setting changes are a separate, explicit operator authorization; no
+  credential retrieval is authorized now.
+
+### D2 — manual stop accepted in writing
+
+- Exact question: does the operator accept, in writing, that the canary's
+  1 USD ceiling is a target rather than a mechanism, with manual abort
+  plus post-hoc invoice reconciliation as the only controls?
+- Supported options: accept / decline.
+- Recommendation: decline as a sole control; acceptable only as a
+  written supplement to D1. Rationale: reviewers and delegates cannot
+  accept risk on the operator's behalf, and a single ambiguous execution
+  under a "target" ceiling can exceed it before a human reacts.
+- Enforcement mechanism: none (human supervision only).
+- Cost/usage uncertainty: highest of the three options; real-time
+  visibility depends on provider dashboards.
+- Consequence of missing enforcement: identical to D1-without-mechanism.
+- Human authorization required: yes — this is by definition the
+  operator's explicit risk acceptance, recorded verbatim.
+
+### D3 — no canary until a mechanism exists
+
+- Exact question: defer Phase E provider execution until D1 is satisfied
+  by evidence?
+- Supported options: defer / do not defer.
+- Recommendation: defer, if D1 evidence cannot be produced before the
+  canary window. This is the default-safe posture and changes nothing
+  already built.
+- Enforcement mechanism: n/a (a scheduling decision).
+- Cost/usage uncertainty: none; no spend occurs.
+- Consequence of missing enforcement: none; Phase E provider evidence
+  remains outstanding.
+- Human authorization required: yes — the operator chooses the schedule.
+
+### Distinctions this package enforces in every artifact
+
+Per-request/turn/token limits and the cumulative token budget are token
+accounting (layers 1-2). Estimated currency cost is a projection (layer
+3). Hard monetary prevention is layer 4 and does not exist in this
+repository. Provider/account spending limits are layer 5 and live outside
+this repository. Delayed or unknown usage reporting affects all currency
+claims. No artifact may describe layers 1-3 as a hard currency ceiling.
