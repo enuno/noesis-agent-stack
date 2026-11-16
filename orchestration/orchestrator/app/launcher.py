@@ -574,6 +574,20 @@ class HermesCliAdapter:
         """Signal the whole group. True only when the group is confirmed gone.
 
         pgid 0 or negative would signal the caller's group. Never do that.
+
+        Return semantics (T11 qualification, 2026-11-12, noesis-lab
+        disposable container): this is a liveness probe, not a reap. On
+        Linux a SIGTERM-killed child can persist as a zombie until the
+        caller waits, and ``killpg(pgid, 0)`` succeeds against zombies.
+        A False return therefore means "not confirmed gone within the
+        bounded grace", which includes the zombie-window case where the
+        group is in fact already dead — it does NOT mean the process is
+        still running, and it must never be read as permission to
+        duplicate execution. All callers treat False conservatively
+        (``cleanup_state="uncertain"``, ``workspace_reusable=False``,
+        attempt settled ``uncertain``, budget closed, no retry); the
+        conservative handling is pinned by
+        ``tests/test_bootstrap_launcher_controls.py``.
         """
         if isinstance(pid, bool) or not isinstance(pid, int) or pid <= 1:
             return False
