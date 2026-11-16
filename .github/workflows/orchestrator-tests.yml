@@ -1001,13 +1001,19 @@ jobs:
           refusal on the production path, fencing-token refusal via the
           production factory, budget refusal before inference, cumulative
           budget accounting within ceiling, offline contract preserved
-          with the budget gate off by default).
+          with the budget gate off by default), and again for the canary
+          preflight slice (16 tests: missing proposal, unresolved fields,
+          D3 deferral, D1 without evidence, unqualified Hermes pin,
+          unknown agent-stack, Darwin host, credential-value refusal,
+          complete D1 pass, docs-only successor, docs-only D1, malformed
+          parent id, macos host, weak manual stop, reviewer-is-implementer,
+          case-insensitive secret key).
           The schema-fence test calls the current rehydrate path. It does not
           execute a historical 1.0 binary. The two-seat absence check was
           extended and did not add a test. This is not the earlier
           verdict-shape Phase D repair slice named above, and it is not a
           live canary:
-            passed=937 failed=0 skipped=2 xfailed=2 xpassed=0
+            passed=953 failed=0 skipped=2 xfailed=2 xpassed=0
           These combined counts are exact. Do not turn them into floors.
           Focused A must be 39 passed. Focused C must be 147 passed.
           xfailed is G2 and G3 only. Do not delete those markers to go green.
@@ -1268,7 +1274,7 @@ jobs:
           ec=$?
           set -e
           cat "$RUNNER_TEMP/suite.txt"
-          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 937
+          "$PY_DIR/python" "$RUNNER_TEMP/assert_pytest_summary.py" "$RUNNER_TEMP/suite.txt" 0 2 2 0 953
           if [ "$ec" -ne 0 ]; then
             echo "combined orchestrator suite pytest exited $ec"
             exit "$ec"

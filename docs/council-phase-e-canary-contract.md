@@ -23,12 +23,16 @@ and `docs/council-phase-e-spend-control.md` (T10 decision D1/D2/D3).
 
 - Profile: noesis-skeptic only. One seat. (noesis-architect excluded per
   proposal.)
-- Compatible revision: agent-stack at the Phase E activation revision —
-  the qualified immutable combination is
-  **agent-stack @ 338ac8399d92a8b5e42d453ccaaef81ad22a22e7 (main, PR #37)
-  + hermes v0.23.1 @ 3b421578588243f920886e6fe79a6faa87ea026e**. Any
-  deviation from this pair voids the T11/runtime evidence binding and
-  requires requalification of the changed component.
+- Compatible revision: the qualified immutable combination is
+  **agent-stack @ 338ac8399d92a8b5e42d453ccaaef81ad22a22e7 (PR #37)
+  + hermes v0.23.1 @ 3b421578588243f920886e6fe79a6faa87ea026e**.
+  One later agent-stack revision is also accepted by the preflight:
+  `35464faba8ea05d6eee67bbdb2151c3c741bcce6` (PR #38 merge). Its diff
+  from `338ac839` is four docs plus a docstring inside
+  `_signal_process_group`; no executable line changed. It is not a new
+  qualification. Any other agent-stack revision, and any Hermes revision
+  other than the qualified pin, voids the binding and requires
+  requalification. The CI pin v0.22.5 does not inherit it.
 
 ## Runtime compatibility table (2026-11-12)
 
@@ -147,3 +151,19 @@ UNRESOLVED. The operator must state, in one message: authorization of this
 contract; the named provider/model pair; the credential env name and its
 supplier; the monetary ceiling mechanism (D1 or D2); the target host; and
 the parent task UUID. A draft with unresolved fields is not executable.
+
+Execution, when separately authorized, must pass
+`app.canary_preflight.preflight` first. That function refuses missing or
+UNRESOLVED safety fields, a D3 deferral, an unqualified Hermes pin
+(including the CI pin v0.22.5), an unknown agent-stack revision, a Darwin
+or macos host, a non-UUID parent task id, and a top-level credential-shaped
+key (`credential_value`, `api_key`, `token`, `secret`, `password`,
+case-insensitive). Nested secret keys are not scanned. It does not fill
+fields and does not launch. A passing preflight is not authorization.
+
+Pre-execution note (reviewer P3, `deleg_5f8c0b37`): before a live run the
+receipt must cite the file-tool review bindings already recorded —
+`deleg_0003eafd` APPROVE ×2 on digest `79f61c13…` and `deleg_5f8c0b37`
+APPROVE ×2 on digest `087502c7…`. No separate verdict-file digest was
+published; the binding is the delegation id plus the candidate digest the
+reviewers reproduced. This note does not authorize execution.
