@@ -115,6 +115,22 @@ An uncommitted local skill edit is a policy violation, not a pending chore.
   envelope's own next-decision request. Do not let an unrelated envelope
   silently expand into a repo mutation.
 
+- **Repo-side-only uncommitted content in `skills/noesis-*/` is destroyed by
+  `--sync`.** The script treats the profile dirs as the sole source of truth
+  and overwrites the repo copy from them, so a block present only in the
+  uncommitted repo tree — never carried into any profile working copy —
+  vanishes without a trace. Before running `--sync` on a dirty checkout, find
+  content that exists in the repo tree but in NO profile source, save it as a
+  patch outside the repo, and flag it to the operator. The correct channel
+  for keeping it is editing the profile working copy and re-syncing — never
+  hand-patching the repo copy.
+
+- **`agency/validate-specs.py` runs on every commit, not only skill commits.**
+  The pre-commit hook ends with the three-layer spec validator regardless of
+  which paths are staged, so a spec failure rejects even an unrelated commit.
+  Preflight it (`python3 agency/validate-specs.py`) before committing so a
+  failure surfaces as a clean pre-read instead of a rejected commit.
+
 ## Commands
 
 | Command | Purpose | Exit codes |
