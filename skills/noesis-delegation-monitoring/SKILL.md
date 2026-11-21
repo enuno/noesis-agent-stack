@@ -489,7 +489,25 @@ as reviewed.
   with discovered live state folded into the prompt ("service not
   loaded — quiesce will report No such process; record and
   continue"). Assume zero writes only after the hashes prove it,
-  never because the process died early.
+  never because the process died early.  Hash every closed-set path that
+  exists and name every missing path in the continuation contract. Tell
+  the successor to keep files whose hashes still match; rewrite one only
+  if a requirement or a failing test proves it wrong. If the predecessor
+  contract contains a malformed identity token (wrong length, not equal to
+  `git rev-parse HEAD`), name the measured HEAD as the pin and tell the
+  successor not to stop on that token. Do not relaunch into
+  a claim whose remaining lease cannot cover the unfinished work. If
+  `retry.exhausted` is true, do not call `retry()`; propose a successor
+  with a new idempotency key under the same authorized scope. Check
+  `lease_expired()` against the clock before assuming a claim can still
+  accept a review; do not backdate or hand-edit the lease.
+
+- **A host PYTHONPATH that points one interpreter at another venv's
+  site-packages changes which validator branch a test exercises.** Clear
+  it, or set it only to the package under test, and record the interpreter
+  and whether the real schema library imported. A green run on the fallback
+  branch does not prove the schema-library branch, and the reverse is also
+  true. Report both when they diverge.
 
 - **pytest collection dying with `OSError [Errno 11] Resource deadlock
   avoided` inside importlib.metadata is environmental, not a candidate
@@ -601,7 +619,20 @@ as reviewed.
   `block`/`fail` reason — that reason is the durable payload a future
   session recovers from. If the reason was already recorded wrong,
   correct it with a superseding event; do not leave the misdiagnosis in
-  the ledger.
+  the ledger. Hermes stream logs are not pure JSONL: skip bytes until the
+  first `{`, then parse records. Classify from the final `result.exit_code`
+  plus the text immediately before it, not from the shell wrapper status.
+  Exit 130 beside "Gateway shutting down: this turn was interrupted" is an
+  interrupted turn (a signal), not implementer failure, provider refusal,
+  or lease timeout. If the worker PID is already absent and
+  `claim.lease_expires_at` is imminent, call `Orchestrator.fail` from
+  `running` with that captured mechanism before any timeout sweep —
+  `sweep_timeouts` records only `timeout after {timeout_s}s` and erases the
+  real cause. Copy the stream into the durable artifact directory and
+  record its sha256 before any relaunch; a scratch log is not the recovery
+  source. The background tool's pid is often the shell wrapper: confirm
+  the `hermes -p <profile> chat` child as well before calling the dispatch
+  alive or dead.
 
 ## Verification
 

@@ -6,6 +6,25 @@ one-shot child sessions isolated to the worktree, on a single
 authorized provider/model lane, with the same `--ignore-user-config`
 flag to prevent inherited profile-side fallback chains.
 
+## Pre-launch: prepare the workspace and the ledger record
+
+- **Fetch before creating a worktree from a remote SHA.**
+  `git worktree add <path> -b <branch> <sha>` resolves the SHA from the
+  repository's LOCAL object store, so an operational checkout that has
+  not fetched recently fails with `fatal: invalid reference: <sha>` even
+  though the commit is on the remote. Run `git fetch origin` in the repo
+  that owns the worktree (or create the worktree from `FETCH_HEAD`)
+  before the add, and verify `git rev-parse HEAD` in the new worktree
+  equals the intended base before writing any contract.
+
+- **Run ledger-driver scripts from `orchestration/orchestrator` with an
+  empty PYTHONPATH.** The drivers import `app.*` via
+  `sys.path.insert(0, ".")`, so the cwd must be
+  `<repo>/orchestration/orchestrator`; the operator's global PYTHONPATH
+  points at a different interpreter's venv, so prefix the invocation
+  `PYTHONPATH= python3 <driver>.py`. A driver run from the repo root
+  fails with `ModuleNotFoundError: No module named 'app'`.
+
 ## The canonical command shape
 
 ```bash

@@ -1,7 +1,7 @@
 ---
 name: noesis-in-fleet-review
 description: "Run Noesis Sentinel and Skeptic as in-fleet child sessions."
-version: 0.4.0
+version: 0.4.1
 author: noesis-orchestrator
 license: MIT
 metadata:
@@ -28,7 +28,13 @@ and retained promotion holds — is an operator-mediated external event by
 standing operator policy: the operator hand-carries the frozen packet, and
 each reviewer runs as a fresh one-shot session; the orchestrator never
 launches reviewer inference itself unless the operator's authorization
-for that round explicitly delegates the launch. On that class,
+for that round explicitly delegates the launch. A current message that
+names the review as already authorized and forbids handing prompts back
+IS that delegation: launch on the already-approved route, do not stop at
+a packet. A standing hand-carry default does not override it. A
+reconciliation block on canonical spawn is not a new route exception when
+the envelope already names the degraded direct-CLI lane; disclose
+common-mode if that lane matches the implementer. On that class,
 the orchestrator's duties are packet preparation, receipt validation, gate
 state maintenance, remediation-round staging, and synthesis — see
 `references/formal-qualification-rounds.md`. Everything else in this skill
@@ -255,6 +261,10 @@ Do not use for:
    - `depends_on=[<sentinel_task_id>]` on the proposal; only call
      `o.claim` / `o.start` after the Sentinel verdict file shows
      `verdict: PASS`.
+   - Exception: when the operator requires that neither reviewer see the
+     other's findings before both finalize, do not dependency-gate Skeptic
+     and do not name the other receipt as an input. Launch both after the
+     freeze. Reconcile only after both receipts exist. Record the override.
 
 7. **Accept the implementer task only after both verdicts land.**
    The orchestrator's `accept` is the only transition to `completed`.
@@ -276,12 +286,14 @@ Do not use for:
    implementer is not self-correcting; the failed candidate stays
    `failed` in the ledger and is never accepted. The canonical recovery
    sequence is:
-   1. `o.record_review(skeptic_task_id, stage='quality',
-      verdict='REQUEST_CHANGES', reviewer='noesis-sentinel',
-      candidate_revision=<the same tracked_diff_sha256 Skeptic checked>,
-      findings=<Skeptic's top_findings>)`. The reviewer name passed to
-      `record_review` is the cross-reviewer (Skeptic's task is
-      implemented by Skeptic, so the meta-reviewer must be Sentinel).
+   1. On the Skeptic review-task, record stage `spec` with verdict
+      `REQUEST_CHANGES`, reviewer the cross-reviewer, bound to the digest
+      Skeptic checked. Do not then record stage `quality` on that task:
+      quality is refused with `spec_required` unless the current candidate
+      already has spec PASS. Fail the review-task after the spec record.
+      On the implementer, record the approving reviewer's spec PASS first,
+      then the requesting reviewer's quality `REQUEST_CHANGES`, then fail.
+      The reviewer argument on each call must differ from that task's assignee.
    2. `o.fail(skeptic_task_id, reason='REQUEST_CHANGES — see
       <SKEPTIC-VERDICT-...>.md')` to durably close Skeptic's task.
    3. `o.fail(implementer_task_id, reason='skeptic_request_changes:
@@ -330,8 +342,10 @@ Do not use for:
       part of the audit trail.
    This cycle is bounded: each remediation run reuses the same
    worktree, the same authorization manifest, and the same provider/model
-   lane. The user does not need to re-authorize per iteration; only the
-   `idempotency_key` and the iteration letter change.
+   lane. Open the next iteration only when the envelope already grants a
+   bounded remediation budget. A round that says no repair and no second
+   review does not grant that budget. Only the `idempotency_key` and the
+   iteration letter change inside a granted budget.
 
 8b. **When the remediation-cycle budget is spent, end the workstream with a
    concrete blocker instead of starting another cycle.** The budget counts
@@ -364,6 +378,11 @@ Do not use for:
 
 ## Pitfalls
 
+- **Do not label a file-tool review as a Sentinel or Skeptic profile receipt.** When the operator authorizes an independent file-tool review because governed spawn cannot bootstrap, use that mechanism, record the actual child identity and model, and say it is not a profile attestation. Do not route it through the broken launcher, and do not block the authorized offline repair on that launcher repairing itself. If either reviewer returns REQUEST_CHANGES or ABSTAIN, stop. Do not open a second repair cycle the envelope did not grant.
+
+- **Do not launch paid reviewers when the envelope's dollar ceiling cannot be enforced.**
+  An authorized maximum is not a spending target, and a launch path that cannot stop at that maximum is not a bounded path. A prompt that requires a finite review budget and does not state one is a missing limit: do not start the reviewer call, and do not treat an existing approved route as that ceiling. Do not ask the operator to pick models or approve each task inside the ceiling. Do the implementation in the current session, label any Sentinel or Skeptic pass you perform yourself as not independent review, and record actual spend as zero. Lack of that launch must not block implementation the envelope already authorized.
+
 - **Do not require the operator to hand-carry the review packet —
   except in formal qualification rounds, where that IS the authorized
   path.**
@@ -375,12 +394,15 @@ Do not use for:
   operator to run the review manually. The default for "needs review" is
   to dispatch Sentinel and Skeptic as in-fleet child sessions through
   the same canonical `Orchestrator.propose → approve → claim → start`
-  lifecycle the implementer used. For a formal qualification round the
+  lifecycle the implementer used.  For a formal qualification round the
   framing inverts: the operator-mediated launch is the authorized
   reviewer path (the packet says so), and launching reviewer inference
   from the orchestrator would itself be the deviation. Keep the two
   classes distinct and never silently apply one class's routing to the
-  other.
+  other. An explicit current-message launch delegation ("execute the
+  reviews", "do not return prompts to carry") overrides the hand-carry
+  default for that round, including a frozen-digest readiness review.
+  Do not answer that message with another packet.
 
 - **Do not launch the reviewer with the orchestrator's own
   provider/model lane as a default.** Use the lane the governing policy
@@ -517,7 +539,9 @@ Do not use for:
   provider-fallback notice. A substituted turn bills a different provider,
   so the billing rows catch substitution that no config-layer argument can.
   Unknown, missing, or unmapped identity BLOCKS the round — never read it
-  as probably fine. The mapping and the checklist are in
+  as probably fine. Do not adopt a receipt's claim about the other
+  reviewer's lane; billing rows for that session are the route evidence.
+  The mapping and the checklist are in
   `references/operator-mediated-launch-and-readiness.md`.
 
 - **A reversible mutation of a live shared profile is not authorized by an
@@ -714,10 +738,48 @@ Do not use for:
   before inference, and keep the stub's output on a separate log so it
   cannot be counted as the session's.
 
+- **A process-group kill test that only asserts the descendant is dead
+  afterward is a false green.** If the descendant inherits the parent's
+  pipes and then sleeps, `communicate()` blocks until that sleep ends, and
+  every post-hoc liveness check sees natural death. Require a latency bound
+  well under the descendant's own sleep, or close the inherited pipe ends,
+  and prove the test goes red when group-kill is removed. A suite that
+  stays green after that removal does not certify the kill. The inverse
+  is also a false red: `os.kill(pid, 0)` still succeeds for a zombie, so
+  a ProcessLookupError-only death assert fails when group-kill worked
+  and PID 1 has not reaped the child. Classify absent, terminated-but-unreaped,
+  still-executable, and unknown. Accept only absent or terminated as dead;
+  unknown fails closed. Prove the negative control still fails because
+  descendant work remains executable, not because cleanup timed out.
+  If the host reaps orphans immediately, say the PID-1 persistence case
+  was not observed — do not invent that proof.
+
 - **Do not label a green reviewer run as "complete" while a finding
   is open.** `verdict: PASS` (Sentinel) or `verdict: APPROVED` (Skeptic)
   is required. `REQUEST_CHANGES` is not a pass even when the reviewer
   exited 0. A `BLOCKED` verdict halts the chain.
+
+- **On a readiness review, keep three dispositions separate.** Record
+  harness correctness, readiness-package adequacy, and live-canary
+  readiness as distinct verdicts. An approval of the harness is not a
+  canary authorization and not a package-adequacy claim. A live-canary
+  REQUEST_CHANGES that asks for no candidate-file edit is a canary
+  decline, not a harness repair. A harness REQUEST_CHANGES from either
+  reviewer fails the implementer even when the other approved the harness.
+  Do not compress them into one blanket approval. If the round forbids a
+  repair or a second review, stop; do not open a remediation cycle the
+  envelope did not grant.
+
+- **Use the operator's closed verdict vocabulary in the receipt, and map
+  it at record time.** When the operator names a closed set such as
+  APPROVE / REQUEST_CHANGES / ABSTAIN, require line 1 to be one of those
+  tokens, or a single label whose value is one of those tokens. Do not
+  reject a labeled line solely because it is not bare. Do not reject the
+  receipt for using the operator's set instead of PASS / BLOCKED. Map
+  APPROVE to ledger spec PASS and quality APPROVED only when that
+  disposition is the harness verdict and spec PASS is already legal;
+  store the original token as a finding. ABSTAIN is not a pass and not a
+  silent fail: preserve the receipt and stop.
 
 - **Do not promote a review outcome into a readiness or release claim.**
   `verdict: PASS` or `verdict: APPROVED` certifies only that this reviewer
@@ -795,8 +857,9 @@ Do not use for:
   '<new>' != current 'None'`. The handoff payload for the
   review-task itself must include `summary`, `artifacts` (with
   `path` and `role` per entry), and `verification_result` with
-  `passed: True`; otherwise `o.succeed(...)` raises
-  `handoff_incomplete: handoff is missing required field ...`. The
+  `passed: True` and a non-empty `evidence` string; otherwise
+  `o.succeed(...)` raises `handoff_incomplete` or `evidence_required`
+  even after spec PASS and quality APPROVED are recorded. The
   reviewer name passed to `record_review` is the *cross-reviewer*
   profile, not the implementer of the review-task: a Sentinel
   review-task is implemented by Sentinel, so its meta-reviewer is
@@ -810,6 +873,13 @@ Do not use for:
 
 ## References
 
+- `templates/implementer-contract.md` — the contract-file skeleton for a
+  bounded implementation dispatch (identity block, closed file set,
+  interface quotes, required behavior, explicit non-goals, TDD baseline,
+  prohibitions, receipt with exact line-1/last-line markers, dispatcher
+  pre-flight checklist). Use for the forge/implementer side of the
+  freeze-dispatch-review cycle; reviewer contracts keep the step-2
+  schema in this file.
 - `references/bounded-session-launch.md` — the exact `hermes -p <profile> chat --query-file ... --oneshot --provider <lane> -m <model> -t file,terminal --ignore-user-config --in <worktree> --run-budget <s> --max-turns <N> --format stream-json --reasoning <level>` invocation, per-flag notes, background-process parameters, and failure modes.
 - `references/review-task-state-machine.md` — the exact `Orchestrator` method sequence to close a review-task on the canonical ledger after the verdict file lands: `enqueue → claim → start → submit_candidate → submit_handoff → record_review(stage='spec') → record_review(stage='quality') → succeed` (or `fail` on `REQUEST_CHANGES`/`BLOCKED`). Includes every PolicyViolation the orchestrator raises and the trigger that raises it, plus the cross-reviewer pattern for `record_review` (reviewer argument must differ from `assignee_profile`).
 - `references/verdict-schema-and-digest-recipe.md` — the byte-exact verdict-file schema (Sentinel and Skeptic), the candidate-identity block both contracts must mirror, the `implementation_plan_md_clean: <true|false>` boolean gate, the cross-reviewer mirror of the same field on Skeptic's verdict, and the recipe to compute `combined_sha256` from `git diff HEAD` plus each untracked file's contents. Use this when authoring a B-series contract.

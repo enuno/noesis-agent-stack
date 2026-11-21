@@ -84,11 +84,16 @@ procedure; `noesis-task-delegation` covers ordinary delegation and
    Semantic read: A/B/C conclusions, per-finding disposition, test
    chronology (including environmental-defect runs), identity binding.
    Then update the packet gate state.
-6. **Skeptic — hard dependency.** Contract requires a validated Sentinel
-   `PASS` for the exact digest; `REQUEST_CHANGES` or `BLOCKED`
+6. **Skeptic — hard dependency, unless the operator requires parallel
+   independent finalization.** Default: the contract requires a validated
+   Sentinel `PASS` for the exact digest; `REQUEST_CHANGES` or `BLOCKED`
    hard-blocks Skeptic. Never launch or stage the dependent reviewer
    against a non-PASS receipt, and never reinterpret the verdict to
-   unblock it.
+   unblock it. Exception: when the operator requires that neither reviewer
+   see the other's findings before both finalize, do not hard-gate Skeptic
+   and do not put the other receipt in either contract. Launch both against
+   the same frozen digest, record the override, and reconcile only after
+   both receipts exist.
 
    **Second-reviewer route-policy determination — cite written policy,
    never assume.** When the operator names a preferred route for the
@@ -113,6 +118,91 @@ procedure; `noesis-task-delegation` covers ordinary delegation and
    canonical ledger configuration, unenforced spend/request/token
    controls). Any other disposition → operator decision: bounded
    remediation round, or terminal disposition for that digest.
+
+## Orchestrator-executed delegated launch (operator explicitly delegates)
+
+When the operator's round authorization explicitly delegates the launch
+("use an existing authorized tool to launch the exact named reviewer
+session"), the orchestrator executes the launch itself, in this order.
+The operator-mediated default above and this exception are the only two
+legal shapes; nothing else may launch reviewer inference.
+
+1. **Coordinator preflight (never a substitute for reviewer
+   verification).** Resolve the mirror, worktree, branch, and HEAD; confirm
+   `git status --porcelain` matches the frozen membership exactly (no
+   untracked files); confirm `git diff` byte-matches the frozen patch;
+   re-hash the verifier script against the recorded SHA-256; take the full
+   combined digest from the verified manifest, never from an abbreviation.
+   Coordinator preflight does not replace the per-reviewer identity
+   verification each contract demands.
+2. **Policy determination before choosing the route.** Read the approved
+   lanes in `platform/inference-routing.yaml` and confirm the chosen lane
+   permits the reviewer profile types (`security`, `qa`) and task classes
+   (`code_critique`, `qa_analysis`) and pins the model. A
+   `runtime-reconciliation.yaml` row with `resolution.state: blocked`
+   concerns the profile's repo-declared lane (typically a disabled
+   OpenRouter route) and fires at the control-plane spawn gate for THAT
+   route — it does not block a different, operator-authorized lane. Record
+   which lane is used and why; never edit route declarations, profile
+   configs, or the freeze to make a route work.
+3. **Route amendment recorded BEFORE launch**, containing: provider/model
+   pair and its policy-lane name plus the registry provider id (lane names
+   are not provider ids — resolve via `hermes_provider_for_lane` or the
+   registry); attempt chronology continuing the round; fallback prohibited;
+   tool scope; the honest wall-clock disclosure (`--max-turns` bounds
+   iterations only, no `--run-budget` exists); common-mode correlation
+   disclosure when both reviewers share one lane (a recorded risk, not a
+   diversity claim); and path + SHA-256 pins for every contract. Also
+   record any resolved-reading deviations the operator's text instructs
+   (e.g. parallel launch instead of the ordered default) — disclose which
+   clause governs, never silently reinterpret.
+4. **Contract authoring.** One file per reviewer, Rich-safe (run the
+   fence-aware audit; zero `[ ] < >` outside code fences — see
+   `noesis-task-delegation` for the audit one-liner). Each contract
+   carries: the exact identity bindings (worktree, base SHA, full combined
+   digest, patch/manifest/packet paths + hashes, verifier path + expected
+   bytes); a numbered self-run verification procedure with expected values
+   per step and an ABSTAIN-on-mismatch rule; the role's question IDs
+   verbatim; explicit finding-disposition requirements; any discrepancy
+   facts labeled as orchestrator-reported and marked verify-independently
+   (the reviewer must not trust coordinator claims); a single declared
+   receipt path and the receipt's lexical gates (line 1 verdict token,
+   final line `not_self_approved: true`, digest and identity fields);
+   read-only discipline including `PYTHONDONTWRITEBYTECODE=1` and
+   `pytest -p no:cacheprovider` if tests run, plus candidate-unchanged
+   before/after diff hashes; and an embedded expected profile-manifest
+   SHA-256 (hash of the profile dir's `SOUL.md` concatenated with
+   `config.yaml`) so the reviewer self-attests the loaded identity.
+   Give neither reviewer the other's findings or verdict.
+5. **Ledger lifecycle without `route_and_launch`.** Persist the full
+   canonical walk — `propose → approve → enqueue → claim → start` —
+   against the authoritative ledger (`enqueue` is a real state; `claim`
+   from `approved` is refused). Label `degraded_dispatch` and record the
+   route deviation in the intent. Make the driver re-runnable by reusing
+   the already-proposed task ID looked up from the ledger by idempotency
+   key. Take a byte-copy of the ledger before the first write and read
+   every appended event back.
+6. **Launch and capture evidence.** Tracked background one-shot sessions,
+   `--query-file` never inline, pinned provider/model, stream-json logging.
+   From each log confirm the init event's `model` field names the
+   authorized model, record PID/session, and grep for the exact
+   `Model fallback` marker (bare-word counts are dominated by file
+   content). A pre-delivery refusal is `dispatch_not_delivered` at zero
+   cost — record the child's captured error verbatim and stop the round;
+   do not retry a refused route without new readiness evidence and do not
+   spend a probe inference call on readiness.
+7. **Record-keeping traps.** Append audit rows only to the ledger you
+   verified by path AND expected shape (line count or a known anchor):
+   identically named ledgers can exist in the profile workspace and the
+   mission artifact directory, and a row written to the wrong one is a
+   silent fork of the record. Report inference usage from the profiles'
+   `state.db` usage rows after the run; anything not observed stays
+   unknown.
+
+After both receipts land: validate lexical gates first, then read
+semantically; record the reviews through the control plane; reconcile
+findings individually (never by majority); and keep the per-reviewer
+status explicit in the ledger.
 
 ## Remediation round → new digest
 
@@ -174,6 +264,28 @@ procedure; `noesis-task-delegation` covers ordinary delegation and
   Resolve every git-reported change the receipt does not account for —
   as a reporting gap or as a pre-dispatch edit to declare — before
   computing the round digest.
+- When the prior round's candidate is frozen review history that must
+  stay untouched, repair in a NEW worktree and gate the first edit on
+  lineage reproduction. Create the successor worktree at the same base
+  SHA, `git apply` the prior round's frozen patch, and recompute the
+  path-prefixed combined digest over the changed-file set BEFORE any
+  repair edit: it must reproduce the prior round's frozen digest
+  byte-for-byte. Only then edit. Three mechanics bite reliably: fetch
+  the base SHA from `origin` (a local mirror remote can be many commits
+  stale and checks out the wrong tree); run `git worktree add` from
+  inside a repo (`git -C <repo> worktree add ...` — run from an ordinary
+  directory it fails with `fatal: not a git repository`); and capture
+  the branch name from `git branch --show-current` into the manifest
+  and packet at freeze time instead of typing the intended name — a
+  typed-name/disk-name mismatch is cosmetic but costs every reviewer an
+  identity observation.
+- Successor packets correct the record; they never edit the old packet
+  to make its claims look right. When the prior repair fixed a different
+  instance than the finding named (a different file or field), the
+  successor packet must re-frame the finding to its original reported
+  subject (exact file + field + line) and require reviewers to verify
+  byte-level change at THAT location — not at the location the prior
+  repair happened to touch. The prior packet stays frozen as history.
 - Re-run the full offline battery, freeze a **new** digest, run fresh
   stability, and stage a new Sentinel+Skeptic round against the new
   digest with fresh contract/receipt filenames.

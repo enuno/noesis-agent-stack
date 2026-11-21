@@ -217,6 +217,13 @@ a step, the next call raises one of these PolicyViolations:
   state. Trying to call `succeed` after a non-pass verdict raises
   `quality_review_required` or `unmet_acceptance_criteria`.
 
+- **Do not record quality on a review-task whose spec verdict is not
+  PASS.** `record_review(stage='quality')` raises `spec_required` unless
+  the current candidate already has spec PASS. A REQUEST_CHANGES or
+  BLOCKED receipt is closed by spec record plus `fail`. Quality
+  REQUEST_CHANGES belongs on the implementer task, and only after that
+  task's spec PASS is recorded.
+
 - **Do not delete or modify the verdict file after recording it.**
   The verdict file's recorded `tracked_diff_sha256` is the audit
   chain. If you want to re-record with a different verdict, the
@@ -225,3 +232,32 @@ a step, the next call raises one of these PolicyViolations:
   same triple updates the latest verdict. The file itself can stay;
   do not overwrite the verdict file with a different verdict without
   also reflecting that change in the ledger.
+
+- **`accept()` compares its `operator` label to the literal string
+  `"noesis-orchestrator"` — any decoration fails.**
+  `o.accept(tid, operator="noesis-orchestrator (round-2 context)")`
+  raises `unauthorized_actor: only the orchestrator accepts results`.
+  The label is an in-process caller check against an allowlisted
+  string, not free text. Carry context in the findings or in mission
+  ledger rows, never in the operator argument.
+
+- **A receipt whose line 1 says `APPROVE` maps to TWO ledger reviews,
+  not one — and neither stage has an `APPROVE` token.** The spec-stage
+  vocabulary is `PASS | REQUEST_CHANGES | BLOCKED` (models.py
+  `SPEC_VERDICTS`) and the quality-stage vocabulary is
+  `APPROVED | REQUEST_CHANGES | BLOCKED` (`QUALITY_VERDICTS`). Record
+  the receipt's lexical verdict in an explicit provenance finding
+  (`receipt_verdict: APPROVE` → `ledger_spec_verdict: PASS`,
+  `ledger_quality_verdict: APPROVED`) so a future replay understands
+  the token change, then record spec PASS and quality APPROVED before
+  the terminal transition. Calling `accept` with only the spec stage
+  recorded raises `quality_review_required` even when spec is PASS.
+
+- **`accept` and `succeed` are both legal terminal transitions for a
+  review-task, with different gate depth.** `succeed` requires the
+  structured handoff (`summary`, `artifacts`,
+  `verification_result.passed: True`); `accept` additionally enforces
+  the reviewer gates for the current candidate and is the right closeout
+  when the review-task itself is the work being closed (both reviewers
+  approved the candidate it reviewed). Whichever is used, read the
+  terminal state back from a fresh ledger replay before reporting it.

@@ -121,3 +121,44 @@ though it had been authorized.
 so the pattern never matches and the count silently comes back wrong. Use
 `fnmatch` (or `Path.glob`) for pattern counts, and assert the count against
 the directory listing before putting it in a packet.
+
+## The packet body must carry the per-file digests, not just point at them
+
+`verify` greps the packet TEXT for each manifest digest (and each file
+path). A packet that says "per-file table: see manifest.json" reports
+INCONSISTENT even when every number is right — one "digest for <path> does
+not appear in the packet" line per file. Always paste the render output, or
+a generated `| path | sha256 |` table, into the packet body, then run
+`verify` against the finished packet as a self-check before handoff. A
+packet author who skips the self-check discovers the omission only when the
+reviewer's gate fires.
+
+## Byte-verify the verifier when it travels with the packet
+
+When the authorization or the packet records the verifier's own SHA-256,
+measure `scripts/packet_identity.py` (or its recorded path — check it;
+a packet that cites a plausible-but-wrong relative path sends the reviewer
+to a nonexistent gate) against the recorded hash BEFORE running any gate.
+A mismatch is a stop-and-explain: state the difference, never substitute a
+conveniently present version and never continue on the unverified one. The
+verifier is itself evidence; its bytes are part of the frozen record.
+
+## Successor candidates: uncommitted repairs and verdict non-transfer
+
+A repair round produces a SUCCESSOR candidate, not a new commit. Freeze and
+present it honestly:
+
+- Identity = base commit + exact diff + per-file digests of the CHANGED
+  files' working-tree bytes, combined with the same path-prefixed recipe.
+  Never present the base SHA as containing the repair — `git rev-parse
+  HEAD` in the successor worktree must equal the base, and `git status
+  --short` must list exactly the declared changed files. State "uncommitted
+  (base + diff)" in the packet header so a reviewer who checks out the base
+  SHA is not misled.
+- The original candidate, packet, manifest, and verdicts stay frozen
+  unchanged. No verdict transfers: a REQUEST_CHANGES on the original says
+  nothing about the successor, and the successor needs BOTH reviewers
+  independently, even the one that never reviewed the original.
+- Re-review questions are mapped finding -> fix -> test in the successor
+  packet so each reviewer can verify the repair against its own prior
+  finding without inheriting its verdict.

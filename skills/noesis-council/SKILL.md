@@ -75,6 +75,65 @@ runners are authorized in this phase.** A governed dispatch adapter
 (Phase E) must be separately authorized; it must reuse existing
 delegation budget/lease/identity protection, never a parallel system.
 
+## Contract, test, and repair rules
+
+These rules come from the phase-by-phase review rounds; apply them to any
+future council contract, engine, or fixture change.
+
+- **Pin the intended negative-validation mechanism, not just the failure.**
+  A negative fixture that asserts only "some validation error occurred"
+  can be passing for an incidental reason. Assert the failing validator
+  keyword (`e.validator == "not"` vs `"additionalProperties"`), add a
+  control case that fails for the distinguishable neighboring reason, and
+  prove the targeted guard is load-bearing by removing it from a deep copy
+  of the schema and showing the fixture then validates. If the removal
+  proves the guard was dead text (another keyword was catching the fixture
+  first), make the intended mechanism real — reshape the fixture so only
+the targeted guard can catch it, or extend the guard's coverage — and say
+so in the repair record. Never write the assertion the reviewer assumed;
+write the one that is true.
+- **Partial results are a first-class shape, not a relaxed completed shape.**
+  When a completed artifact's schema enforces minima (positions, tally
+  rows, kill criteria), define an explicit partial-result variant keyed on
+  a discriminator field (for council: `session_metadata.stop_condition`
+  non-null) with an `allOf` if/then so the completed constraints apply
+  unchanged when the discriminator says completed. Never fabricate entries
+  to satisfy minimum-item constraints, and never report a zero count for
+  work that ran — document what each counter means (for council:
+  `rounds_run` = rounds that completed with full panel quorum) and make the
+  engine report it honestly per failure path.
+- **Exact-count CI assertions move only with evidence, never to floors.**
+  When a repo's combined-suite job asserts an exact pytest count, adding
+  tests legitimately breaks it. Update the count in the same diff, with a
+  dated note naming the added tests and the measured local result. Do not
+  convert exact counts to `>=` to go green, and do not touch pinned
+  historical focused-count jobs — those measure fixed SHAs and must keep
+  their frozen numbers.
+- **Keep repair diffs minimal; never whole-file-rewrite for a targeted
+  change.** Re-serializing a JSON file (e.g. `json.dump` with indent)
+  reformats every line and turns a five-hunk schema edit into a hundreds-of
+  lines diff that reviewers cannot audit. If a programmatic edit inflates
+  the diff, `git checkout` the file and redo the change with targeted text
+  patches.
+- **Call an import guard what it is.** A static AST scan for banned
+  mutator modules is a tripwire, not comprehensive authority isolation.
+  Harden it within its class — check every dotted path segment, names
+  brought in by `from x import store`, and relative imports (`from .
+  import store`, which has no module string to inspect) — and add
+  parametrized snippet tests for the catch and no-false-positive sides.
+  Label it "tripwire" in the test name and docstring so nobody reads it as
+  a complete boundary proof.
+
+## Independent review of a council slice
+
+Council slices are reviewed through the operator-mediated packet flow
+documented in the `noesis-in-fleet-review` skill (see its
+review-packet-identity reference): the operator hand-carries the frozen
+packet; reviewer inference is never launched from the orchestrator. A REQUEST_CHANGES round produces a
+successor candidate (uncommitted base + diff + frozen changed-file
+identities) reviewed by BOTH reviewers independently — no verdict
+transfers between candidates.
+
 ## Evidence ledger
 
 Record per session: parent task id, session id, mode, seat routes and

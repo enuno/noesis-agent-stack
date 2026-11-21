@@ -42,12 +42,23 @@ contracts / operator packets that name a digest.
    contract or packet: git HEADs of both repos, git status manifests, and the
    sha256 of every untracked file compared one by one against the capture.
 5. Scope-check a remediation round against the FROZEN PRIOR candidate before
-   freezing the new one. Reconstruct the prior candidate in scratch:
-   `git archive HEAD | tar -x -C <scratch> && git -C <scratch> apply <frozen-diff>`,
-   then sha256-compare every path in the frozen status manifest except the
-   contracted changed files against the live worktree, and every frozen
-   untracked-manifest entry (except legitimately changed ones) against live
-   hashes. Silence means the worker touched only what the contract allowed.
+   freezing the new one — and build the successor IN that reconstruction,
+   not in the frozen worktree. A reviewed candidate's worktree is evidence:
+   never layer new edits onto it. Create a fresh worktree at the SAME base
+   commit, `git apply` the prior round's frozen patch, and keep THAT as the
+   successor workspace. Prove lineage before touching anything: recompute
+   the path-prefixed NUL-separated sorted digest recipe over the recombined
+   tree and require it to reproduce the prior round's frozen combined digest
+   exactly — only then make Repair-N edits on top. Record the lineage in the
+   new manifest (`base + overlay digest <prior> + <new> delta`) so a reviewer
+   can re-derive ancestry. Reconstruct via
+   `git worktree add <dir> -b <new-branch> <base-sha> && git -C <dir> apply <frozen-diff>`
+   (or `git archive HEAD | tar -x -C <scratch> && git -C <scratch> apply
+   <frozen-diff>` where a worktree is unsuitable), then sha256-compare every
+   path in the frozen status manifest except the contracted changed files
+   against the live worktree, and every frozen untracked-manifest entry
+   (except legitimately changed ones) against live hashes. Silence means the
+   worker touched only what the contract allowed.
 6. Compute the reviewer-side pins (profile manifests for each reviewer profile)
    and confirm source-base HEADs are unchanged.
 7. Only then write reviewer contracts and the operator packet naming the digest,
@@ -59,6 +70,13 @@ contracts / operator packets that name a digest.
 
 ## Pitfalls
 
+- An empty `git diff HEAD` is not an empty candidate. When porcelain
+  `-uall` lists in-scope untracked files, the identity is the base commit
+  plus the combined digest of those files. Do not bind a review to the
+  empty-diff hash alone.
+- A contract base token whose length is not 40 or 64 hex characters is a
+  typo, not a stop, once `git rev-parse HEAD` has been measured. Pin that
+  measured HEAD. Stop only if HEAD differs from the pin.
 - `--verify` hashes the stored evidence files only — it is a self-consistency
   check and silently passes even when the live tree has drifted. A verify MATCH
   proves nothing about the current tree; only the full live comparison does.
@@ -66,10 +84,52 @@ contracts / operator packets that name a digest.
 - Capture ordering: if the digest comes out wrong, suspect a file written into
   the tree between capture and manifest (receipts are the usual culprit).
   Re-capture from a clean tree and recompute; do not patch the manifest by hand.
+- Agent patch appends commonly leave a double newline at EOF (`git diff --check`:
+  "new blank line at EOF"), and diff-hygiene CI fails the whole event-tree job on
+  that one byte. After ANY edit to a candidate file, strip to exactly one trailing
+  newline and run `git diff --check` over the entire candidate — not only the file
+  just edited — before validating or freezing.
+- Committed-message equivalence: `git commit -F <file>` appends a trailing newline
+  when the file lacks one, so the committed message bytes differ from the message
+  file by that byte. Hash the committed blob (`git log -1 --format=%B`) or compare
+  stripped text; never declare a message mismatch or match from a raw byte compare
+  of the file alone.
+- The combined-digest recipe "sorted path, NUL, file hexdigest, NUL" concatenates
+  the ASCII hex string, not the raw 32-byte digest. A raw-bytes join will not match.
+- Do not stack a separate experiment onto a repair candidate merely because it
+  shares a base. If that experiment refuses the real subprocess when a proof is
+  missing, stacking it disables launches the repair still intends. Leave it off
+  the candidate and say why.
+- `git diff --check` does not run the event-tree secret scanner. That job scans
+  the full text of every file changed versus the PR base with `agency/secretscan.py`,
+  not the diff hunks. `scan_file` takes a path; `scan_text` takes the file text. Passing both to `scan_file` raises TypeError and is not a clean scan. The scanner flags a credential keyword used as an assignment target
+  (`secret =`, `API_KEY=`), not only a long literal after `=` or `:`. Do not
+  name the variable or keyword argument with a credential word. Build a probed
+  key by concatenation (`"API" + "_KEY"`) and store the marker in a neutrally
+  named variable. Splitting a constant does not clear the hit if the assignment
+  still holds the long literal. Report the path and keyword only. Do not print
+  the matched value.
+- Pytest rewrites `assert actual == SECRET` and prints the value on failure. Compare
+  through a helper that raises `AssertionError` with a fixed label, so the secret is
+  not an operand of an assert.
+- A pull_request job checks out GitHub's merge commit, not the branch tip. Report
+  that checkout SHA separately from the head. A later tree match after pinned merges
+  is not execution of the tip. Socket success is not the event-tree scan. An
+  `action_required` run with zero jobs is neither a pass nor a fail, and a green job
+  on a descendant does not rewrite an ancestor's failed job.
+- A file-tool child verdict is not a Sentinel or Skeptic receipt. Record the
+  delegation id and model, and say so. A review thread marked resolved is GitHub
+  metadata, not proof the current head still satisfies the comment — re-read the
+  comment against the current file before treating it as closed.
 - Digest discipline: a superseded digest is recorded in the chronology and then
   never used again — reviewer contracts, packets, and verdicts name exactly one
   digest, and a verdict bound to digest A never transfers to digest B (prior-round
   verdicts are terminal for their own candidate).
+- Every review round gets NEW artifact filenames (a round suffix such as
+  `-repair2-`); the prior round's packet, manifest, patch, receipts, and
+  transcripts stay byte-identical forever. Never edit a historical packet to
+  make its old claims read as correct — issue a successor packet that names
+  the corrected framing and the prior artifact's inaccuracy explicitly.
 - Declare, don't conceal: if the live tree diverged from earlier evidence (e.g.
   an edit made outside the recorded workflow), state the divergence and its
   provenance in the fresh-stability receipt rather than absorbing it silently.
@@ -94,6 +154,21 @@ contracts / operator packets that name a digest.
   environmental failure that reads as a candidate defect. Verify every test
   command in an orchestrator-authored remediation contract by executing it
   once (with the exact env prefix) before dispatch.
+- A closed-set porcelain equality test is not a harness non-interference
+  check. It fails a developer checkout that already has unrelated dirt,
+  and it fails CI once the closed-set files are committed and status is
+  empty. If the claim is "the harness wrote nothing during the run,"
+  snapshot Git-visible paths at the start of the tested interval and fail
+  only on a new path or a content change to a path already dirty. Keep
+  the limits: ignored files, transient create-then-delete, and writes
+  outside that Git root are not proved absent by either snapshot.
+- **Update exact-count CI assertions only for OBSERVED count changes, and
+  check the focused-suite selections first.** A suite-wide count change does
+  not imply every asserted count changes: read the focused jobs' file lists to
+  see whether they even select the suites you touched (e.g. a council-suite
+  delta leaves focused dispatch/routing counts unchanged). Update only the
+  counts you measured, with a dated note naming what was added — never lower
+  an expectation to hide a failure, and never raise one in anticipation.
 - **Extend the freeze's closed path set BEFORE re-freezing when a repair
   contract permits a NEW file.** A repair cycle allowed to add a regression
   test file otherwise makes that file read as out-of-scope drift: the freeze
@@ -105,8 +180,29 @@ contracts / operator packets that name a digest.
   the bytes they actually reviewed.
 - Verify each repair regression's teeth by mutation before freezing: copy the
   whole tree, revert only the fix, and confirm the regression fails for the
-  intended reason. See `noesis-control-plane-dev` for the exact recipe and the
+  intended reason. A test that passes a policy flag to the constructor does
+  not pin a factory that is supposed to set that flag — drop the flag from the
+  factory method and require a red test that builds through the factory. A TypeError from a later comparison (`None < 0` after the
+  type check was removed) is not that reason — the test must fail because the
+  bad case was accepted or the refusal escaped, not because the mutated code
+  crashed. In a Repair-N cycle the revert baseline is the prior round's
+  reconstructed tree (step 5 reproduces it), not the original merge base — a
+  test that also passes on the prior round pins nothing new. Parametrized cases
+  that share a process-global attempt budget must use a distinct key per case;
+  otherwise a later case is refused before the assertion under test. See
+  `noesis-control-plane-dev` for the exact recipe and the
   fixture-resolution pitfall.
+- **A repair that adds a REQUIRED field to an existing contract has chosen a
+  breaking change — resolve it deliberately, not by default.** First check
+  whether any producer, fixture, or consumer actually needs the field absent:
+  if not, the smallest coherent fix is usually to make the field OPTIONAL with
+  explicitly documented absent-semantics (a conditional branch that treats
+  absent-or-default as the legacy shape), not a version bump — a filename
+  change or a prose note is NOT versioning. Whichever option is chosen, pin the
+  boundary with tests for all of: the previously valid artifact, the new
+  shape, malformed values, rejection of invalid completed shapes, and
+  non-broadened minimums. Report the chosen option, the actual compatibility
+  boundary, and the rationale in the successor packet.
 - **Key every review artifact path to the candidate identity, not to a fixed
   name.** The freeze tool is the generator: if it emits `VERDICT-1.md`, the
   reviewer writes there — correctly, because the contract names that path —

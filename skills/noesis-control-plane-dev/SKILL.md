@@ -19,6 +19,9 @@ and acceptance gates, plugin exposure, and staged activation in
 `~/projects/noesis-agent-stack`. These are verification requirements, not a
 claim that the current implementation satisfies them.
 
+Council phase letters and seat-credential isolation:
+`references/council-phase-and-seat-credentials.md`.
+
 ## Procedure
 
 1. **Re-establish authority and evidence.** Read repository instructions, the
@@ -261,12 +264,7 @@ claim that the current implementation satisfies them.
  backends disabled; specialist-native success does not verify them. Report
  an incomplete observation window honestly. If a gate blocks live work,
    finish feasible offline work and request only the precise remaining action.
-   For the prodqual loopback target's authorized apply, use
-   `references/prodqual-apply-runbook.md` — the approval-time extra-var
-   binding, the Ansible config selection that avoids the repo-root vault
-   reference, the live destination preflight checklist, and the same-UID
-   prototype-label halt that must be resolved by the operator before any
-   re-attempt. After clean reconstruction and every required independent review passes, request the exact installation/port proposal for that pinned identity; do not treat qualification as installation authority. If dependency discovery exposes a code defect, authorize or request only the bounded repair, then reconstruct and re-review the changed identity. If an environment prerequisite is missing, request the specific environment setup rather than permission to alter the candidate. Do not loop through unchanged status reports, rerun already-current tests/status checks, or poll for absent results while awaiting an external executor or decision; repeated restatement of the standing goal is not a new authorization. Present the unresolved material choice once through `clarify` with the recommended option first, then stop until the operator answers rather than producing another prose blocker digest.
+   For an operator-authorized bounded runtime qualification on a named Linux host, follow `references/runtime-qualification.md` (container isolation, the hermetic-fixture requirement, zombie/setsid harness pitfalls, receipt discipline). For the prodqual loopback target's authorized apply, use `references/prodqual-apply-runbook.md` (extra-var binding, vault-avoiding config selection, destination preflight, same-UID prototype halt). After clean reconstruction and every required independent review passes, request the exact installation/port proposal for that pinned identity; qualification is not installation authority. If dependency discovery exposes a code defect, authorize or request only the bounded repair, then reconstruct and re-review the changed identity. If an environment prerequisite is missing, request the specific environment setup rather than permission to alter the candidate. Do not loop unchanged status reports or poll for absent results while awaiting an external decision; restating the goal is not a new authorization. Present the unresolved choice once through `clarify` (recommended option first); its deadline often expires unanswered — a timeout is never consent. A later plain-prose answer ("approved", "try again") confirms the exact inputs already on record; continue subsequent confirmations in prose.
 
 ## New Noesis profile registration discipline
 

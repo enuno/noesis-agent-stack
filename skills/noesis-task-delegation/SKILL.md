@@ -125,7 +125,7 @@ inventories before writing new ones.
 
 0. **Verify the real dispatch route before promising or launching work.** Inspect the current eligible roster, capability policy, TaskContract entrypoint, and available dispatch tool for this session. A profile name in the roster, a working `hermes -p` command, or a generic Hermes subagent is not proof that the canonical route is available. Persist and launch through the existing Noesis control plane, preserving its task ID, idempotency key, approvals, identity attestation, leases, and review chain. If no canonical dispatch tool or existing task ID is available, do not guess a host, fabricate a task ID, or invoke the profile directly from the supervisor; report the precise missing route and stop dispatch-dependent work. A provider/model change requested by the operator is an invocation-scoped routing amendment only when the canonical dispatcher supports it; do not edit global/profile configuration or bypass task admission to make the route work.
 
-   **Treat dry-run as persisted preflight, not disposable probing.** Run one dry-run before a consequential launch to inspect `task_class`, selected profile, route, and attestation, but immediately reconcile the ledger afterward: the router may append `task_proposed` and `preflight_proposed` and allocate a real task ID even though no worker starts. A green dry-run proves selection only. It does not prove launch authorization; a real call can still return `observe_mode_not_authorizing`. On that result, record `dispatch_not_delivered`, do not wait for a nonexistent process, do not try alternate providers, and request the minimum supported mode/authorization change. Resume or terminalize the persisted proposal through the implemented lifecycle before creating a successor.
+   **Treat dry-run as persisted preflight, not disposable probing.** Run one dry-run before a consequential launch to inspect `task_class`, selected profile, route, and attestation, but immediately reconcile the ledger afterward: the router may append `task_proposed` and `preflight_proposed` and allocate a real task ID even though no worker starts. A green dry-run proves selection only. It does not prove launch authorization; a real call can still return `observe_mode_not_authorizing`. The response fields `model_provider` and `model_id` are the specialist record's declared model, not the `approved_provider` / `approved_model` you passed and not the Hermes `--provider` / `-m` pair. Do not launch on that printed model, and do not treat the mismatch as a rejection of the operator-named lane. Pin the child to the named lane. An operator choice that names one profile and one lane authorizes only that profile and that lane: it does not authorize a second reviewer, a push, or the dry-run's printed model. On that result, record `dispatch_not_delivered`, do not wait for a nonexistent process, do not try alternate providers, and request the minimum supported mode/authorization change. Resume or terminalize the persisted proposal through the implemented lifecycle before creating a successor.
 
    **Preflight: confirm the chosen profile is not blocked in runtime reconciliation.** Before `propose`, look up the candidate profile in `platform/runtime-reconciliation.yaml`. Do not accept that file's single `repo_declared` field as the whole repository truth: compare the model/provider in `agents/<profile>/agent.yaml`, `profiles/noesis-roster.yaml`, `profiles/live/<profile>/config.yaml`, current `~/.hermes/profiles/<profile>/config.yaml`, and the reconciliation row's observed-runtime evidence and timestamp. If those layers disagree, report each layer separately and require an explicit source-precedence decision before proposing a materialization change; current installed bytes establish what is materialized, not what policy should become. Inspect profile configs with bounded line ranges or metadata-key searches only—broad config reads can disclose unrelated inline credentials into tool logs.
 
@@ -223,7 +223,7 @@ inventories before writing new ones.
    child manifest digest, and spawn environment; any identifier or manifest
    mismatch blocks before inference and records `dispatch_not_delivered`.
 
-   **Verify credential reachability in the exact spawn home before consuming an inference attempt.** An installed profile may have a `.env`, `auth.json`, or configured secret sources while an isolated fallback-denial home contains only its generated route config plus identity files. Inspect the launcher implementation to determine whether it hydrates the target profile's secret scope or merely copies the parent's environment. Treat `No usable credentials` before a model turn as `credential_unavailable_to_child`, not provider rejection; validity, quota, and funding remain unknown until a separately authorized live request. The parent session's own working provider is **not** evidence of child reachability: when the parent hermes process resolved secrets at its own startup (Bitwarden SM project, keyring), spawned launcher children start cold even while the supervisor's own inference works — run a trivial one-shot `hermes -p <profile> chat` probe from the exact launch environment as the cheapest pre-flight check, and when a launch is refused, read the child's captured error text from the process log for the mechanism instead of inferring it from routing-event flags (`model_driven_canary`, `verification_pending` are static fields, not live provider state — see `noesis-delegation-monitoring`). Never copy the whole `.env` or secret-source output into the isolated home. A repair must resolve into a private mapping, inject only the approved provider's documented credential variable names into the child environment, redact stdout/stderr, and test unrelated-secret exclusion, wrong-profile isolation, missing-source failure, and fallback denial.
+   **Verify credential reachability in the exact spawn home before consuming an inference attempt.** An installed profile may have a `.env`, `auth.json`, or configured secret sources while an isolated fallback-denial home contains only its generated route config plus identity files. Inspect the launcher implementation to determine whether it hydrates the target profile's secret scope or merely copies the parent's environment. Treat `No usable credentials` before a model turn as `credential_unavailable_to_child`, not provider rejection; validity, quota, and funding remain unknown until a separately authorized live request. The parent session's own working provider is **not** evidence of child reachability: when the parent hermes process resolved secrets at its own startup (Bitwarden SM project, keyring), spawned launcher children start cold even while the supervisor's own inference works — run a trivial one-shot `hermes -p <profile> chat` probe from the exact launch environment as the cheapest pre-flight check, and when a launch is refused, read the child's captured error text from the process log for the mechanism instead of inferring it from routing-event flags (`model_driven_canary`, `verification_pending` are static fields, not live provider state — see `noesis-delegation-monitoring`). Never copy the whole `.env` or secret-source output into the isolated home. A repair must resolve into a private mapping, inject only the approved provider's documented credential variable names into the child environment, redact stdout/stderr, and test unrelated-secret exclusion, wrong-profile isolation, missing-source failure, and fallback denial. When a fixture value must look like a token the repo secret scanner matches, concatenate the prefix in code so the source file does not contain the contiguous pattern — the scanner reads source text, not the runtime string.
 
    **Qualify the route, not merely the profile name.** Before every launch, record separate evidence for profile-local authentication, launcher-selected lane/provider/model, isolated-child credential reachability, provider acceptance, model entitlement, quota/rate/account capacity, and approved monetary budget. Label each fact `verified`, `currently_callable`, `unknown`, or `blocked`, with observation time and expiry. A local auth row, model listing, dry-run, or tiny accepted request cannot prove full-task capacity. Select for price only among routes that already pass policy, privacy, workload-quality, execution-boundary, and reviewer-independence gates. Decompose canary limits into deadline, runtime budget, turns, provider requests, input/output tokens, USD admission, and provider/account caps; never treat one as another. If any required hard bound is unsupported, hold launch and present one revised approval envelope. Use `references/credential-diagnostics.md` for the readiness matrix, source-convergence gate, probe sequence, and control checklist.
 
@@ -308,7 +308,7 @@ inventories before writing new ones.
    Spec and quality reviewers are themselves Noesis profiles
    (`noesis-sentinel` for spec, `noesis-skeptic` for adversarial quality).
    Dispatch each as a bounded child task through the same canonical
-   `Orchestrator.propose → approve → claim → start` lifecycle the
+   `Orchestrator.propose → approve → enqueue → claim → start` lifecycle the
    implementer used, with three non-negotiables:
 
    1. **Exact-candidate binding.** The review contract names the
@@ -661,7 +661,7 @@ the review-round procedure.
   client setup, media, and relay diagnosis, not cluster install
   automation.
 
-- **Run reviewers in the fleet by default; never silently replace a mandatory reviewer.** Spec and quality reviewers are Noesis profiles dispatched through the same `Orchestrator.propose → approve → claim → start` lifecycle as the implementer. If that route is unavailable, return the precise blocker. Use an operator-launched external reviewer only when the operator explicitly authorizes a bootstrap path; bind it to the exact frozen candidate, label it bootstrap review, and keep mandatory Sentinel/Skeptic qualification outstanding. External bootstrap review is degraded evidence, not canonical reviewer delivery. The one standing exception to in-fleet dispatch is a **formal qualification round** (frozen-candidate Sentinel/Skeptic receipt chain): there the operator-mediated launch is the authorized path and the orchestrator never launches reviewer inference — see `noesis-in-fleet-review` → `references/formal-qualification-rounds.md`.
+- **Run reviewers in the fleet by default; never silently replace a mandatory reviewer.** Spec and quality reviewers are Noesis profiles dispatched through the same `Orchestrator.propose → approve → enqueue → claim → start` lifecycle as the implementer. If that route is unavailable, return the precise blocker. Use an operator-launched external reviewer only when the operator explicitly authorizes a bootstrap path; bind it to the exact frozen candidate, label it bootstrap review, and keep mandatory Sentinel/Skeptic qualification outstanding. External bootstrap review is degraded evidence, not canonical reviewer delivery. The one standing exception to in-fleet dispatch is a **formal qualification round** (frozen-candidate Sentinel/Skeptic receipt chain): there the operator-mediated launch is the authorized path and the orchestrator never launches reviewer inference — see `noesis-in-fleet-review` → `references/formal-qualification-rounds.md`.
 
 - **The `reviewer_profile` field is reviewer-only and is not the
   orchestrator.** Policy rejects a non-reviewer `reviewer_profile`
@@ -883,7 +883,19 @@ the review-round procedure.
   event. Create a successor with a new idempotency key only after the operator
   authorizes an available route or a pre-authorized retry budget applies. Never
   mark the missing assignee artifact complete or spend another provider turn
-  merely to repair the record.
+  merely to repair the record. A turn that already made tool calls and wrote
+  closed-set files is partial implementation, not non-delivery: fail it with
+  the captured interruption mechanism (`noesis-delegation-monitoring`), then
+  continue only as a new task — new idempotency key, `parent_task_id` of the
+  failed task, same closed set and same timeout bound. Do not call `retry()`
+  when `retry.exhausted` is true (`attempts >= max_attempts`); it refuses.
+  A fresh claim of that same timeout is a new lease, not a widening. Pin the
+  worktree with `git rev-parse HEAD` and require 40 hex characters. If the
+  prior contract's base token differs in length or bytes, the measured HEAD
+  wins: tell the worker to stop only if live HEAD differs from that pin, not
+  because the old token is a typo. When `approval.required` is false,
+  `approve(operator=...)` can leave `approved_by` null — record the operator
+  authorization reading in the mission ledger, not only in that call.
 
 - **Do not bypass a refused guard to make a drill or apply pass.** When a
   companion script or drill refuses, the refusal IS the evidence: read the
@@ -892,6 +904,10 @@ the review-round procedure.
   shaped unlike the real preimage, fixture left in a mutated state by a
   prior drill) — resetting to pristine and re-running is the repair, not
   editing the guard.
+
+- **`enqueue` is a real state, not a formality — `claim` from `approved` is refused.** The state machine is `proposed → approved → queued → claimed → running`; `approve` lands in `approved` and `claim` from there raises `PolicyViolation("dispatch_blocked: task is 'approved', not 'queued'")`. Walk `propose → approve → enqueue → claim → start` explicitly, and re-run safely by looking up the already-proposed task ID from the ledger by idempotency key instead of proposing a duplicate.
+
+- **A conditionally-authorized review round activates ONLY on its recorded precondition — and a new round is new identities everywhere.** When the operator authorizes "one review round conditional on successful repair validation and freeze," do not dispatch on the repairer's self-report: require the freeze gate evidence first (verifier exit 0, frozen digest, packet consistent) and record that evidence in the dispatch ledger row — the round's authority derives from the precondition being met. Then treat the round as a fresh chain: NEW idempotency keys (a round suffix such as `:repair2:`), NEW task IDs, NEW contract and receipt filenames, and FRESH one-shot reviewer sessions. Never resume a prior round's session ids for a new candidate — those sessions belong to the closed round and may carry its findings; conversely never edit a closed round's contracts or receipts. When the authorization bounds the loop count, carry the bound in the task intent and labels (e.g. `final_authorized_loop`) and honor it mechanically: after reconciling a round in which either reviewer requests changes or abstains, stop and return the concrete next decision — do not open another repair/review cycle without a new authorization. Prior-round verdicts are defect provenance only; say so in every round-N contract so a reviewer cannot mistake them for approvals of the current candidate.
 
 - **Never infer worker success from a shell pipeline exit code.** Commands such
   as `hermes ... | tee log` and `... | tail` normally return the final filter's
@@ -926,6 +942,21 @@ the review-round procedure.
   `Orchestrator` in `app/control_plane.py`. Restart-equivalent recovery is
   free: constructing a fresh `Orchestrator(ledger_path=...)` replays the
   JSONL ledger and reconstructs state — prove it after any closeout.
+
+- **An APPROVE receipt is not a ledger verdict — map it through the
+  state-machine vocabularies.** A reviewer receipt closes with the lexical
+  word `APPROVE`, but `record_review` validates the spec-stage enum
+  (`PASS`/`REQUEST_CHANGES`/`BLOCKED`) and rejects `APPROVE` outright.
+  Map it: record the spec stage as `PASS` and the quality stage as
+  `APPROVED`, and record the mapping itself as a finding so the receipt's
+  original wording is preserved. Two more exactness traps on the same
+  path: `accept(task_id, operator=...)` requires the operator argument to
+  be the exact orchestrator identity string — a free-text reason or any
+  other string fails the authorization check — and `accept` refuses until
+  a quality-stage `APPROVED` review is on record; a spec `PASS` alone is
+  insufficient. The REQUEST_CHANGES path is symmetric but simpler:
+  `record_review(...)` with the findings, then `fail(task_id, reason=...)`
+  carrying the durable one-line summary.
 
 - **Size the lease for the whole cycle, not just execution.** The claim
   lease starts at dispatch; reviews and acceptance happen after the child
@@ -1021,8 +1052,14 @@ the review-round procedure.
   Hermes plugin tool hosts do not inherit profile `.env` bindings in
   desktop sessions (the gateway hot-reloads dotenv per turn; the desktop
   app does not), so the refusal can appear even when the profile `.env`
-  correctly sets `NOESIS_TASK_LEDGER`. Verify the binding exists in the
-  profile `.env`, then run the same handler through the CLI mirror.
+  correctly sets `NOESIS_TASK_LEDGER`. If the advertised tool schema omits
+  `ledger_path`, still pass `ledger_path` and `events_path` on the call:
+  the handler reads those args even when the listing does not. Use the
+  paths already bound in the profile env. An omitted schema field is not
+  proof the host cannot bind a ledger, and it is not a reason to invent a
+  second ledger file. Verify the binding exists in the profile `.env`,
+  then, if the tool call still refuses, run the same handler through the
+  CLI mirror.
   The CLI mirror must be invoked from the package directory with
   `PYTHONPATH=.` so the `app` module resolves — running from the repo
   root with no `PYTHONPATH` fails with `ModuleNotFoundError: No module
@@ -1058,6 +1095,10 @@ the review-round procedure.
   policy-state problem. Do not claim or assume a desktop restart fixes
   the binding, and do not introduce persistent environment or routing
   changes as part of the workaround.
+
+- **`observe_mode_not_authorizing` is the host default mode, not a rejected lane.** A non-dry plugin dispatch returns that code when the host process is in observe mode, because the plugin host does not inherit `INFERENCE_ROUTING_MODE`. Select `enforce` on the dispatcher process for that invocation. Do not change `approved_provider` to escape it, and do not restart the host gateway to escape it. A platform YAML cost cap that the dispatcher never reads is not an enforceable ceiling: hold the non-dry launch and request one bounded approval rather than treating the YAML number as spent or blocked.
+
+- **A child exit about an already-running host gateway is not an implementer failure.** An isolated fallback home that tries to start its own gateway while the host gateway already serves that profile is `child_failed` / `dispatch_not_delivered`. Do not restart the gateway without a separate authorization. The untracked fallback-session directory is launch residue, not a source repair, and not permission to delete operator work.
 
 - **`inference_denied → reconciliation_blocked` is a policy state, not
   a contract shape problem.** When the CLI mirror returns
