@@ -1,6 +1,6 @@
 ---
 name: noesis-control-plane-dev
-version: 1.5.0
+version: 1.6.0
 author: noesis-orchestrator
 license: Proprietary
 description: "Use when changing Noesis routing or task lifecycle."
@@ -322,12 +322,12 @@ and review provenance stay authoritative. See
   detection trips the repo-wide scan itself. Construct the token dynamically
   at test runtime (string concatenation across literals defeats the static
   regex while still exercising the detector).
-- Before treating a full-suite failure inside a fresh worktree as a
-  regression, check whether the failing test reads a fixture under `workspace/`:
-  `git ls-files <path>` empty means the fixture is an untracked local artifact
-  that no checkout contains. Copy it from the operator's main checkout to run
-  the suite, and report it as an environmental defect — do not edit the test
-  to tolerate the missing file.
+- A full-suite failure in a fresh worktree may be a fixture gap, not a
+  regression: when the failing test reads a fixture under `workspace/`,
+  `git ls-files <path>` empty means an untracked local artifact no checkout
+  contains — copy it from the operator's main checkout and report it as
+  environmental; never edit the test to tolerate the missing file.
+  Gate-defect repair mechanics: `references/gate-regression-repair.md`.
 - **A non-strict `xfail` marker on an already-repaired defect reports XPASS
   forever.** The gate-defect regression file marks known defects
   `xfail(strict=False)`; when the underlying production fix lands, the test

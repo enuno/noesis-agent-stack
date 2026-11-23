@@ -1,7 +1,7 @@
 ---
 name: noesis-skill-sync
 description: "Use when editing any noesis-* skill: sync + commit it."
-version: 1.0.0
+version: 1.0.2
 metadata:
   noesis:
     owner_profile: noesis-orchestrator
@@ -27,6 +27,9 @@ An uncommitted local skill edit is a policy violation, not a pending chore.
   later turn is drift, and the pre-commit gate will block the next commit.
 - Seeing drift in `scripts/sync-noesis-skills.py --status` or `--check`.
 - Reviewing or committing anything that touches `noesis-agent-stack/skills/`.
+- Reconciling a dirty operational checkout after `origin/main` has moved far
+  ahead (pull refuses, skills drifted): see
+  `references/reconcile-dirty-checkout.md`.
 
 ## Procedure
 
@@ -69,8 +72,10 @@ An uncommitted local skill edit is a policy violation, not a pending chore.
   worktree's `skills/` is perfectly in sync. The remedy is to sync the
   OPERATIONAL checkout too - but back up the operator's uncommitted `skills/`
   tree first and verify the sync is lossless, because `--sync` deletes and
-  recreates each destination directory and would discard untracked files there.
-  Never bypass this with `--no-verify`.
+  recreates each destination directory and would discard untracked files
+  there. A skills-touching commit in a linked worktree therefore fails with
+  `pre-commit: FAIL - noesis skill drift` even when that worktree's `skills/`
+  is perfectly in sync. Never bypass this with `--no-verify`.
 
 - **`HERMES_HOME` is not the scan root.** Inside a fleet profile session it points
   at the profile dir (`~/.hermes/profiles/<p>`), which has no `profiles/` child.
@@ -102,7 +107,24 @@ An uncommitted local skill edit is a policy violation, not a pending chore.
   differed before the curator's edit — i.e. the drift pre-dates the curator
   run and pre-dates your session). Compare hashes and mtimes before
   attributing drift to yourself, and before reporting a drift you did not
-  cause as your own uncommitted skill edit.
+  cause as your own uncommitted skill edit. Reproduce the failure in the
+  UNTOUCHED operational checkout before attributing it: `--check` failing
+  identically there proves the drift is environmental rather than something
+  your candidate or worktree introduced. Attribute per skill with
+  `grep -h <skill> ~/.hermes/profiles/*/skills/.curator_ledger.jsonl` —
+  curator entries timestamped after the last green sync commit are
+  curator-caused. Until such drift is synced and committed it blocks the NEXT
+  SKILLS-TOUCHING commit, not every commit: Gate 3 (guard_skill_sync) diffs
+  the staged paths and runs --check only when the commit touches
+  skills/noesis-*/ or the manifest, skipping cleanly otherwise; Gate 1
+  (agency/validate-specs.py) is the gate that runs on every commit. Report
+  the drift with its remediation command as a separate work unit and sequence
+  it before that skills commit, not before unrelated commits. Read
+  scripts/hooks/pre-commit to confirm a gate's scope before asserting what
+  it blocks — mechanism descriptions in docs and skills go stale, and the
+  installed hook (a symlink target) resolves its repo root from its own
+  path, so Gate 3 always checks the operational checkout no matter where
+  you commit from.
 
 - **When an envelope forbids touching the operational checkout or
   committing, REPORT drift — do not remediate it.** `--sync` writes into the
@@ -121,7 +143,12 @@ An uncommitted local skill edit is a policy violation, not a pending chore.
   uncommitted repo tree — never carried into any profile working copy —
   vanishes without a trace. Before running `--sync` on a dirty checkout, find
   content that exists in the repo tree but in NO profile source, save it as a
-  patch outside the repo, and flag it to the operator. The correct channel
+  patch outside the repo, and flag it to the operator. Verify the snapshot
+  actually contains each block — grep it for a distinctive substring — before
+  syncing: a plain `git diff` capture can silently omit content you believe
+  you preserved, and `--sync` deletes and recreates each destination
+  directory. See `references/reconcile-dirty-checkout.md` for the full
+  procedure, including how to audit uniqueness without trusting diff output. The correct channel
   for keeping it is editing the profile working copy and re-syncing — never
   hand-patching the repo copy.
 

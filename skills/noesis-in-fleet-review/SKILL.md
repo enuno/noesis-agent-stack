@@ -1,7 +1,7 @@
 ---
 name: noesis-in-fleet-review
 description: "Run Noesis Sentinel and Skeptic as in-fleet child sessions."
-version: 0.4.1
+version: 0.4.2
 author: noesis-orchestrator
 license: MIT
 metadata:
@@ -377,6 +377,18 @@ Do not use for:
    and do not open another group's budget without saying so.
 
 ## Pitfalls
+
+- **An uncommitted working-tree candidate still has a stable identity, but
+  only when the recipe for each hash is named.** Bind: baseline commit +
+  `git diff HEAD | shasum -a 256` + per-file sha256 of each worktree file. A
+  worktree file sha256 NEVER equals `git cat-file blob <rev>:<path> | shasum
+  -a 256` (blob hashing prefixes type and length), and with no commits there
+  is no tip blob to cite anyway — record which recipe produced each hash or
+  the reviewer recomputes against the wrong one and blocks at the identity
+  gate. Environmental fixtures needed for a parity run (e.g. a gitignored
+  ledger copied in from the operational checkout) must be REMOVED before
+  freezing and their reproduction source disclosed in the packet, so
+  `git status --porcelain` shows exactly the candidate paths.
 
 - **Do not label a file-tool review as a Sentinel or Skeptic profile receipt.** When the operator authorizes an independent file-tool review because governed spawn cannot bootstrap, use that mechanism, record the actual child identity and model, and say it is not a profile attestation. Do not route it through the broken launcher, and do not block the authorized offline repair on that launcher repairing itself. If either reviewer returns REQUEST_CHANGES or ABSTAIN, stop. Do not open a second repair cycle the envelope did not grant.
 
